@@ -1,13 +1,26 @@
+// script-admin.js
+
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token = localStorage.getItem('token');
-if (!token) window.location.href = 'login.html';
+if (!token) {
+  window.location.href = 'login.html';
+}
 
-const app = document.getElementById('app-admin');
 const headers = {
   'Content-Type': 'application/json',
   'Authorization': `Bearer ${token}`
 };
 
+const app = document.getElementById('app-admin');
+
+// helper to GET and parse JSON
+async function fetchJSON(path) {
+  const res = await fetch(API_BASE + path, { headers });
+  if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+// wire up navigation links
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -17,72 +30,98 @@ document.querySelectorAll('[data-view]').forEach(el =>
 
 async function loadAdminView(view) {
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
-  switch (view) {
-    case 'users':    return showUsers();
-    case 'roles':    return showRoles();
-    case 'products': return showProducts();
-    case 'quotes':   return showQuotes();
-    case 'orders':   return showOrders();
-    case 'jobs':     return showJobs();
-    case 'crm':      return showCRM();
-    case 'hr':       return showHR();
-    case 'finance':  return showFinance();
-    case 'reports':  return showReports();
-    default: app.innerHTML = '<p>Unknown view</p>';
+  try {
+    switch (view) {
+      case 'users':  return showUsers();
+      case 'roles':  return showRoles();
+      default:
+        app.innerHTML = `<p>View "${view}" not implemented yet.</p>`;
+    }
+  } catch (err) {
+    app.innerHTML = `<div class="alert alert-danger">Error loading ${view}: ${err.message}</div>`;
   }
 }
 
+// Show list of users and allow role assignment
 async function showUsers() {
-  const users = await fetchJSON('/users');
-  const allRoles = await fetchJSON('/roles');
+  // fetch all users and roles
+  const [users, allRoles] = await Promise.all([
+    fetchJSON('/users'),
+    fetchJSON('/roles')
+  ]);
 
-  const html = users.map(u => {
-    const userRoles = JSON.parse(localStorage.getItem('roles')); // admin’s roles
-    return `
-      <div class="card mb-2 p-3">
-        <strong>${u.name} (${u.email})</strong>
-        <select id="roles-${u.id}" class="form-select form-select-sm my-2">
-          ${allRoles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-        </select>
-        <button class="btn btn-sm btn-primary"
-          onclick="updateUserRole(${u.id})">
-          Update Role
-        </button>
+  // build HTML
+  const html = users.map(u => `
+    <div class="card mb-3 p-3">
+      <div class="row align-items-center">
+        <div class="col-md-4">
+          <strong>${u.name}</strong><br>
+          <small>${u.email}</small><br>
+          <small>Phone: ${u.phone_number || '—'}</small>
+        </div>
+        <div class="col-md-4">
+          <label for="role-select-${u.id}" class="form-label">Role</label>
+          <select id="role-select-${u.id}" class="form-select">
+            ${allRoles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="col-md-4 text-end">
+          <button class="btn btn-primary"
+            onclick="updateUserRole(${u.id})">
+            Update Role
+          </button>
+        </div>
       </div>
-    `;
-  }).join('');
+    </div>
+  `).join('');
 
-  app.innerHTML = `<h3>Manage Users & Roles</h3>${html}`;
+  app.innerHTML = `<h3 class="mb-4">Manage Users</h3>${html}`;
+
+  // after injecting, fetch each user’s current role and set the select
+  for (let u of users) {
+    try {
+      const userRoles = await fetchJSON(`/users/${u.id}/roles`);
+      if (userRoles.length) {
+        document
+          .getElementById(`role-select-${u.id}`)
+          .value = userRoles[0].id;  // assume single role
+      }
+    } catch (err) {
+      console.warn(`Could not fetch roles for user ${u.id}:`, err);
+    }
+  }
 }
 
+// Send updated role to backend
 async function updateUserRole(userId) {
-  const sel = document.getElementById(`roles-${userId}`);
-  const roleId = sel.value;
-  await fetch(`${API_BASE}/users/${userId}/roles`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({ roles: [roleId] })
-  });
-  alert('Role updated.');
+  const select = document.getElementById(`role-select-${userId}`);
+  const roleId = select.value;
+  try {
+    await fetch(`${API_BASE}/users/${userId}/roles`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ roles: [roleId] })
+    });
+    alert('Role updated successfully.');
+  } catch (err) {
+    alert('Failed to update role: ' + err.message);
+  }
 }
 
-
-// Stub functions for other views:
-async function showRoles()    { app.innerHTML = `<h3>Roles</h3>`;    }
-async function showProducts(){ app.innerHTML = `<h3>Products</h3>`; }
-async function showQuotes()  { app.innerHTML = `<h3>Quotes</h3>`;   }
-async function showOrders()  { app.innerHTML = `<h3>Orders</h3>`;   }
-async function showJobs()    { app.innerHTML = `<h3>Production</h3>`;}
-async function showCRM()     { app.innerHTML = `<h3>CRM</h3>`;      }
-async function showHR()      { app.innerHTML = `<h3>HR</h3>`;       }
-async function showFinance(){ app.innerHTML = `<h3>Finance</h3>`;  }
-async function showReports(){ app.innerHTML = `<h3>Reports</h3>`;  }
-
-function logout() {
-  localStorage.removeItem('token');
-  window.location.href = 'login.html';
+// Show list of roles
+async function showRoles() {
+  try {
+    const roles = await fetchJSON('/roles');
+    app.innerHTML = `
+      <h3 class="mb-4">Roles</h3>
+      <ul class="list-group">
+        ${roles.map(r => `<li class="list-group-item">${r.id}. ${r.name}</li>`).join('')}
+      </ul>
+    `;
+  } catch (err) {
+    app.innerHTML = `<div class="alert alert-danger">Error loading roles: ${err.message}</div>`;
+  }
 }
 
-// initial load
+// initial view
 loadAdminView('users');
-
