@@ -33,15 +33,39 @@ async function loadAdminView(view) {
 }
 
 async function showUsers() {
-  const res = await fetch(`${API_BASE}/users`, { headers });
-  const users = await res.json();
-  app.innerHTML = `<h3>Users</h3>` + users.map(u=>`
-    <div class="card mb-2">
-      <div class="card-body">
-        ${u.name} — ${u.email}
+  const users = await fetchJSON('/users');
+  const allRoles = await fetchJSON('/roles');
+
+  const html = users.map(u => {
+    const userRoles = JSON.parse(localStorage.getItem('roles')); // admin’s roles
+    return `
+      <div class="card mb-2 p-3">
+        <strong>${u.name} (${u.email})</strong>
+        <select id="roles-${u.id}" class="form-select form-select-sm my-2">
+          ${allRoles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
+        </select>
+        <button class="btn btn-sm btn-primary"
+          onclick="updateUserRole(${u.id})">
+          Update Role
+        </button>
       </div>
-    </div>`).join('');
+    `;
+  }).join('');
+
+  app.innerHTML = `<h3>Manage Users & Roles</h3>${html}`;
 }
+
+async function updateUserRole(userId) {
+  const sel = document.getElementById(`roles-${userId}`);
+  const roleId = sel.value;
+  await fetch(`${API_BASE}/users/${userId}/roles`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ roles: [roleId] })
+  });
+  alert('Role updated.');
+}
+
 
 // Stub functions for other views:
 async function showRoles()    { app.innerHTML = `<h3>Roles</h3>`;    }
