@@ -12,11 +12,13 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       body: JSON.stringify({ email, password })
     });
     if (!res.ok) throw new Error('Invalid credentials');
-    const { token } = await res.json();
+    const { token, user } = await res.json();
     localStorage.setItem('token', token);
-    window.location.href = 'user.html';
+    localStorage.setItem('roles', JSON.stringify(user.roles));
+    window.location.href = user.roles.includes('super_admin')
+      ? 'admin.html'
+      : 'user.html';
   } catch (err) {
     alert('Login failed: ' + err.message);
   }
 });
-
