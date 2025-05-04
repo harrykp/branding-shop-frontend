@@ -1,1 +1,36 @@
+:root {
+  --bs-primary: #005bff;
+  --bs-danger:  #ff0000;
+  --bs-light:   #ffffff;
+  --bs-dark:    #000000;
+  --bs-body-bg: var(--bs-light);
+  --bs-body-color: var(--bs-dark);
+}
+
+body {
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+.navbar {
+  background: var(--bs-dark) !important;
+}
+
+.navbar .navbar-brand,
+.nav-link {
+  color: var(--bs-light) !important;
+}
+
+.nav-link:hover {
+  color: var(--bs-primary) !important;
+}
+
+.card {
+  border-radius: .5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+h3 {
+  color: var(--bs-dark);
+}
 
