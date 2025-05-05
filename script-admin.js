@@ -30,6 +30,7 @@ async function fetchJSON(path, opts = {}) {
   return res.json();
 }
 
+// Wire up nav links
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -53,6 +54,7 @@ async function loadView(view) {
     case 'suppliers':       return suppliersView();
     case 'catalog':         return catalogView();
     case 'purchaseOrders':  return purchaseOrdersView();
+    case 'pricingRules':    return pricingRulesView();
     case 'reports':         return reportsView();
     default:
       app.innerHTML = `<div class="alert alert-warning">Unknown view: ${view}</div>`;
@@ -559,7 +561,93 @@ async function reportsView() {
   `;
 }
 
-// ——— LOGOUT ———
+// ─── PRICING RULES VIEW & ACTIONS ───
+
+async function pricingRulesView() {
+  const list = await fetchJSON('/pricing-rules');
+  app.innerHTML = `
+    <h3>Pricing Rules</h3>
+    <button class="btn btn-success mb-3" onclick="createPricingRule()">+ Add Rule</button>
+    ${list.map(r => `
+      <div class="card mb-2">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <strong>${r.name}</strong><br>
+            Category: ${r.category_name}<br>
+            Type: ${r.rule_type}<br>
+            Qty: ${r.min_qty} – ${r.max_qty || '∞'}<br>
+            Unit Price: $${parseFloat(r.unit_price).toFixed(2)}
+          </div>
+          <div>
+            <button class="btn btn-sm btn-primary me-2" onclick="editPricingRule(${r.id})">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deletePricingRule(${r.id})">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+async function createPricingRule() {
+  const name     = prompt('Rule name:'); if (!name) return;
+  const catId    = parseInt(prompt('Product Category ID:'), 10);
+  const type     = prompt('Rule type (fixed, tiered, volume):');
+  const minQty   = parseInt(prompt('Min quantity (0+):','0'), 10);
+  const maxQtyIn = prompt('Max quantity (leave blank for no cap):','');
+  const maxQty   = maxQtyIn.trim() === '' ? null : parseInt(maxQtyIn, 10);
+  const unitPrice= parseFloat(prompt('Unit price:','0'));
+  if (isNaN(catId)||!type||isNaN(minQty)||isNaN(unitPrice)) {
+    return alert('Invalid input');
+  }
+  await fetchJSON('/pricing-rules', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      name, 
+      product_category_id: catId, 
+      rule_type: type, 
+      min_qty: minQty, 
+      max_qty: maxQty, 
+      unit_price: unitPrice 
+    })
+  });
+  pricingRulesView();
+}
+
+async function editPricingRule(id) {
+  const r = await fetchJSON(`/pricing-rules/${id}`);
+  const name     = prompt('Rule name:', r.name);    if (name==null)  return;
+  const catId    = parseInt(prompt('Category ID:', r.product_category_id),10);
+  const type     = prompt('Rule type:', r.rule_type);
+  const minQty   = parseInt(prompt('Min qty:', r.min_qty),10);
+  const maxQtyIn = prompt('Max qty:', r.max_qty||'');
+  const maxQty   = maxQtyIn.trim()==='' ? null : parseInt(maxQtyIn,10);
+  const unitPrice= parseFloat(prompt('Unit price:', r.unit_price));
+  if (!name||isNaN(catId)||!type||isNaN(minQty)||isNaN(unitPrice)) {
+    return alert('Invalid input');
+  }
+  await fetchJSON(`/pricing-rules/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name,
+      product_category_id: catId,
+      rule_type: type,
+      min_qty: minQty,
+      max_qty: maxQty,
+      unit_price: unitPrice
+    })
+  });
+  pricingRulesView();
+}
+
+async function deletePricingRule(id) {
+  if (!confirm('Delete this pricing rule?')) return;
+  await fetchJSON(`/pricing-rules/${id}`, { method: 'DELETE' });
+  pricingRulesView();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── LOGOUT ───
 function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
@@ -567,3 +655,4 @@ function logout() {
 
 // initial load
 loadView('users');
+
