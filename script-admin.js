@@ -59,8 +59,7 @@ async function loadView(view) {
   }
 }
 
-
-// USERS
+// ——— USERS ———
 async function usersView() {
   const u = await fetchJSON('/users');
   app.innerHTML = `
@@ -110,8 +109,7 @@ async function deleteUser(id) {
   usersView();
 }
 
-
-// ROLES
+// ——— ROLES ———
 async function rolesView() {
   const r = await fetchJSON('/roles');
   app.innerHTML = `
@@ -146,8 +144,7 @@ async function deleteRole(id) {
   rolesView();
 }
 
-
-// PRODUCTS
+// ——— PRODUCTS ———
 async function productsView() {
   const list = await fetchJSON('/products');
   app.innerHTML = `
@@ -196,8 +193,7 @@ async function deleteProduct(id) {
   productsView();
 }
 
-
-// QUOTES
+// ——— QUOTES ———
 async function quotesView() {
   const list = await fetchJSON('/quotes');
   app.innerHTML = `
@@ -228,8 +224,7 @@ async function deleteQuote(id) {
   quotesView();
 }
 
-
-// ORDERS
+// ——— ORDERS ———
 async function ordersView() {
   const list = await fetchJSON('/orders');
   app.innerHTML = `
@@ -246,7 +241,7 @@ async function ordersView() {
           </div>
         </div>
       </div>`;
-    }).join('')}
+    }).join('')}  
   `;
 }
 async function updateOrder(id) {
@@ -260,8 +255,7 @@ async function deleteOrder(id) {
   ordersView();
 }
 
-
-// PRODUCTION JOBS
+// ——— PRODUCTION JOBS ———
 async function jobsView() {
   const list = await fetchJSON('/jobs');
   app.innerHTML = `
@@ -277,8 +271,7 @@ async function jobsView() {
             <button class="btn btn-sm btn-danger" onclick="deleteJob(${j.id})">Delete</button>
           </div>
         </div>
-      </div>  
-    `).join('')}
+      </div>`).join('')}  
   `;
 }
 async function updateJob(id) {
@@ -298,8 +291,7 @@ async function deleteJob(id) {
   jobsView();
 }
 
-
-// LEADS
+// ——— LEADS ———
 async function leadsView() {
   const list = await fetchJSON('/leads');
   app.innerHTML = `
@@ -313,7 +305,7 @@ async function leadsView() {
           </div>
         </div>
       </div>`).join('')}
-    <button class="btn btn-success mt-2" onclick="createLead()">+ Add Lead</button>
+    <button class="btn btn-success mt-2" onclick="createLead()">+ Add Lead</button>  
   `;
 }
 async function createLead() {
@@ -333,8 +325,7 @@ async function deleteLead(id) {
   leadsView();
 }
 
-
-// DEALS
+// ——— DEALS ———
 async function dealsView() {
   const list = await fetchJSON('/deals');
   app.innerHTML = `
@@ -367,8 +358,7 @@ async function deleteDeal(id) {
   dealsView();
 }
 
-
-// HR
+// ——— HR ———
 async function hrView() {
   const list = await fetchJSON('/hr');
   app.innerHTML = `
@@ -395,8 +385,7 @@ async function editHR(id) {
   hrView();
 }
 
-
-// FINANCE
+// ——— FINANCE ———
 async function financeView() {
   const [payments, expenses] = await Promise.all([
     fetchJSON('/payments'),
@@ -429,8 +418,7 @@ async function financeView() {
   `;
 }
 
-
-// CATALOG
+// ——— CATALOG ———
 async function catalogView() {
   const list = await fetchJSON('/catalog');
   app.innerHTML = `
@@ -449,8 +437,7 @@ async function catalogView() {
   `;
 }
 
-
-// SUPPLIERS
+// ——— SUPPLIERS ———
 async function suppliersView() {
   const list = await fetchJSON('/suppliers');
   app.innerHTML = `
@@ -465,8 +452,7 @@ async function suppliersView() {
   `;
 }
 
-
-// PURCHASE ORDERS
+// ——— PURCHASE ORDERS ———
 async function purchaseOrdersView() {
   const list = await fetchJSON('/purchase-orders');
   app.innerHTML = `
@@ -481,8 +467,7 @@ async function purchaseOrdersView() {
   `;
 }
 
-
-// REPORTS
+// ——— REPORTS ———
 async function reportsView() {
   const [sales, fin, taxes, leave, cashflow] = await Promise.all([
     fetchJSON('/sales'),
@@ -491,21 +476,99 @@ async function reportsView() {
     fetchJSON('/leave'),
     fetchJSON('/cashflow')
   ]);
-  app.innerHTML = `
-    <h3>Sales by Month</h3><pre>${JSON.stringify(sales,null,2)}</pre>
-    <h3>Finance Summary</h3><pre>${JSON.stringify(fin,null,2)}</pre>
-    <h3>Tax Totals</h3><pre>${JSON.stringify(taxes,null,2)}</pre>
-    <h3>Leave Counts</h3><pre>${JSON.stringify(leave,null,2)}</pre>
-    <h3>Cashflow</h3><pre>${JSON.stringify(cashflow,null,2)}</pre>
+
+  // Sales by Month
+  let html = `
+    <h3>Sales by Month</h3>
+    <table class="table table-striped">
+      <thead><tr><th>Month</th><th>Total Sales</th></tr></thead>
+      <tbody>
+        ${sales.map(r => `
+          <tr>
+            <td>${r.month}</td>
+            <td>$${parseFloat(r.total_sales).toFixed(2)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <h3>Finance Summary</h3>
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5>Total Received</h5>
+            <p class="fs-4">$${parseFloat(fin.total_received).toFixed(2)}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5>Total Expenses</h5>
+            <p class="fs-4">$${parseFloat(fin.total_expenses).toFixed(2)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Tax Totals</h3>
+    <table class="table table-striped">
+      <thead><tr><th>Tax</th><th>Total</th></tr></thead>
+      <tbody>
+        ${taxes.map(t => `
+          <tr>
+            <td>${t.tax}</td>
+            <td>$${parseFloat(t.total).toFixed(2)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <h3>Leave Counts</h3>
+    <table class="table table-striped">
+      <thead><tr><th>User ID</th><th>Leave Count</th></tr></thead>
+      <tbody>
+        ${leave.map(l => `
+          <tr>
+            <td>${l.user_id}</td>
+            <td>${l.leave_count}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <h3>Cashflow</h3>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Start of Day Cash</th>
+          <th>Payments Received</th>
+          <th>Expenses Paid</th>
+          <th>Bank Deposit</th>
+          <th>End of Day Cash</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${cashflow.map(c => `
+          <tr>
+            <td>${new Date(c.date).toLocaleDateString()}</td>
+            <td>$${parseFloat(c.start_of_day_cash).toFixed(2)}</td>
+            <td>$${parseFloat(c.payments_received).toFixed(2)}</td>
+            <td>$${parseFloat(c.expenses_paid).toFixed(2)}</td>
+            <td>$${parseFloat(c.bank_deposit).toFixed(2)}</td>
+            <td>$${parseFloat(c.end_of_day_cash).toFixed(2)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
   `;
+
+  app.innerHTML = html;
 }
 
-
-// LOGOUT
+// ——— LOGOUT ———
 function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
 }
 
-// Initial load
+// initial load
 loadView('users');
