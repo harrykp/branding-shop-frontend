@@ -12,7 +12,6 @@ const app = document.getElementById('app-admin');
 
 async function fetchJSON(path, opts = {}) {
   const url = API_BASE + path;
-  console.log('→ FETCH', url, opts);
   let res;
   try {
     res = await fetch(url, {
@@ -22,13 +21,10 @@ async function fetchJSON(path, opts = {}) {
       headers
     });
   } catch (err) {
-    console.error('⨯ NETWORK ERROR', err);
     throw new Error(`Network error: ${err.message}`);
   }
-  console.log('← STATUS', res.status);
   if (!res.ok) {
     const txt = await res.text();
-    console.error('⨯ BAD RESPONSE', txt);
     throw new Error(`Error ${res.status}: ${txt}`);
   }
   return res.json();
@@ -43,31 +39,28 @@ document.querySelectorAll('[data-view]').forEach(el =>
 
 async function loadView(view) {
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
-  try {
-    switch (view) {
-      case 'users':           return usersView();
-      case 'roles':           return rolesView();
-      case 'products':        return productsView();
-      case 'quotes':          return quotesView();
-      case 'orders':          return ordersView();
-      case 'jobs':            return jobsView();
-      case 'leads':           return leadsView();
-      case 'deals':           return dealsView();
-      case 'hr':              return hrView();
-      case 'finance':         return financeView();
-      case 'suppliers':       return suppliersView();
-      case 'catalog':         return catalogView();
-      case 'purchaseOrders':  return purchaseOrdersView();
-      default:
-        app.innerHTML = `<div class="alert alert-warning">Unknown view: ${view}</div>`;
-    }
-  } catch (err) {
-    console.error('⨯ loadView error', err);
-    app.innerHTML = `<div class="alert alert-danger">Error loading ${view}: ${err.message}</div>`;
+  switch (view) {
+    case 'users':           return usersView();
+    case 'roles':           return rolesView();
+    case 'products':        return productsView();
+    case 'quotes':          return quotesView();
+    case 'orders':          return ordersView();
+    case 'jobs':            return jobsView();
+    case 'leads':           return leadsView();
+    case 'deals':           return dealsView();
+    case 'hr':              return hrView();
+    case 'finance':         return financeView();
+    case 'suppliers':       return suppliersView();
+    case 'catalog':         return catalogView();
+    case 'purchaseOrders':  return purchaseOrdersView();
+    case 'reports':         return reportsView();
+    default:
+      app.innerHTML = `<div class="alert alert-warning">Unknown view: ${view}</div>`;
   }
 }
 
-// ——— USERS ———
+
+// USERS
 async function usersView() {
   const u = await fetchJSON('/users');
   app.innerHTML = `
@@ -117,7 +110,8 @@ async function deleteUser(id) {
   usersView();
 }
 
-// ——— ROLES ———
+
+// ROLES
 async function rolesView() {
   const r = await fetchJSON('/roles');
   app.innerHTML = `
@@ -152,7 +146,8 @@ async function deleteRole(id) {
   rolesView();
 }
 
-// ——— PRODUCTS ———
+
+// PRODUCTS
 async function productsView() {
   const list = await fetchJSON('/products');
   app.innerHTML = `
@@ -175,7 +170,7 @@ async function productsView() {
 }
 async function createProduct() {
   const name = prompt('Name:');             if (!name) return;
-  const desc = prompt('Description:','');    
+  const desc = prompt('Description:','');
   const price = parseFloat(prompt('Price:','0')); if (isNaN(price)) return;
   const cat   = parseInt(prompt('Category ID:'),10);
   const type  = prompt('Type:','stockable');
@@ -187,8 +182,8 @@ async function createProduct() {
 }
 async function editProduct(id) {
   const p = await fetchJSON(`/products/${id}`);
-  const name  = prompt('Name:',  p.name);            if (name   == null) return;
-  const price = parseFloat(prompt('Price:', p.price)); if (isNaN(price))    return;
+  const name  = prompt('Name:',  p.name);            if (name == null) return;
+  const price = parseFloat(prompt('Price:', p.price)); if (isNaN(price)) return;
   await fetchJSON(`/products/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ name, price })
@@ -201,7 +196,8 @@ async function deleteProduct(id) {
   productsView();
 }
 
-// ——— QUOTES ———
+
+// QUOTES
 async function quotesView() {
   const list = await fetchJSON('/quotes');
   app.innerHTML = `
@@ -232,7 +228,8 @@ async function deleteQuote(id) {
   quotesView();
 }
 
-// ——— ORDERS ———
+
+// ORDERS
 async function ordersView() {
   const list = await fetchJSON('/orders');
   app.innerHTML = `
@@ -263,7 +260,8 @@ async function deleteOrder(id) {
   ordersView();
 }
 
-// ——— PRODUCTION JOBS ———
+
+// PRODUCTION JOBS
 async function jobsView() {
   const list = await fetchJSON('/jobs');
   app.innerHTML = `
@@ -279,7 +277,7 @@ async function jobsView() {
             <button class="btn btn-sm btn-danger" onclick="deleteJob(${j.id})">Delete</button>
           </div>
         </div>
-      </div>
+      </div>  
     `).join('')}
   `;
 }
@@ -300,7 +298,8 @@ async function deleteJob(id) {
   jobsView();
 }
 
-// ——— LEADS ———
+
+// LEADS
 async function leadsView() {
   const list = await fetchJSON('/leads');
   app.innerHTML = `
@@ -334,7 +333,8 @@ async function deleteLead(id) {
   leadsView();
 }
 
-// ——— DEALS ———
+
+// DEALS
 async function dealsView() {
   const list = await fetchJSON('/deals');
   app.innerHTML = `
@@ -367,7 +367,8 @@ async function deleteDeal(id) {
   dealsView();
 }
 
-// ——— HR ———
+
+// HR
 async function hrView() {
   const list = await fetchJSON('/hr');
   app.innerHTML = `
@@ -385,8 +386,8 @@ async function hrView() {
 }
 async function editHR(id) {
   const h = await fetchJSON(`/hr/${id}`);
-  const position = prompt('Position:', h.position); if (position==null) return;
-  const salary   = parseFloat(prompt('Salary:',h.salary)); if (isNaN(salary)) return;
+  const position = prompt('Position:', h.position); if (position == null) return;
+  const salary   = parseFloat(prompt('Salary:', h.salary)); if (isNaN(salary)) return;
   await fetchJSON(`/hr/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ position, salary })
@@ -394,7 +395,8 @@ async function editHR(id) {
   hrView();
 }
 
-// ——— FINANCE ———
+
+// FINANCE
 async function financeView() {
   const [payments, expenses] = await Promise.all([
     fetchJSON('/payments'),
@@ -427,7 +429,8 @@ async function financeView() {
   `;
 }
 
-// ——— CATALOG ———
+
+// CATALOG
 async function catalogView() {
   const list = await fetchJSON('/catalog');
   app.innerHTML = `
@@ -446,7 +449,8 @@ async function catalogView() {
   `;
 }
 
-// ——— SUPPLIERS ———
+
+// SUPPLIERS
 async function suppliersView() {
   const list = await fetchJSON('/suppliers');
   app.innerHTML = `
@@ -454,14 +458,15 @@ async function suppliersView() {
     ${list.map(s => `
       <div class="card mb-2">
         <div class="card-body d-flex justify-content-between align-items-center">
-          <div>${s.name} — ${s.website||'–'}</div>
-          <div><!-- no delete/edit for now --></div>
+          <div>${s.name} — ${s.website || '–'}</div>
+          <div></div>
         </div>
       </div>`).join('')}
   `;
 }
 
-// ——— PURCHASE ORDERS ———
+
+// PURCHASE ORDERS
 async function purchaseOrdersView() {
   const list = await fetchJSON('/purchase-orders');
   app.innerHTML = `
@@ -470,19 +475,37 @@ async function purchaseOrdersView() {
       <div class="card mb-2">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>#${po.id} — ${po.supplier_name} — ${po.status}</div>
-          <div><!-- no delete/edit for now --></div>
+          <div></div>
         </div>
       </div>`).join('')}
   `;
 }
 
-// Action helpers (create/edit/delete for finance/catalog omitted for brevity, reuse the patterns above)
 
-// ——— LOGOUT ———
+// REPORTS
+async function reportsView() {
+  const [sales, fin, taxes, leave, cashflow] = await Promise.all([
+    fetchJSON('/sales'),
+    fetchJSON('/finance'),
+    fetchJSON('/taxes-report'),
+    fetchJSON('/leave'),
+    fetchJSON('/cashflow')
+  ]);
+  app.innerHTML = `
+    <h3>Sales by Month</h3><pre>${JSON.stringify(sales,null,2)}</pre>
+    <h3>Finance Summary</h3><pre>${JSON.stringify(fin,null,2)}</pre>
+    <h3>Tax Totals</h3><pre>${JSON.stringify(taxes,null,2)}</pre>
+    <h3>Leave Counts</h3><pre>${JSON.stringify(leave,null,2)}</pre>
+    <h3>Cashflow</h3><pre>${JSON.stringify(cashflow,null,2)}</pre>
+  `;
+}
+
+
+// LOGOUT
 function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
 }
 
-// Startup
+// Initial load
 loadView('users');
