@@ -59,6 +59,161 @@ async function loadView(view) {
   }
 }
 
+// … [all your other view functions remain unchanged above] …
+
+// ——— FINANCE ———
+async function financeView() {
+  const [payments, expenses] = await Promise.all([
+    fetchJSON('/payments'),
+    fetchJSON('/expenses')
+  ]);
+  app.innerHTML = `
+    <h3>Payments</h3>
+    ${payments.map(p => `
+      <div class="card mb-2">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>#${p.id} — $${parseFloat(p.amount).toFixed(2)} via ${p.gateway}</div>
+          <div>
+            <button class="btn btn-sm btn-danger" onclick="deletePayment(${p.id})">Delete</button>
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="btn btn-success mb-4" onclick="createPayment()">+ Add Payment</button>
+
+    <h3>Expenses</h3>
+    ${expenses.map(e => `
+      <div class="card mb-2">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>#${e.id} — $${parseFloat(e.amount).toFixed(2)} — ${e.category}</div>
+          <div>
+            <button class="btn btn-sm btn-danger" onclick="deleteExpense(${e.id})">Delete</button>
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="btn btn-success mt-2" onclick="createExpense()">+ Add Expense</button>
+  `;
+}
+
+// ——— Payment handlers ———
+async function createPayment() {
+  const order_id = parseInt(prompt('Order ID:'), 10);
+  if (isNaN(order_id)) return alert('Invalid Order ID');
+  const payment_type_id = parseInt(prompt('Payment Type ID:'), 10);
+  if (isNaN(payment_type_id)) return alert('Invalid Payment Type ID');
+  const gateway = prompt('Gateway (e.g. DecoPay, PayPal):');
+  if (!gateway) return;
+  const amount = parseFloat(prompt('Amount:','0'));
+  if (isNaN(amount)) return alert('Invalid amount');
+  await fetchJSON('/payments', {
+    method: 'POST',
+    body: JSON.stringify({ order_id, payment_type_id, gateway, amount })
+  });
+  financeView();
+}
+
+async function deletePayment(id) {
+  if (!confirm('Delete this payment?')) return;
+  await fetchJSON(`/payments/${id}`, { method: 'DELETE' });
+  financeView();
+}
+
+// ——— Expense handlers ———
+async function createExpense() {
+  const amount = parseFloat(prompt('Amount:','0'));
+  if (isNaN(amount)) return alert('Invalid amount');
+  const category = prompt('Category:');
+  if (!category) return;
+  const description = prompt('Description:','');
+  const expense_date = prompt('Date (YYYY-MM-DD):');
+  await fetchJSON('/expenses', {
+    method: 'POST',
+    body: JSON.stringify({ amount, category, description, expense_date })
+  });
+  financeView();
+}
+
+async function deleteExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  await fetchJSON(`/expenses/${id}`, { method: 'DELETE' });
+  financeView();
+}
+
+// ——— CATALOG stubs ———
+function createCatalog() {
+  alert('Catalog creation is not implemented yet.');
+}
+function editCatalog(id) {
+  alert(`Editing catalog item ${id} is not implemented yet.`);
+}
+function deleteCatalog(id) {
+  alert(`Deleting catalog item ${id} is not implemented yet.`);
+}
+
+// … [rest of your view functions, including reportsView, logout, etc.] …
+
+// initial load
+loadView('users');
+// script-admin.js
+
+const API_BASE = 'https://branding-shop-backend.onrender.com/api';
+const token = localStorage.getItem('token');
+if (!token) window.location.href = 'login.html';
+
+const headers = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${token}`
+};
+const app = document.getElementById('app-admin');
+
+async function fetchJSON(path, opts = {}) {
+  const url = API_BASE + path;
+  let res;
+  try {
+    res = await fetch(url, {
+      mode: 'cors',
+      cache: 'no-cache',
+      ...opts,
+      headers
+    });
+  } catch (err) {
+    throw new Error(`Network error: ${err.message}`);
+  }
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+document.querySelectorAll('[data-view]').forEach(el =>
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    loadView(el.dataset.view);
+  })
+);
+
+async function loadView(view) {
+  app.innerHTML = `<h3>Loading ${view}…</h3>`;
+  switch (view) {
+    case 'users':           return usersView();
+    case 'roles':           return rolesView();
+    case 'products':        return productsView();
+    case 'quotes':          return quotesView();
+    case 'orders':          return ordersView();
+    case 'jobs':            return jobsView();
+    case 'leads':           return leadsView();
+    case 'deals':           return dealsView();
+    case 'hr':              return hrView();
+    case 'finance':         return financeView();
+    case 'suppliers':       return suppliersView();
+    case 'catalog':         return catalogView();
+    case 'purchaseOrders':  return purchaseOrdersView();
+    case 'reports':         return reportsView();
+    default:
+      app.innerHTML = `<div class="alert alert-warning">Unknown view: ${view}</div>`;
+  }
+}
+
 // ——— USERS ———
 async function usersView() {
   const u = await fetchJSON('/users');
