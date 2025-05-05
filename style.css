@@ -29,6 +29,16 @@ body {
   border-radius: .5rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
+/* Force all .btn inside cards to auto-width and inline */
+.card .card-body .btn {
+  display: inline-block !important;
+  width: auto !important;
+  margin-left: 0.5rem; /* space between buttons */
+  margin-bottom: 0;     /* remove any bottom margin */
+}
+.card .card-body .btn:first-child {
+  margin-left: 0;       /* no extra space on the first button */
+}
 
 h3 {
   color: var(--bs-dark);
