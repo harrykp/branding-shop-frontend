@@ -10,14 +10,9 @@ const headers = {
 };
 const app = document.getElementById('app-user');
 
-// helper to GET/POST/… and parse JSON (throws on non-2xx)
+// helper to fetch JSON
 async function fetchJSON(path, opts = {}) {
-  const res = await fetch(API_BASE + path, {
-    mode: 'cors',
-    cache: 'no-cache',
-    ...opts,
-    headers
-  });
+  const res = await fetch(API_BASE + path, { ...opts, headers });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Error ${res.status}: ${txt}`);
@@ -35,7 +30,7 @@ document.querySelectorAll('[data-view]').forEach(el =>
 
 // wire New Quote button
 document.getElementById('btn-new-quote').addEventListener('click', () => {
-  requestQuote();
+  showQuoteForm();
 });
 
 async function loadUserView(view) {
@@ -168,37 +163,67 @@ async function submitComplaint(e) {
   loadUserView('complaints');
 }
 
-// ——— New: Request Quote ———
-async function requestQuote() {
-  try {
-    const categoryId = parseInt(prompt(
-      'Enter Product Category ID (e.g. 1 = SCREEN PRINTING, 2 = EMBROIDERY, etc):'
-    ), 10);
-    if (isNaN(categoryId)) return alert('Invalid Category ID');
-
-    const quantity = parseInt(prompt('Enter quantity:'), 10);
-    if (isNaN(quantity) || quantity < 1) return alert('Quantity must be a positive number');
-
-    // POST to /quotes; JWT identifies the customer
-    const quote = await fetchJSON('/quotes', {
-      method: 'POST',
-      body: JSON.stringify({ product_category_id: categoryId, quantity })
-    });
-
-    document.getElementById('quote-results').innerHTML = `
-      <div class="alert alert-success">
-        <strong>Quote #${quote.id}</strong><br>
-        Category ID: ${quote.product_category_id}<br>
-        Quantity: ${quote.quantity}<br>
-        Unit Price: $${parseFloat(quote.unit_price).toFixed(2)}<br>
-        <strong>Total: $${parseFloat(quote.total).toFixed(2)}</strong><br>
-        Status: ${quote.status}
+// ——— Quote Request Form ———
+async function showQuoteForm() {
+  app.innerHTML = `
+    <h3>Request a Quote</h3>
+    <form id="quote-form">
+      <div class="mb-3">
+        <label class="form-label">Decoration Type</label>
+        <select id="quote-category" class="form-select" required>
+          <option value="">Loading…</option>
+        </select>
       </div>
-    `;
-  } catch (err) {
-    console.error('Quote request failed', err);
-    alert('Failed to create quote: ' + err.message);
-  }
+      <div class="mb-3">
+        <label class="form-label">Quantity</label>
+        <input id="quote-qty" type="number" class="form-control" min="1" required />
+      </div>
+      <button class="btn btn-primary">Get Quote</button>
+    </form>
+    <div id="quote-results" class="mt-3"></div>
+  `;
+
+  // populate dropdown
+  const rules = await fetchJSON('/pricing-rules');
+  const seen = new Set();
+  const sel  = document.getElementById('quote-category');
+  sel.innerHTML = '';  // clear “Loading…” option
+  rules.forEach(r => {
+    if (!seen.has(r.product_category_id)) {
+      seen.add(r.product_category_id);
+      const opt = document.createElement('option');
+      opt.value = r.product_category_id;
+      opt.textContent = r.category_name;
+      sel.appendChild(opt);
+    }
+  });
+
+  // handle form submit
+  document.getElementById('quote-form')
+    .addEventListener('submit', async e => {
+      e.preventDefault();
+      const categoryId = parseInt(sel.value, 10);
+      const quantity   = parseInt(document.getElementById('quote-qty').value, 10);
+      try {
+        const quote = await fetchJSON('/quotes', {
+          method: 'POST',
+          body: JSON.stringify({ product_category_id: categoryId, quantity })
+        });
+        document.getElementById('quote-results').innerHTML = `
+          <div class="alert alert-success">
+            <strong>Quote #${quote.id}</strong><br>
+            Category: ${rules.find(r=>r.product_category_id===categoryId).category_name}<br>
+            Quantity: ${quote.quantity}<br>
+            Unit Price: $${parseFloat(quote.unit_price).toFixed(2)}<br>
+            <strong>Total: $${parseFloat(quote.total).toFixed(2)}</strong><br>
+            Status: ${quote.status}
+          </div>
+        `;
+      } catch (err) {
+        console.error('Quote request failed', err);
+        alert('Failed to create quote: ' + err.message);
+      }
+    });
 }
 
 function logout() {
