@@ -86,9 +86,31 @@ async function updateUserRole(id) {
   alert('Role updated.');
 }
 
+// === Roles CRUD Stub ===
+async function showRoles() {
+  const roles = await fetchJSON('/roles');
+  const html = roles.map(r => `
+    <div class="card mb-2 p-3">
+      <strong>${r.name}</strong>
+      <button class="btn btn-sm btn-outline-secondary ms-2"
+        onclick="editRole(${r.id})">Edit</button>
+      <button class="btn btn-sm btn-outline-danger ms-1"
+        onclick="deleteRole(${r.id})">Delete</button>
+    </div>
+  `).join('');
+  app.innerHTML = `
+    <h3>Roles</h3>
+    <button class="btn btn-sm btn-success mb-3" onclick="newRole()">New Role</button>
+    ${html}
+  `;
+}
+function newRole()    { alert('Create new role'); }
+function editRole(id) { alert('Edit role '+id); }
+function deleteRole(id){ if(confirm('Delete role?')) alert('Deleted '+id); }
+
 // === Products ===
 async function showProducts() {
-  const cats = await fetchJSON('/product-categories');
+  const cats  = await fetchJSON('/product-categories');
   const prods = await fetchJSON('/products');
   const html = prods.map(p => {
     const cat = cats.find(c=>c.id===p.category_id);
@@ -109,8 +131,8 @@ function editProduct(id){ alert('Edit Product '+id); }
 async function showQuotes() {
   const qs = await fetchJSON('/quotes');
   const html = qs.map(q => `
-    <div>#${q.id}: ${q.category_name}×${q.quantity} @ $${Number(q.unit_price).toFixed(2)} = $${Number(q.total).toFixed(2)}<br>
-      Status: ${q.status}
+    <div>#${q.id}: ${q.category_name}×${q.quantity} @ $${Number(q.unit_price).toFixed(2)} = $${Number(q.total).toFixed(2)}
+      <br>Status: ${q.status}
       <button class="btn btn-sm btn-outline-secondary mt-1"
         onclick="editQuote(${q.id})">Edit</button>
     </div>
@@ -145,7 +167,7 @@ async function showJobs() {
 }
 function editJob(id){ alert('Edit Job '+id); }
 
-// === Suppliers / Catalog / Purchase Orders ===
+// === Suppliers, Catalog, Purchase Orders ===
 async function showSuppliers() {
   const s = await fetchJSON('/suppliers');
   app.innerHTML = `<h3>Suppliers</h3>${s.map(x=>`<div>${x.name} (<a href="${x.website}" target="_blank">site</a>)</div>`).join('')}`;
