@@ -1,5 +1,5 @@
 // branding-shop-frontend/script-admin.js
-console.log('🔥 script-admin.js v5 loaded – Products & Quotes full CRUD');
+console.log('🔥 script-admin.js v6 loaded – Products, Quotes & Orders CRUD live');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
@@ -54,27 +54,35 @@ async function loadAdminView(view) {
 }
 
 // ===== PRODUCTS CRUD =====
+// ... (unchanged from v5) ...
 
-async function showProducts() {
-  const [cats, prods] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON('/products')
+// ===== QUOTES CRUD =====
+// ... (unchanged from v5) ...
+
+// ===== ORDERS CRUD =====
+
+async function showOrders() {
+  // fetch orders plus users to display customer info
+  const [orders, users] = await Promise.all([
+    fetchJSON('/orders'),
+    fetchJSON('/users')
   ]);
 
-  const rows = prods.map(p => {
-    const cat = cats.find(c => c.id === p.category_id);
+  const rows = orders.map(o => {
+    const user = users.find(u => u.id === o.user_id);
     return `
       <tr>
-        <td>${p.id}</td>
-        <td>${p.name}</td>
-        <td>${p.description||''}</td>
-        <td>$${Number(p.price).toFixed(2)}</td>
-        <td>${cat?.name||'—'}</td>
+        <td>${o.id}</td>
+        <td>${user ? user.name : '—'}</td>
+        <td>$${Number(o.total).toFixed(2)}</td>
+        <td>${o.status}</td>
+        <td>${new Date(o.placed_at).toLocaleDateString()}</td>
+        <td>${o.payment_status}</td>
         <td>
           <button class="btn btn-sm btn-outline-secondary me-1"
-                  onclick="editProduct(${p.id})">Edit</button>
+                  onclick="editOrderForm(${o.id})">Edit</button>
           <button class="btn btn-sm btn-outline-danger"
-                  onclick="deleteProduct(${p.id})">Delete</button>
+                  onclick="deleteOrder(${o.id})">Delete</button>
         </td>
       </tr>
     `;
@@ -82,14 +90,14 @@ async function showProducts() {
 
   app.innerHTML = `
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3>Products</h3>
-      <button class="btn btn-success" onclick="newProduct()">+ New Product</button>
+      <h3>Orders</h3>
+      <button class="btn btn-success" onclick="newOrderForm()">+ New Order</button>
     </div>
     <table class="table table-striped">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Description</th>
-          <th>Price</th><th>Category</th><th>Actions</th>
+          <th>ID</th><th>Customer</th><th>Total</th>
+          <th>Status</th><th>Placed</th><th>Payment</th><th>Actions</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -97,246 +105,107 @@ async function showProducts() {
   `;
 }
 
-function newProduct() {
-  renderProductForm();
-}
-
-async function editProduct(id) {
-  const [cats, prod] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON(`/products/${id}`)
-  ]);
-  renderProductForm(cats, prod);
-}
-
-function renderProductForm(categories = [], product = {}) {
-  const name     = product.name || '';
-  const desc     = product.description || '';
-  const price    = product.price  != null ? product.price : '';
-  const catId    = product.category_id || '';
-
-  app.innerHTML = `
-    <h3>${product.id ? 'Edit' : 'New'} Product</h3>
-    <form id="product-form" class="mt-3">
-      <div class="mb-3">
-        <label class="form-label">Name</label>
-        <input id="p-name" class="form-control" required value="${name}">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Description</label>
-        <textarea id="p-desc" class="form-control">${desc}</textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Price</label>
-        <input id="p-price" type="number" step="0.01" class="form-control" required value="${price}">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Category</label>
-        <select id="p-cat" class="form-select" required>
-          <option value="">-- choose --</option>
-          ${categories.map(c=>
-            `<option value="${c.id}" ${c.id===catId?'selected':''}>${c.name}</option>`
-          ).join('')}
-        </select>
-      </div>
-      <button type="submit" class="btn btn-primary">
-        ${product.id ? 'Save Changes' : 'Create Product'}
-      </button>
-      <button type="button" class="btn btn-secondary ms-2" onclick="showProducts()">Cancel</button>
-    </form>
-  `;
-
-  if (!categories.length) {
-    fetchJSON('/product-categories').then(cats2 => {
-      const sel = document.getElementById('p-cat');
-      sel.innerHTML = `
-        <option value="">-- choose --</option>
-        ${cats2.map(c=>
-          `<option value="${c.id}" ${c.id===catId?'selected':''}>${c.name}</option>`
-        ).join('')}
-      `;
-    });
-  }
-
-  document.getElementById('product-form').onsubmit = async e => {
-    e.preventDefault();
-    const payload = {
-      name:        document.getElementById('p-name').value,
-      description: document.getElementById('p-desc').value,
-      price:       parseFloat(document.getElementById('p-price').value),
-      category_id: parseInt(document.getElementById('p-cat').value,10)
-    };
-    try {
-      if (product.id) {
-        await fetchJSON(`/products/${product.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(payload)
-        });
-        alert('Product updated.');
-      } else {
-        await fetchJSON('/products', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        alert('Product created.');
-      }
-      showProducts();
-    } catch (err) {
-      alert('Save failed: ' + err.message);
-    }
-  };
-}
-
-async function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  try {
-    await fetchJSON(`/products/${id}`, { method: 'DELETE' });
-    alert('Deleted.');
-    showProducts();
-  } catch (err) {
-    alert('Delete failed: ' + err.message);
-  }
-}
-
-// ===== QUOTES CRUD with Edit Form =====
-
-async function showQuotes() {
-  const quotes = await fetchJSON('/quotes');
-  const rows = quotes.map(q => `
-    <tr>
-      <td>${q.id}</td>
-      <td>${q.customer_name}</td>
-      <td>${q.category_name}</td>
-      <td>${q.quantity}</td>
-      <td>$${Number(q.unit_price).toFixed(2)}</td>
-      <td>$${Number(q.total).toFixed(2)}</td>
-      <td>${q.status}</td>
-      <td>
-        <button class="btn btn-sm btn-outline-secondary me-1"
-                onclick="editQuoteForm(${q.id})">Edit</button>
-        <button class="btn btn-sm btn-outline-danger"
-                onclick="deleteQuote(${q.id})">Delete</button>
-      </td>
-    </tr>
-  `).join('');
-
-  app.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3>Quotes</h3>
-      <button class="btn btn-success" onclick="newQuoteForm()">+ New Quote</button>
-    </div>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>ID</th><th>Customer</th><th>Category</th>
-          <th>Qty</th><th>Unit Price</th><th>Total</th>
-          <th>Status</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
-}
-
-async function newQuoteForm() {
-  const [cats, users] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON('/users')
-  ]);
-  renderQuoteForm(cats, users);
-}
-
-async function editQuoteForm(id) {
-  const [cats, users, quote] = await Promise.all([
-    fetchJSON('/product-categories'),
+async function newOrderForm() {
+  const [users, quotes] = await Promise.all([
     fetchJSON('/users'),
-    fetchJSON(`/quotes/${id}`)
+    fetchJSON('/quotes')
   ]);
-  renderQuoteForm(cats, users, quote);
+  renderOrderForm(users, quotes);
 }
 
-function renderQuoteForm(categories, users, quote = {}) {
-  const isEdit = Boolean(quote.id);
-  const custId = quote.customer_id || '';
-  const catId  = quote.product_category_id || '';
-  const qty    = quote.quantity || 1;
-  const status = quote.status || 'pending';
+async function editOrderForm(id) {
+  const [users, quotes, order] = await Promise.all([
+    fetchJSON('/users'),
+    fetchJSON('/quotes'),
+    fetchJSON(`/orders/${id}`)
+  ]);
+  renderOrderForm(users, quotes, order);
+}
+
+function renderOrderForm(users, quotes, order = {}) {
+  const isEdit = Boolean(order.id);
+  const userId = order.user_id || '';
+  const quoteId= order.quote_id || '';
+  const total  = order.total != null ? order.total : '';
+  const status = order.status || 'new';
+  const payStat= order.payment_status || 'pending';
 
   app.innerHTML = `
-    <h3>${isEdit ? 'Edit' : 'New'} Quote</h3>
-    <form id="quote-form" class="mt-3">
+    <h3>${isEdit ? 'Edit' : 'New'} Order</h3>
+    <form id="order-form" class="mt-3">
       <div class="mb-3">
         <label class="form-label">Customer</label>
-        <select id="q-cust" class="form-select" required>
+        <select id="o-user" class="form-select" required>
           <option value="">-- select customer --</option>
           ${users.map(u=>
-            `<option value="${u.id}" ${u.id===custId?'selected':''}>
-              ${u.name} (${u.email})
+            `<option value="${u.id}" ${u.id===userId?'selected':''}>${u.name}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Quote</label>
+        <select id="o-quote" class="form-select" required>
+          <option value="">-- select quote --</option>
+          ${quotes.map(q=>
+            `<option value="${q.id}" ${q.id===quoteId?'selected':''}>
+              #${q.id} — $${Number(q.total).toFixed(2)}
             </option>`
           ).join('')}
         </select>
       </div>
       <div class="mb-3">
-        <label class="form-label">Category</label>
-        <select id="q-cat" class="form-select" required>
-          <option value="">-- select category --</option>
-          ${categories.map(c=>
-            `<option value="${c.id}" ${c.id===catId?'selected':''}>
-              ${c.name}
-            </option>`
-          ).join('')}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Quantity</label>
-        <input id="q-qty" type="number" class="form-control" required value="${qty}">
+        <label class="form-label">Total</label>
+        <input id="o-total" type="number" step="0.01" class="form-control" required value="${total}">
       </div>
       <div class="mb-3">
         <label class="form-label">Status</label>
-        <input id="q-status" class="form-control" required value="${status}">
+        <input id="o-status" class="form-control" required value="${status}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Payment Status</label>
+        <input id="o-paystat" class="form-control" required value="${payStat}">
       </div>
       <button type="submit" class="btn btn-primary">
-        ${isEdit ? 'Save Changes' : 'Create Quote'}
+        ${isEdit ? 'Save Changes' : 'Create Order'}
       </button>
-      <button type="button" class="btn btn-secondary ms-2" onclick="showQuotes()">Cancel</button>
+      <button type="button" class="btn btn-secondary ms-2" onclick="showOrders()">Cancel</button>
     </form>
   `;
 
-  document.getElementById('quote-form').onsubmit = async e => {
+  document.getElementById('order-form').onsubmit = async e => {
     e.preventDefault();
     const payload = {
-      customer_id:         parseInt(document.getElementById('q-cust').value,10),
-      product_category_id: parseInt(document.getElementById('q-cat').value,10),
-      quantity:            parseInt(document.getElementById('q-qty').value,10),
-      status:              document.getElementById('q-status').value
+      user_id:         parseInt(document.getElementById('o-user').value,10),
+      quote_id:        parseInt(document.getElementById('o-quote').value,10),
+      total:           parseFloat(document.getElementById('o-total').value),
+      status:          document.getElementById('o-status').value,
+      payment_status:  document.getElementById('o-paystat').value
     };
     try {
       if (isEdit) {
-        await fetchJSON(`/quotes/${quote.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: payload.status })
+        await fetchJSON(`/orders/${order.id}`, {
+          method: 'PATCH', body: JSON.stringify(payload)
         });
-        alert('Quote updated.');
+        alert('Order updated.');
       } else {
-        await fetchJSON('/quotes', {
-          method: 'POST',
-          body: JSON.stringify(payload)
+        await fetchJSON('/orders', {
+          method: 'POST', body: JSON.stringify(payload)
         });
-        alert('Quote created.');
+        alert('Order created.');
       }
-      showQuotes();
+      showOrders();
     } catch (err) {
       alert('Save failed: ' + err.message);
     }
   };
 }
 
-async function deleteQuote(id) {
-  if (!confirm('Delete this quote?')) return;
+async function deleteOrder(id) {
+  if (!confirm('Delete this order?')) return;
   try {
-    await fetchJSON(`/quotes/${id}`, { method: 'DELETE' });
+    await fetchJSON(`/orders/${id}`, { method: 'DELETE' });
     alert('Deleted.');
-    showQuotes();
+    showOrders();
   } catch (err) {
     alert('Delete failed: ' + err.message);
   }
@@ -345,7 +214,6 @@ async function deleteQuote(id) {
 // ===== other stubs =====
 async function showUsers()          { app.innerHTML = '<h3>Users</h3><p>…stub…</p>'; }
 async function showRoles()          { app.innerHTML = '<h3>Roles</h3><p>…stub…</p>'; }
-async function showOrders()         { app.innerHTML = '<h3>Orders</h3><p>…stub…</p>'; }
 async function showJobs()           { app.innerHTML = '<h3>Production</h3><p>…stub…</p>'; }
 async function showSuppliers()      { app.innerHTML = '<h3>Suppliers</h3><p>…stub…</p>'; }
 async function showCatalog()        { app.innerHTML = '<h3>Catalog</h3><p>…stub…</p>'; }
