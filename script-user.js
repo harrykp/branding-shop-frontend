@@ -1,4 +1,4 @@
-// branding-shop-frontend/script-user.js
+// script-user.js
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
@@ -9,16 +9,17 @@ const headers = {
   'Authorization': `Bearer ${token}`
 };
 const app = document.getElementById('app-user');
+const quoteResults = document.getElementById('quote-results');
 
-// Generic fetch + JSON
+// --- fetch helper ---
 async function fetchJSON(path, opts = {}) {
   const res = await fetch(API_BASE + path, { headers, ...opts });
-  const txt = await res.text();
-  if (!res.ok) throw new Error(`Error ${res.status}: ${txt}`);
-  return txt ? JSON.parse(txt) : null;
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Error ${res.status}: ${text}`);
+  return text ? JSON.parse(text) : null;
 }
 
-// Wire navigation links
+// --- wire nav clicks ---
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -26,9 +27,14 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// Main view loader
+// --- quick button for quotes ---
+document.getElementById('btn-new-quote')
+  .addEventListener('click', () => loadUserView('quotes'));
+
+// --- main loader ---
 async function loadUserView(view) {
-  app.innerHTML = `<h3 class="text-muted">Loading ${view}…</h3>`;
+  quoteResults.innerHTML = '';       // clear any old quote result
+  app.innerHTML = `<h3>Loading ${view}…</h3>`;
   try {
     switch (view) {
       case 'dashboard':  return showDashboard();
@@ -43,116 +49,86 @@ async function loadUserView(view) {
   }
 }
 
-// Dashboard
+// --- Dashboard ---
 function showDashboard() {
   app.innerHTML = `
     <h3>Welcome to your Dashboard</h3>
-    <p>Use the menu to request quotes, view orders, invoices, or file complaints.</p>
-  `;
+    <p>Use the menu to request a quote, submit orders, view invoices, or file complaints.</p>`;
 }
 
-// Quotes: request form + listing
+// --- Request Quote ---
 async function showQuotes() {
-  const [categories, quotes] = await Promise.all([
-    fetchJSON('/product_categories'),
-    fetchJSON('/quotes')
-  ]);
-
-  const opts = categories
-    .map(c => `<option value="${c.id}">${c.name}</option>`)
-    .join('');
-
+  // fetch all categories
+  const cats = await fetchJSON('/product-categories');
   app.innerHTML = `
     <h3>Request a Quote</h3>
-    <form id="frm-quote" class="mb-4">
+    <form id="frm-quote">
       <div class="mb-3">
-        <label class="form-label">Category</label>
+        <label class="form-label">Decoration Type</label>
         <select id="q_cat" class="form-select" required>
-          ${opts}
+          <option value="">Select type…</option>
+          ${cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
         </select>
       </div>
       <div class="mb-3">
         <label class="form-label">Quantity</label>
         <input id="q_qty" type="number" class="form-control" min="1" value="1" required>
       </div>
-      <button class="btn btn-primary">Submit Quote</button>
+      <button class="btn btn-primary">Get Quote</button>
     </form>
-    <h3>My Quotes</h3>
-    ${quotes.length
-      ? quotes.map(q => `
-        <div class="card mb-2">
-          <div class="card-body">
-            <strong>#${q.id}</strong> — ${q.category_name}
-            — Qty: ${q.quantity} — $${parseFloat(q.total).toFixed(2)}
-            — <em>${q.status}</em>
-          </div>
-        </div>
-      `).join('')
-      : `<p class="text-muted">No quotes yet.</p>`
-    }
   `;
-
-  document.getElementById('frm-quote')
-          .addEventListener('submit', submitQuote);
+  document.getElementById('frm-quote').onsubmit = submitQuote;
 }
 
 async function submitQuote(e) {
   e.preventDefault();
-  const product_category_id = +document.getElementById('q_cat').value;
-  const quantity            = +document.getElementById('q_qty').value;
+  const cat = +document.getElementById('q_cat').value;
+  const qty = +document.getElementById('q_qty').value;
   try {
-    await fetchJSON('/quotes', {
+    const q = await fetchJSON('/quotes', {
       method: 'POST',
-      body: JSON.stringify({ product_category_id, quantity })
+      body: JSON.stringify({ product_category_id: cat, quantity: qty })
     });
-    alert('Quote submitted!');
-    loadUserView('quotes');
+    quoteResults.innerHTML = `
+      <div class="alert alert-success">
+        Quote #${q.id} — <strong>$${parseFloat(q.total).toFixed(2)}</strong> (status: ${q.status})
+      </div>
+    `;
+    loadUserView('requests');
   } catch (err) {
-    alert(`Quote request failed: ${err.message}`);
+    quoteResults.innerHTML = `<div class="alert alert-danger">Quote request failed: ${err.message}</div>`;
   }
 }
 
-// Requests → orders list
+// --- My Requests (Orders) ---
 async function showRequests() {
   const orders = await fetchJSON('/orders');
   app.innerHTML = `
     <h3>My Orders</h3>
-    ${orders.length
-      ? orders.map(o => `
-        <div class="card mb-2">
-          <div class="card-body">
-            <strong>#${o.id}</strong> — $${parseFloat(o.total).toFixed(2)}
-            — <em>${o.status}</em>
-          </div>
+    ${orders.map(o => `
+      <div class="card mb-2">
+        <div class="card-body">
+          <strong>#${o.id}</strong> — ${o.status} — $${parseFloat(o.total).toFixed(2)}
         </div>
-      `).join('')
-      : `<p class="text-muted">No orders yet.</p>`
-    }
+      </div>`).join('')}
   `;
 }
 
-// Invoices → quotes & payments
+// --- Invoices & Receipts ---
 async function showInvoices() {
   const [quotes, payments] = await Promise.all([
     fetchJSON('/quotes'),
     fetchJSON('/payments')
   ]);
-
   app.innerHTML = `
     <h3>Proforma Invoices</h3>
-    ${quotes.length
-      ? quotes.map(q => `<div>#${q.id} — $${parseFloat(q.total).toFixed(2)} — ${q.status}</div>`).join('')
-      : `<p class="text-muted">No proforma invoices yet.</p>`
-    }
-    <h3 class="mt-4">Payments Received</h3>
-    ${payments.length
-      ? payments.map(p => `<div>#${p.id} — $${parseFloat(p.amount).toFixed(2)} — ${new Date(p.paid_at||p.received_at).toLocaleDateString()}</div>`).join('')
-      : `<p class="text-muted">No payments recorded yet.</p>`
-    }
+    ${quotes.map(q => `<div>#${q.id} — $${parseFloat(q.total).toFixed(2)} — ${q.status}</div>`).join('')}
+    <h3 class="mt-4">Receipts</h3>
+    ${payments.map(p => `<div>#${p.id} — $${parseFloat(p.amount).toFixed(2)} — ${new Date(p.received_at).toLocaleDateString()}</div>`).join('')}
   `;
 }
 
-// Complaints → list + file form
+// --- Complaints ---
 async function showComplaints() {
   const [orders, complaints] = await Promise.all([
     fetchJSON('/orders'),
@@ -161,18 +137,14 @@ async function showComplaints() {
 
   app.innerHTML = `
     <h3>My Complaints</h3>
-    ${complaints.length
-      ? complaints.map(c => `
-        <div class="card mb-2">
-          <div class="card-body">
-            Complaint #${c.id} on Order ${c.order_id}:<br>
-            ${c.complaint_text}<br>
-            <small>${new Date(c.created_at).toLocaleString()}</small>
-          </div>
+    ${complaints.map(c => `
+      <div class="card mb-2">
+        <div class="card-body">
+          Complaint #${c.id} on Order ${c.order_id}: ${c.complaint_text}
+          <br><small>${new Date(c.created_at).toLocaleString()}</small>
         </div>
-      `).join('')
-      : `<p class="text-muted">No complaints filed.</p>`
-    }
+      </div>`).join('')}
+
     <h4 class="mt-4">File a Complaint</h4>
     <form id="frm-complaint">
       <div class="mb-3">
@@ -188,32 +160,26 @@ async function showComplaints() {
       <button class="btn btn-danger">Submit Complaint</button>
     </form>
   `;
-
-  document.getElementById('frm-complaint')
-          .addEventListener('submit', submitComplaint);
+  document.getElementById('frm-complaint').onsubmit = submitComplaint;
 }
 
 async function submitComplaint(e) {
   e.preventDefault();
-  const order_id       = +document.getElementById('cmp-order').value;
+  const order_id = +document.getElementById('cmp-order').value;
   const complaint_text = document.getElementById('cmp-text').value;
-  try {
-    await fetchJSON('/complaints', {
-      method: 'POST',
-      body: JSON.stringify({ order_id, complaint_text })
-    });
-    alert('Complaint filed.');
-    loadUserView('complaints');
-  } catch (err) {
-    alert(`Failed to file complaint: ${err.message}`);
-  }
+  await fetchJSON('/complaints', {
+    method: 'POST',
+    body: JSON.stringify({ order_id, complaint_text })
+  });
+  alert('Complaint filed.');
+  loadUserView('complaints');
 }
 
-// Logout
+// --- Logout ---
 function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
 }
 
-// Kick things off
+// --- kick off ---
 loadUserView('dashboard');
