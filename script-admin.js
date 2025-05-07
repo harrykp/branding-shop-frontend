@@ -1,5 +1,5 @@
 // branding-shop-frontend/script-admin.js
-console.log('🔥 script-admin.js FINAL – all menus consolidated');
+console.log('🔥 script-admin.js – metadata-driven CRUD for all resources');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
@@ -11,6 +11,153 @@ const headers = {
 };
 const app = document.getElementById('app-admin');
 
+// --- define every resource, its API path, and fields to show/edit ---
+const RESOURCES = {
+  users: {
+    endpoint: '/users',
+    columns: [
+      { key: 'id',           label: 'ID',         readonly: true },
+      { key: 'name',         label: 'Name' },
+      { key: 'email',        label: 'Email',      type: 'email' },
+      { key: 'phone_number', label: 'Phone' },
+      { key: 'department_id',label: 'Dept ID',    type: 'number' }
+    ]
+  },
+  roles: {
+    endpoint: '/roles',
+    columns: [
+      { key: 'id',   label: 'ID',       readonly: true },
+      { key: 'name', label: 'Role Name' }
+    ]
+  },
+  products: {
+    endpoint: '/products',
+    columns: [
+      { key: 'id',           label: 'ID',          readonly: true },
+      { key: 'name',         label: 'Name' },
+      { key: 'description',  label: 'Description' },
+      { key: 'price',        label: 'Price',       type: 'number' },
+      { key: 'category_id',  label: 'Category ID', type: 'number' }
+    ]
+  },
+  quotes: {
+    endpoint: '/quotes',
+    columns: [
+      { key: 'id',                   label: 'ID',          readonly: true },
+      { key: 'customer_id',          label: 'Customer ID', type: 'number' },
+      { key: 'product_category_id',  label: 'Category ID', type: 'number' },
+      { key: 'quantity',             label: 'Quantity',    type: 'number' },
+      { key: 'unit_price',           label: 'Unit Price',  type: 'number' },
+      { key: 'total',                label: 'Total',       type: 'number', readonly:true },
+      { key: 'status',               label: 'Status' },
+      { key: 'created_at',           label: 'Created At',  readonly: true }
+    ]
+  },
+  orders: {
+    endpoint: '/orders',
+    columns: [
+      { key: 'id',              label: 'ID',          readonly: true },
+      { key: 'user_id',         label: 'Customer ID', type: 'number' },
+      { key: 'quote_id',        label: 'Quote ID',    type: 'number' },
+      { key: 'total',           label: 'Total',       type: 'number' },
+      { key: 'status',          label: 'Status' },
+      { key: 'placed_at',       label: 'Placed At',   readonly: true },
+      { key: 'payment_status',  label: 'Payment St.' }
+    ]
+  },
+  production: {
+    endpoint: '/jobs',
+    columns: [
+      { key: 'id',            label: 'ID',          readonly: true },
+      { key: 'order_id',      label: 'Order ID',    type: 'number' },
+      { key: 'type',          label: 'Type' },
+      { key: 'status',        label: 'Status' },
+      { key: 'department_id', label: 'Dept ID',     type: 'number' },
+      { key: 'assigned_to',   label: 'Assigned To', type: 'number' },
+      { key: 'qty',           label: 'Qty',         type: 'number' },
+      { key: 'start_date',    label: 'Start Date' },
+      { key: 'due_date',      label: 'Due Date' }
+    ]
+  },
+  suppliers: {
+    endpoint: '/suppliers',
+    columns: [
+      { key: 'id',      label: 'ID',   readonly: true },
+      { key: 'name',    label: 'Name' },
+      { key: 'website', label: 'Website' }
+    ]
+  },
+  catalog: {
+    endpoint: '/catalog',
+    columns: [
+      { key: 'id',          label: 'ID',        readonly: true },
+      { key: 'supplier_id', label: 'Supplier',  type: 'number' },
+      { key: 'sku',         label: 'SKU' },
+      { key: 'name',        label: 'Name' },
+      { key: 'cost',        label: 'Cost',      type: 'number' }
+    ]
+  },
+  purchaseOrders: {
+    endpoint: '/purchase-orders',
+    columns: [
+      { key: 'id',          label: 'ID',       readonly: true },
+      { key: 'supplier_id', label: 'Supplier', type: 'number' },
+      { key: 'created_at',  label: 'Created',  readonly: true },
+      { key: 'status',      label: 'Status' }
+    ]
+  },
+  leads: {
+    endpoint: '/leads',
+    columns: [
+      { key: 'id',          label: 'ID',      readonly: true },
+      { key: 'created_by',  label: 'Created by', type: 'number' },
+      { key: 'name',        label: 'Name' },
+      { key: 'email',       label: 'Email',   type: 'email' },
+      { key: 'phone',       label: 'Phone' },
+      { key: 'status',      label: 'Status' },
+      { key: 'created_at',  label: 'Created', readonly: true }
+    ]
+  },
+  deals: {
+    endpoint: '/deals',
+    columns: [
+      { key: 'id',         label: 'ID',        readonly: true },
+      { key: 'lead_id',    label: 'Lead ID',   type: 'number' },
+      { key: 'assigned_to',label: 'Assigned',  type: 'number' },
+      { key: 'value',      label: 'Value',     type: 'number' },
+      { key: 'status',     label: 'Status' },
+      { key: 'created_at', label: 'Created',   readonly: true }
+    ]
+  },
+  crm: { /* you can alias this to showLeadsOrDeals or leave as stub */ },
+  hr: {
+    endpoint: '/hr',
+    columns: [
+      { key: 'id',        label: 'ID',     readonly: true },
+      { key: 'user_id',   label: 'User ID',type: 'number' },
+      { key: 'ssn',       label: 'SSN' },
+      { key: 'hire_date', label: 'Hire Date' },
+      { key: 'position',  label: 'Position' },
+      { key: 'salary',    label: 'Salary',   type: 'number' }
+    ]
+  },
+  finance: {
+    endpoint: '/payments',
+    columns: [
+      { key: 'id',            label: 'ID',         readonly: true },
+      { key: 'order_id',      label: 'Order ID',   type: 'number' },
+      { key: 'gateway',       label: 'Gateway' },
+      { key: 'transaction_id',label: 'Txn ID' },
+      { key: 'amount',        label: 'Amount',     type: 'number' },
+      { key: 'status',        label: 'Status' },
+      { key: 'paid_at',       label: 'Paid At' },
+      { key: 'created_at',    label: 'Created',    readonly: true }
+    ]
+  },
+  reports: { /* leave as stub until you wire /sales, /taxes, etc. */ }
+};
+
+// --- fetch helper ---
 async function fetchJSON(path, opts = {}) {
   const res = await fetch(API_BASE + path, { headers, ...opts });
   const txt = await res.text();
@@ -18,6 +165,7 @@ async function fetchJSON(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
+// --- wire menu clicks ---
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -25,453 +173,138 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
+// --- main view loader ---
 async function loadAdminView(view) {
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
-  try {
-    switch (view) {
-      case 'users':          return showUsers();
-      case 'roles':          return showRoles();
-      case 'products':       return showProducts();
-      case 'quotes':         return showQuotes();
-      case 'orders':         return showOrders();
-      case 'production':     return showJobs();
-      case 'suppliers':      return showSuppliers();
-      case 'catalog':        return showCatalog();
-      case 'purchaseOrders': return showPurchaseOrders();
-      case 'leads':          return showLeads();
-      case 'deals':          return showDeals();
-      case 'crm':            return showCRM();
-      case 'hr':             return showHR();
-      case 'finance':        return showFinance();
-      case 'reports':        return showReports();
-      default:
-        app.innerHTML = `<div class="alert alert-warning">Unknown view: ${view}</div>`;
-    }
-  } catch (err) {
-    app.innerHTML = `<div class="alert alert-danger">Error loading ${view}: ${err.message}</div>`;
+  if (RESOURCES[view] && RESOURCES[view].endpoint) {
+    // 1) fetch list
+    const data = await fetchJSON(RESOURCES[view].endpoint);
+    app.innerHTML = renderList(view, data);
+  } else {
+    // fallback stubs
+    app.innerHTML = `<h3>${view.charAt(0).toUpperCase()+view.slice(1)}</h3>
+                     <p>Under construction…</p>`;
   }
 }
 
-// ===== PRODUCTS CRUD =====
-
-async function showProducts() {
-  const [cats, prods] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON('/products')
-  ]);
-  const rows = prods.map(p => {
-    const cat = cats.find(c => c.id === p.category_id);
-    return `
-      <tr>
-        <td>${p.id}</td>
-        <td>${p.name}</td>
-        <td>${p.description||''}</td>
-        <td>$${Number(p.price).toFixed(2)}</td>
-        <td>${cat?.name||'—'}</td>
-        <td>
-          <button class="btn btn-sm btn-outline-secondary me-1"
-                  onclick="editProduct(${p.id})">Edit</button>
-          <button class="btn btn-sm btn-outline-danger"
-                  onclick="deleteProduct(${p.id})">Delete</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-  app.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3>Products</h3>
-      <button class="btn btn-success" onclick="newProduct()">+ New Product</button>
-    </div>
-    <table class="table table-striped">
-      <thead>
-        <tr><th>ID</th><th>Name</th><th>Description</th>
-            <th>Price</th><th>Category</th><th>Actions</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
-}
-
-function newProduct() {
-  renderProductForm();
-}
-
-async function editProduct(id) {
-  const [cats, prod] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON(`/products/${id}`)
-  ]);
-  renderProductForm(cats, prod);
-}
-
-function renderProductForm(categories = [], product = {}) {
-  const name  = product.name || '';
-  const desc  = product.description || '';
-  const price = product.price != null ? product.price : '';
-  const catId = product.category_id || '';
-
-  app.innerHTML = `
-    <h3>${product.id ? 'Edit' : 'New'} Product</h3>
-    <form id="product-form" class="mt-3">
-      <div class="mb-3">
-        <label class="form-label">Name</label>
-        <input id="p-name" class="form-control" required value="${name}">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Description</label>
-        <textarea id="p-desc" class="form-control">${desc}</textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Price</label>
-        <input id="p-price" type="number" step="0.01" class="form-control" required
-               value="${price}">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Category</label>
-        <select id="p-cat" class="form-select" required>
-          <option value="">-- choose --</option>
-          ${categories.map(c=>
-            `<option value="${c.id}" ${c.id===catId?'selected':''}>${c.name}</option>`
-          ).join('')}
-        </select>
-      </div>
-      <button type="submit" class="btn btn-primary">
-        ${product.id ? 'Save Changes' : 'Create Product'}
-      </button>
-      <button type="button" class="btn btn-secondary ms-2"
-              onclick="showProducts()">Cancel</button>
-    </form>
-  `;
-
-  document.getElementById('product-form').onsubmit = async e => {
-    e.preventDefault();
-    const payload = {
-      name:        document.getElementById('p-name').value,
-      description: document.getElementById('p-desc').value,
-      price:       parseFloat(document.getElementById('p-price').value),
-      category_id: parseInt(document.getElementById('p-cat').value, 10)
-    };
-    try {
-      if (product.id) {
-        await fetchJSON(`/products/${product.id}`, {
-          method: 'PATCH', body: JSON.stringify(payload)
-        });
-        alert('Product updated.');
-      } else {
-        await fetchJSON('/products', {
-          method: 'POST', body: JSON.stringify(payload)
-        });
-        alert('Product created.');
-      }
-      showProducts();
-    } catch (err) {
-      alert('Save failed: ' + err.message);
-    }
-  };
-}
-
-async function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  try {
-    await fetchJSON(`/products/${id}`, { method: 'DELETE' });
-    alert('Deleted.');
-    showProducts();
-  } catch (err) {
-    alert('Delete failed: ' + err.message);
-  }
-}
-
-
-// ===== QUOTES CRUD =====
-
-async function showQuotes() {
-  const quotes = await fetchJSON('/quotes');
-  const rows = quotes.map(q => `
-    <tr>
-      <td>${q.id}</td>
-      <td>${q.customer_name}</td>
-      <td>${q.category_name}</td>
-      <td>${q.quantity}</td>
-      <td>$${Number(q.unit_price).toFixed(2)}</td>
-      <td>$${Number(q.total).toFixed(2)}</td>
-      <td>${q.status}</td>
+// --- generic list renderer ---
+function renderList(resource, records) {
+  const { columns, endpoint } = RESOURCES[resource];
+  const header = columns.map(c => `<th>${c.label}</th>`).join('');
+  const rows = records.map(rec => {
+    const cells = columns.map(c =>
+      `<td>${rec[c.key] == null ? '' : rec[c.key]}</td>`
+    ).join('');
+    return `<tr>
+      ${cells}
       <td>
         <button class="btn btn-sm btn-outline-secondary me-1"
-                onclick="editQuoteForm(${q.id})">Edit</button>
+                onclick="editResource('${resource}',${rec.id})">Edit</button>
         <button class="btn btn-sm btn-outline-danger"
-                onclick="deleteQuote(${q.id})">Delete</button>
+                onclick="deleteResource('${resource}',${rec.id})">Delete</button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 
-  app.innerHTML = `
+  return `
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3>Quotes</h3>
-      <button class="btn btn-success" onclick="newQuoteForm()">+ New Quote</button>
+      <h3>${resource.charAt(0).toUpperCase()+resource.slice(1)}</h3>
+      <button class="btn btn-success" onclick="newResource('${resource}')">
+        + New
+      </button>
     </div>
     <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>ID</th><th>Customer</th><th>Category</th>
-          <th>Qty</th><th>Unit Price</th><th>Total</th>
-          <th>Status</th><th>Actions</th>
-        </tr>
-      </thead>
+      <thead><tr>${header}<th>Actions</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   `;
 }
 
-async function newQuoteForm() {
-  const [cats, users] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON('/users')
-  ]);
-  renderQuoteForm(cats, users);
-}
+// --- generic form renderer ---
+function renderForm(resource, record = {}) {
+  const { columns, endpoint } = RESOURCES[resource];
+  const isEdit = Boolean(record.id);
 
-async function editQuoteForm(id) {
-  const [cats, users, quote] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON('/users'),
-    fetchJSON(`/quotes/${id}`)
-  ]);
-  renderQuoteForm(cats, users, quote);
-}
-
-function renderQuoteForm(categories, users, quote = {}) {
-  const isEdit = Boolean(quote.id);
-  const custId = quote.customer_id || '';
-  const catId  = quote.product_category_id || '';
-  const qty    = quote.quantity || 1;
-  const status = quote.status || 'pending';
+  const fields = columns.map(c => {
+    const val = record[c.key] || '';
+    return `
+      <div class="mb-3">
+        <label class="form-label">${c.label}</label>
+        <input
+          id="f_${c.key}"
+          class="form-control"
+          type="${c.type || 'text'}"
+          value="${val}"
+          ${c.readonly ? 'readonly' : ''}
+          ${c.readonly ? '' : 'required'}
+        />
+      </div>`;
+  }).join('');
 
   app.innerHTML = `
-    <h3>${isEdit ? 'Edit' : 'New'} Quote</h3>
-    <form id="quote-form" class="mt-3">
-      <div class="mb-3">
-        <label class="form-label">Customer</label>
-        <select id="q-cust" class="form-select" required>
-          <option value="">-- select customer --</option>
-          ${users.map(u=>
-            `<option value="${u.id}" ${u.id===custId?'selected':''}>
-              ${u.name} (${u.email})
-            </option>`
-          ).join('')}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Category</label>
-        <select id="q-cat" class="form-select" required>
-          <option value="">-- select category --</option>
-          ${categories.map(c=>
-            `<option value="${c.id}" ${c.id===catId?'selected':''}>
-              ${c.name}
-            </option>`
-          ).join('')}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Quantity</label>
-        <input id="q-qty" type="number" class="form-control" required value="${qty}">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Status</label>
-        <input id="q-status" class="form-control" required value="${status}">
-      </div>
+    <h3>${isEdit ? 'Edit' : 'New'} ${resource.slice(0,-1)}</h3>
+    <form id="frm_${resource}">
+      ${fields}
       <button type="submit" class="btn btn-primary">
-        ${isEdit ? 'Save Changes' : 'Create Quote'}
+        ${isEdit ? 'Save' : 'Create'}
       </button>
-      <button type="button" class="btn btn-secondary ms-2" onclick="showQuotes()">Cancel</button>
+      <button type="button" class="btn btn-secondary ms-2"
+              onclick="loadAdminView('${resource}')">
+        Cancel
+      </button>
     </form>
   `;
 
-  document.getElementById('quote-form').onsubmit = async e => {
+  document.getElementById(`frm_${resource}`).onsubmit = async e => {
     e.preventDefault();
-    const payload = {
-      customer_id:         parseInt(document.getElementById('q-cust').value,10),
-      product_category_id: parseInt(document.getElementById('q-cat').value,10),
-      quantity:            parseInt(document.getElementById('q-qty').value,10),
-      status:              document.getElementById('q-status').value
-    };
-    try {
-      if (isEdit) {
-        await fetchJSON(`/quotes/${quote.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: payload.status })
-        });
-        alert('Quote updated.');
-      } else {
-        await fetchJSON('/quotes', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        alert('Quote created.');
+    // build payload
+    const payload = {};
+    columns.forEach(c => {
+      if (!c.readonly) {
+        let v = document.getElementById(`f_${c.key}`).value;
+        if (c.type === 'number') v = parseFloat(v);
+        payload[c.key] = v;
       }
-      showQuotes();
+    });
+
+    // decide POST vs PATCH
+    const url    = isEdit ? `${endpoint}/${record.id}` : endpoint;
+    const method = isEdit ? 'PATCH' : 'POST';
+
+    try {
+      await fetchJSON(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+      alert(`${isEdit ? 'Updated' : 'Created'} successfully.`);
+      loadAdminView(resource);
     } catch (err) {
       alert('Save failed: ' + err.message);
     }
   };
 }
 
-async function deleteQuote(id) {
-  if (!confirm('Delete this quote?')) return;
-  await fetchJSON(`/quotes/${id}`, { method: 'DELETE' });
-  showQuotes();
+// --- CRUD actions ---
+function newResource(resource) {
+  renderForm(resource);
 }
 
-// ===== ORDERS CRUD =====
-
-async function showOrders() {
-  const [orders, users] = await Promise.all([
-    fetchJSON('/orders'),
-    fetchJSON('/users')
-  ]);
-  const rows = orders.map(o => {
-    const u = users.find(u=>u.id===o.user_id);
-    return `
-      <tr>
-        <td>${o.id}</td>
-        <td>${u?.name||'—'}</td>
-        <td>$${Number(o.total).toFixed(2)}</td>
-        <td>${o.status}</td>
-        <td>${new Date(o.placed_at).toLocaleDateString()}</td>
-        <td>${o.payment_status}</td>
-        <td>
-          <button class="btn btn-sm btn-outline-secondary me-1"
-                  onclick="editOrderForm(${o.id})">Edit</button>
-          <button class="btn btn-sm btn-outline-danger"
-                  onclick="deleteOrder(${o.id})">Delete</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-  app.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3>Orders</h3>
-      <button class="btn btn-success" onclick="newOrderForm()">+ New Order</button>
-    </div>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>ID</th><th>Customer</th><th>Total</th>
-          <th>Status</th><th>Placed</th><th>Payment</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
+async function editResource(resource, id) {
+  const rec = await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`);
+  renderForm(resource, rec);
 }
 
-async function newOrderForm() {
-  const [users, quotes] = await Promise.all([
-    fetchJSON('/users'),
-    fetchJSON('/quotes')
-  ]);
-  renderOrderForm(users, quotes);
+async function deleteResource(resource, id) {
+  if (!confirm('Delete this item?')) return;
+  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method: 'DELETE' });
+  loadAdminView(resource);
 }
 
-async function editOrderForm(id) {
-  const [users, quotes, order] = await Promise.all([
-    fetchJSON('/users'),
-    fetchJSON('/quotes'),
-    fetchJSON(`/orders/${id}`)
-  ]);
-  renderOrderForm(users, quotes, order);
-}
-
-function renderOrderForm(users, quotes, order={}) {
-  const isEdit = Boolean(order.id);
-  const uid    = order.user_id || '';
-  const qid    = order.quote_id|| '';
-  const tot    = order.total!=null?order.total:'';
-  const stat   = order.status||'new';
-  const pay    = order.payment_status||'pending';
-
-  app.innerHTML = `
-    <h3>${isEdit?'Edit':'New'} Order</h3>
-    <form id="order-form" class="mt-3">
-      <div class="mb-3">
-        <label>Customer</label>
-        <select id="o-user" class="form-select" required>
-          <option value="">-- choose --</option>
-          ${users.map(u=>`<option value="${u.id}" ${u.id===uid?'selected':''}>${u.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label>Quote</label>
-        <select id="o-quote" class="form-select" required>
-          <option value="">-- choose --</option>
-          ${quotes.map(q=>`<option value="${q.id}" ${q.id===qid?'selected':''}>#${q.id} $${Number(q.total).toFixed(2)}</option>`).join('')}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label>Total</label>
-        <input id="o-total" type="number" step="0.01" class="form-control" required value="${tot}">
-      </div>
-      <div class="mb-3">
-        <label>Status</label>
-        <input id="o-status" class="form-control" required value="${stat}">
-      </div>
-      <div class="mb-3">
-        <label>Payment Status</label>
-        <input id="o-paystat" class="form-control" required value="${pay}">
-      </div>
-      <button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'} Order</button>
-      <button type="button" class="btn btn-secondary ms-2" onclick="showOrders()">Cancel</button>
-    </form>
-  `;
-
-  document.getElementById('order-form').onsubmit = async e => {
-    e.preventDefault();
-    const payload = {
-      user_id:        parseInt(document.getElementById('o-user').value,10),
-      quote_id:       parseInt(document.getElementById('o-quote').value,10),
-      total:          parseFloat(document.getElementById('o-total').value),
-      status:         document.getElementById('o-status').value,
-      payment_status: document.getElementById('o-paystat').value
-    };
-    try {
-      if (isEdit) {
-        await fetchJSON(`/orders/${order.id}`, { method:'PATCH', body: JSON.stringify(payload) });
-        alert('Order updated.');
-      } else {
-        await fetchJSON('/orders', { method:'POST', body: JSON.stringify(payload) });
-        alert('Order created.');
-      }
-      showOrders();
-    } catch(err) {
-      alert('Save failed: '+err.message);
-    }
-  };
-}
-
-async function deleteOrder(id) {
-  if(!confirm('Delete this order?'))return;
-  await fetchJSON(`/orders/${id}`,{method:'DELETE'});
-  showOrders();
-}
-
-// ===== all the rest stubs =====
-
-async function showUsers()          { app.innerHTML = '<h3>Users</h3><p>…under construction…</p>'; }
-async function showRoles()          { app.innerHTML = '<h3>Roles</h3><p>…under construction…</p>'; }
-async function showJobs()           { app.innerHTML = '<h3>Production</h3><p>…under construction…</p>'; }
-async function showSuppliers()      { app.innerHTML = '<h3>Suppliers</h3><p>…under construction…</p>'; }
-async function showCatalog()        { app.innerHTML = '<h3>Catalog</h3><p>…under construction…</p>'; }
-async function showPurchaseOrders() { app.innerHTML = '<h3>Purchase Orders</h3><p>…under construction…</p>'; }
-async function showLeads()          { app.innerHTML = '<h3>Leads</h3><p>…under construction…</p>'; }
-async function showDeals()          { app.innerHTML = '<h3>Deals</h3><p>…under construction…</p>'; }
-async function showCRM()            { app.innerHTML = '<h3>CRM Home</h3><p>…under construction…</p>'; }
-async function showHR()             { app.innerHTML = '<h3>HR</h3><p>…under construction…</p>'; }
-async function showFinance()        { app.innerHTML = '<h3>Finance</h3><p>…under construction…</p>'; }
-async function showReports()        { app.innerHTML = '<h3>Reports</h3><p>…under construction…</p>'; }
-
+// --- logout hook ---
 function logout() {
   localStorage.removeItem('token');
   window.location.href = 'login.html';
 }
 
-// load initial
-loadAdminView('products');
+// --- initial page ---
+loadAdminView('users');
