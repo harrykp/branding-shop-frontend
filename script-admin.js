@@ -1,5 +1,5 @@
 // branding-shop-frontend/script-admin.js
-console.log('🔥 script-admin.js v2 loaded – Products CRUD is live');
+console.log('🔥 script-admin.js v3 loaded – Products & Quotes CRUD live');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
@@ -92,9 +92,7 @@ async function showProducts() {
           <th>Price</th><th>Category</th><th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        ${rows}
-      </tbody>
+      <tbody>${rows}</tbody>
     </table>
   `;
 }
@@ -144,9 +142,7 @@ function renderProductForm(categories = [], product = {}) {
       <button type="submit" class="btn btn-primary">
         ${product.id ? 'Save Changes' : 'Create Product'}
       </button>
-      <button type="button" class="btn btn-secondary ms-2" onclick="showProducts()">
-        Cancel
-      </button>
+      <button type="button" class="btn btn-secondary ms-2" onclick="showProducts()">Cancel</button>
     </form>
   `;
 
@@ -172,14 +168,10 @@ function renderProductForm(categories = [], product = {}) {
     };
     try {
       if (product.id) {
-        await fetchJSON(`/products/${product.id}`, {
-          method: 'PATCH', body: JSON.stringify(payload)
-        });
+        await fetchJSON(`/products/${product.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
         alert('Product updated.');
       } else {
-        await fetchJSON('/products', {
-          method: 'POST', body: JSON.stringify(payload)
-        });
+        await fetchJSON('/products',               { method: 'POST',  body: JSON.stringify(payload) });
         alert('Product created.');
       }
       showProducts();
@@ -200,10 +192,78 @@ async function deleteProduct(id) {
   }
 }
 
-// ===== stubs remain =====
+
+// ===== QUOTES CRUD =====
+
+async function showQuotes() {
+  const quotes = await fetchJSON('/quotes');
+  const rows = quotes.map(q => `
+    <tr>
+      <td>${q.id}</td>
+      <td>${q.customer_name}</td>
+      <td>${q.category_name}</td>
+      <td>${q.quantity}</td>
+      <td>$${Number(q.unit_price).toFixed(2)}</td>
+      <td>$${Number(q.total).toFixed(2)}</td>
+      <td>
+        <input id="q-status-${q.id}" class="form-control form-control-sm"
+               value="${q.status}">
+      </td>
+      <td>
+        <button class="btn btn-sm btn-primary me-1"
+                onclick="updateQuote(${q.id})">Save</button>
+        <button class="btn btn-sm btn-danger"
+                onclick="deleteQuote(${q.id})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+
+  app.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3>Quotes</h3>
+    </div>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th><th>Customer</th><th>Category</th>
+          <th>Qty</th><th>Unit Price</th><th>Total</th>
+          <th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+async function updateQuote(id) {
+  const newStatus = document.getElementById(`q-status-${id}`).value;
+  try {
+    await fetchJSON(`/quotes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: newStatus })
+    });
+    alert('Quote status updated.');
+    showQuotes();
+  } catch (err) {
+    alert('Update failed: ' + err.message);
+  }
+}
+
+async function deleteQuote(id) {
+  if (!confirm('Delete this quote?')) return;
+  try {
+    await fetchJSON(`/quotes/${id}`, { method: 'DELETE' });
+    alert('Deleted.');
+    showQuotes();
+  } catch (err) {
+    alert('Delete failed: ' + err.message);
+  }
+}
+
+
+// ===== other stubs =====
 async function showUsers()          { app.innerHTML = '<h3>Users</h3><p>…stub…</p>'; }
 async function showRoles()          { app.innerHTML = '<h3>Roles</h3><p>…stub…</p>'; }
-async function showQuotes()         { app.innerHTML = '<h3>Quotes</h3><p>…stub…</p>'; }
 async function showOrders()         { app.innerHTML = '<h3>Orders</h3><p>…stub…</p>'; }
 async function showJobs()           { app.innerHTML = '<h3>Production</h3><p>…stub…</p>'; }
 async function showSuppliers()      { app.innerHTML = '<h3>Suppliers</h3><p>…stub…</p>'; }
@@ -221,4 +281,5 @@ function logout() {
   window.location.href = 'login.html';
 }
 
+// initial load
 loadAdminView('products');
