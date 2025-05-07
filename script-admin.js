@@ -1,4 +1,5 @@
 // branding-shop-frontend/script-admin.js
+console.log('🔥 script-admin.js v2 loaded – Products CRUD is live');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
@@ -25,7 +26,8 @@ document.querySelectorAll('[data-view]').forEach(el =>
 );
 
 async function loadAdminView(view) {
-  app.innerHTML = `<h3>Loading ${view}…”</h3>`;
+  console.log('🔄 Loading view:', view);
+  app.innerHTML = `<h3>Loading ${view}…</h3>`;
   try {
     switch (view) {
       case 'users':          return showUsers();
@@ -54,13 +56,11 @@ async function loadAdminView(view) {
 // ===== PRODUCTS CRUD =====
 
 async function showProducts() {
-  // fetch categories & products
   const [cats, prods] = await Promise.all([
     fetchJSON('/product-categories'),
     fetchJSON('/products')
   ]);
 
-  // build table rows
   const rows = prods.map(p => {
     const cat = cats.find(c=>c.id===p.category_id);
     return `
@@ -112,10 +112,6 @@ async function editProduct(id) {
 }
 
 function renderProductForm(categories = [], product = {}) {
-  // categories may be passed, or fetch them now
-  const catOptions = categories.length
-    ? categories
-    : [];
   const name     = product.name   || '';
   const desc     = product.description || '';
   const price    = product.price  != null ? product.price : '';
@@ -154,7 +150,6 @@ function renderProductForm(categories = [], product = {}) {
     </form>
   `;
 
-  // fetch categories if not passed
   if (!categories.length) {
     fetchJSON('/product-categories').then(cats2 => {
       const sel = document.getElementById('p-cat');
@@ -167,7 +162,6 @@ function renderProductForm(categories = [], product = {}) {
     });
   }
 
-  // form submit handler
   document.getElementById('product-form').onsubmit = async e => {
     e.preventDefault();
     const payload = {
@@ -179,14 +173,12 @@ function renderProductForm(categories = [], product = {}) {
     try {
       if (product.id) {
         await fetchJSON(`/products/${product.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(payload)
+          method: 'PATCH', body: JSON.stringify(payload)
         });
         alert('Product updated.');
       } else {
         await fetchJSON('/products', {
-          method: 'POST',
-          body: JSON.stringify(payload)
+          method: 'POST', body: JSON.stringify(payload)
         });
         alert('Product created.');
       }
@@ -208,7 +200,7 @@ async function deleteProduct(id) {
   }
 }
 
-// ===== other stubs =====
+// ===== stubs remain =====
 async function showUsers()          { app.innerHTML = '<h3>Users</h3><p>…stub…</p>'; }
 async function showRoles()          { app.innerHTML = '<h3>Roles</h3><p>…stub…</p>'; }
 async function showQuotes()         { app.innerHTML = '<h3>Quotes</h3><p>…stub…</p>'; }
@@ -224,11 +216,9 @@ async function showHR()             { app.innerHTML = '<h3>HR</h3><p>…stub…<
 async function showFinance()        { app.innerHTML = '<h3>Finance</h3><p>…stub…</p>'; }
 async function showReports()        { app.innerHTML = '<h3>Reports</h3><p>…stub…</p>'; }
 
-// Logout
 function logout() {
   localStorage.removeItem('token');
   window.location.href = 'login.html';
 }
 
-// initial load
 loadAdminView('products');
