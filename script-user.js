@@ -46,7 +46,10 @@ async function loadUserView(view) {
 async function showDashboard() {
   app.innerHTML = `
     <h3>Welcome to your Dashboard</h3>
-    <p>Use the menu to request quotes, place orders, view invoices, or file complaints.</p>
+    <p>Use the menu or the button below to request quotes, place orders, view invoices, or file complaints.</p>
+    <button class="btn btn-primary mt-3" onclick="loadUserView('quotes')">
+      + Request Quote
+    </button>
   `;
 }
 
