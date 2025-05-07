@@ -10,7 +10,6 @@ const headers = {
 };
 const app = document.getElementById('app-user');
 
-// generic fetch → JSON + error
 async function fetchJSON(path, opts = {}) {
   const res = await fetch(API_BASE + path, { headers, ...opts });
   const txt = await res.text();
@@ -18,7 +17,7 @@ async function fetchJSON(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
-// wire top‐nav links
+// wire top‐nav
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -26,13 +25,10 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// wire the “+ Request Quote” button
+// wire “+ Request Quote” button if present
 const btnNewQuote = document.getElementById('btn-new-quote');
-if (btnNewQuote) {
-  btnNewQuote.addEventListener('click', () => loadUserView('quotes'));
-}
+if (btnNewQuote) btnNewQuote.addEventListener('click', () => loadUserView('quotes'));
 
-// main view dispatcher
 async function loadUserView(view) {
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
   try {
@@ -49,7 +45,6 @@ async function loadUserView(view) {
   }
 }
 
-// ─── DASHBOARD ──────────────────────────────────────────────────────────────
 async function showDashboard() {
   app.innerHTML = `
     <h3>Welcome to your Dashboard</h3>
@@ -57,7 +52,6 @@ async function showDashboard() {
   `;
 }
 
-// ─── ORDERS (Requests) ──────────────────────────────────────────────────────
 async function showRequests() {
   const orders = await fetchJSON('/orders');
   app.innerHTML = `
@@ -95,14 +89,23 @@ async function submitOrder(e) {
   loadUserView('requests');
 }
 
-// ─── INVOICES & PAYMENTS ────────────────────────────────────────────────────
 async function showInvoices() {
-  const [orders, payments] = await Promise.all([
-    fetchJSON('/orders'),
-    fetchJSON('/payments')
-  ]);
+  const orders = await fetchJSON('/orders');
 
-  app.innerHTML = `
+  // try/catch around payments
+  let payments = [];
+  try {
+    payments = await fetchJSON('/payments');
+  } catch (err) {
+    console.warn('Could not load payments:', err);
+    // show a banner instead of throwing
+    app.innerHTML = `<div class="alert alert-warning">
+      ⚠️ Unable to load receipts: ${err.message}
+    </div>`;
+  }
+
+  // now render both
+  app.innerHTML += `
     <h3>Invoices</h3>
     <table class="table table-striped">
       <thead>
@@ -127,29 +130,32 @@ async function showInvoices() {
         `).join('')}
       </tbody>
     </table>
-
-    <h3 class="mt-4">Receipts</h3>
-    <table class="table table-striped">
-      <thead><tr><th>ID</th><th>Order</th><th>Amount</th><th>Date</th></tr></thead>
-      <tbody>
-        ${payments.map(p => `
-          <tr>
-            <td>#${p.id}</td>
-            <td>#${p.order_id}</td>
-            <td>$${parseFloat(p.amount).toFixed(2)}</td>
-            <td>${new Date(p.paid_at||p.received_at).toLocaleDateString()}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
   `;
+
+  if (payments.length) {
+    app.innerHTML += `
+      <h3 class="mt-4">Receipts</h3>
+      <table class="table table-striped">
+        <thead><tr><th>ID</th><th>Order</th><th>Amount</th><th>Date</th></tr></thead>
+        <tbody>
+          ${payments.map(p => `
+            <tr>
+              <td>#${p.id}</td>
+              <td>#${p.order_id}</td>
+              <td>$${parseFloat(p.amount).toFixed(2)}</td>
+              <td>${new Date(p.paid_at||p.received_at).toLocaleDateString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
 }
 
-// payment helper
 async function payOrder(order_id, total) {
   const amount  = prompt(`Amount to pay for Order #${order_id}`, total);
   if (!amount) return;
-  const gateway = prompt('Payment gateway (e.g. MTN Momo, PayPal)');
+  const gateway = prompt('Enter payment gateway (e.g. MTN Momo, PayPal)');
   if (!gateway) return;
 
   try {
@@ -164,22 +170,18 @@ async function payOrder(order_id, total) {
   }
 }
 
-// ─── COMPLAINTS ─────────────────────────────────────────────────────────────
 async function showComplaints() {
   const [orders, complaints] = await Promise.all([
     fetchJSON('/orders'),
     fetchJSON('/complaints')
   ]);
-
   app.innerHTML = `
     <h3>My Complaints</h3>
     ${complaints.map(c => `
-      <div class="card mb-2">
-        <div class="card-body">
-          #${c.id} on Order ${c.order_id}: ${c.complaint_text}
-          <br><small>${new Date(c.created_at).toLocaleString()}</small>
-        </div>
-      </div>
+      <div class="card mb-2"><div class="card-body">
+        #${c.id} on Order ${c.order_id}: ${c.complaint_text}
+        <br><small>${new Date(c.created_at).toLocaleString()}</small>
+      </div></div>
     `).join('')}
 
     <h4 class="mt-4">File a Complaint</h4>
@@ -200,7 +202,7 @@ async function showComplaints() {
 }
 async function submitComplaint(e) {
   e.preventDefault();
-  const order_id      = +document.getElementById('cmp-order').value;
+  const order_id       = +document.getElementById('cmp-order').value;
   const complaint_text = document.getElementById('cmp-text').value;
   await fetchJSON('/complaints', {
     method: 'POST',
@@ -210,9 +212,7 @@ async function submitComplaint(e) {
   loadUserView('complaints');
 }
 
-// ─── QUOTES (New!) ─────────────────────────────────────────────────────────
 async function showQuotes() {
-  // fetch categories + past quotes
   const [cats, myQuotes] = await Promise.all([
     fetchJSON('/product-categories'),
     fetchJSON('/quotes')
@@ -257,7 +257,6 @@ async function showQuotes() {
       : `<p>No quotes yet.</p>`}
   `;
 
-  // handle form
   document.getElementById('frm-quote').onsubmit = async e => {
     e.preventDefault();
     const product_category_id = +document.getElementById('q-cat').value;
@@ -275,7 +274,6 @@ async function showQuotes() {
   };
 }
 
-// ─── LOGOUT ────────────────────────────────────────────────────────────────
 function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
