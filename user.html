@@ -57,7 +57,10 @@
   <!-- Main content -->
   <div class="container my-4">
     <!-- Quick Quote button (for convenience) -->
-    <button id="btn-new-quote" class="btn btn-primary mb-3">+ Request Quote</button>
+      <button id="btn-new-quote" class="btn btn-primary mb-3"
+          onclick="loadUserView('quotes')">
+    + Request Quote
+  </button>
     <div id="quote-results" class="mb-4"></div>
 
     <!-- User views will be dynamically injected here -->
