@@ -488,6 +488,21 @@ async function deleteResource(resource, id) {
   await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method: 'DELETE' });
   loadAdminView(resource);
 }
+// ──────────────────────────────────────────────────────────────
+// Push a deal into production via our new endpoint
+async function pushDeal(dealId) {
+  if (!confirm(`Push deal #${dealId} to production?`)) return;
+  try {
+    const job = await fetchJSON(`/jobs/push/${dealId}`, {
+      method: 'POST'
+    });
+    alert(`Created production job #${job.id}`);
+    // Optionally refresh the jobs or deals view
+    loadAdminView('production');
+  } catch (err) {
+    alert('Push failed: ' + err.message);
+  }
+}
 
 // --- logout & initial load ---
 function logout() {
