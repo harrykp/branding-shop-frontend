@@ -1,5 +1,5 @@
 // branding-shop-frontend/script-admin.js
-console.log('🔥 script-admin.js – metadata‐driven CRUD with search & pagination');
+console.log('🔥 script-admin.js – metadata‐driven CRUD with search, pagination & sorting');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
@@ -11,14 +11,22 @@ const headers = {
 };
 const app = document.getElementById('app-admin');
 
-// --- pagination & search state per resource ---
+// --- pagination, search & sort state per resource ---
 const PAGE_SIZES = [5,10,20,50];
 const state = {};
 function initState(res) {
-  if (!state[res]) state[res] = { page: 1, pageSize: 10, search: '' };
+  if (!state[res]) {
+    state[res] = {
+      page: 1,
+      pageSize: 10,
+      search: '',
+      sortKey: null,
+      sortDir: 'asc'
+    };
+  }
 }
 
-// --- global status‐dropdown options ---
+// --- status options for dropdowns ---
 const STATUS_OPTIONS = {
   users: [], roles: [], products: [],
   quotes: ['pending','approved','rejected','cancelled'],
@@ -33,7 +41,7 @@ const STATUS_OPTIONS = {
   reports: []
 };
 
-// --- reusable column sets ---
+// --- reusable column defs ---
 const jobsColumns = [
   { key:'id',label:'ID',readonly:true },
   { key:'order_id',label:'Order ID',type:'number' },
@@ -63,7 +71,7 @@ const dailyTransactionsColumns = [
   { key:'updated_at',label:'Updated At',readonly:true }
 ];
 
-// --- metadata for every resource ---
+// --- metadata for all resources ---
 const RESOURCES = {
   users: {
     endpoint: '/users',
@@ -124,7 +132,7 @@ const RESOURCES = {
     endpoint: '/jobs',
     columns: jobsColumns
   },
-  production: {      // alias for jobs
+  production: {
     endpoint: '/jobs',
     columns: jobsColumns
   },
@@ -173,7 +181,7 @@ const RESOURCES = {
       { key:'created_at',label:'Created At',readonly:true }
     ]
   },
-  crm: { /* stub until needed */ },
+  crm: { /* stub */ },
   hr: {
     endpoint: '/hr',
     columns: [
@@ -230,48 +238,72 @@ async function loadAdminView(view) {
                      <p>Under construction…</p>`;
     return;
   }
-  // fetch full dataset
   const list = await fetchJSON(cfg.endpoint);
   renderList(view, list);
 }
 
-// --- render table + search + pagination ---
+// --- render table + search + pagination + sorting ---
 function renderList(resource, records) {
   const { columns } = RESOURCES[resource];
-  const { page, pageSize, search } = state[resource];
+  const s = state[resource];
+  let arr = records;
 
-  // 1) filter
-  const filtered = search
-    ? records.filter(rec =>
-        Object.values(rec).some(val =>
-          String(val).toLowerCase().includes(search.toLowerCase())
-        )
+  // 1) search
+  if (s.search) {
+    const q = s.search.toLowerCase();
+    arr = arr.filter(rec =>
+      Object.values(rec).some(v =>
+        String(v).toLowerCase().includes(q)
       )
-    : records;
+    );
+  }
 
-  // 2) paginate
-  const start = (page - 1)*pageSize;
-  const pageRecs = filtered.slice(start, start + pageSize);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  // 2) sort
+  if (s.sortKey) {
+    arr = [...arr].sort((a,b) => {
+      const va = a[s.sortKey], vb = b[s.sortKey];
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (!isNaN(va) && !isNaN(vb)) {
+        return (va - vb) * (s.sortDir==='asc'?1:-1);
+      }
+      return String(va).localeCompare(vb) * (s.sortDir==='asc'?1:-1);
+    });
+  }
 
-  // 3) search + New button
-  const searchHTML = `
+  // 3) paginate
+  const total = arr.length;
+  const totalPages = Math.max(1, Math.ceil(total / s.pageSize));
+  s.page = Math.min(s.page, totalPages);
+  const start = (s.page-1)*s.pageSize;
+  const pageRecs = arr.slice(start, start + s.pageSize);
+
+  // 4) toolbar: search + new
+  const toolbar = `
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="input-group" style="width:250px">
         <span class="input-group-text">🔍</span>
         <input type="text"
                class="form-control"
                placeholder="Search…"
-               value="${search}"
-               oninput="onSearch('${resource}', this.value)">
+               value="${s.search}"
+               oninput="onSearch('${resource}',this.value)">
       </div>
-      <button class="btn btn-success" onclick="newResource('${resource}')">
-        + New
-      </button>
+      <button class="btn btn-success" onclick="newResource('${resource}')">+ New</button>
     </div>`;
 
-  // 4) table header & rows
-  const header = columns.map(c => `<th>${c.label}</th>`).join('');
+  // 5) table header
+  const header = columns.map(c => {
+    const arrow = s.sortKey===c.key
+      ? (s.sortDir==='asc' ? ' ▲' : ' ▼')
+      : '';
+    return `<th style="cursor:pointer"
+                onclick="onSort('${resource}','${c.key}')">
+              ${c.label}${arrow}
+            </th>`;
+  }).join('');
+
+  // 6) rows
   const rows = pageRecs.map(rec => {
     const cells = columns.map(c =>
       `<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`
@@ -280,27 +312,37 @@ function renderList(resource, records) {
       ${cells}
       <td>
         <button class="btn btn-sm btn-outline-secondary me-1"
-                onclick="editResource('${resource}',${rec.id})">Edit</button>
+                onclick="editResource('${resource}',${rec.id})">
+          Edit
+        </button>
         <button class="btn btn-sm btn-outline-danger"
-                onclick="deleteResource('${resource}',${rec.id})">Delete</button>
+                onclick="deleteResource('${resource}',${rec.id})">
+          Delete
+        </button>
       </td>
     </tr>`;
   }).join('');
 
-  // 5) pager
-  const prevDisabled = page <= 1 ? 'disabled' : '';
-  const nextDisabled = page >= totalPages ? 'disabled' : '';
+  // 7) pagination controls
+  const prevD = s.page<=1 ? 'disabled' : '';
+  const nextD = s.page>=totalPages ? 'disabled' : '';
   const sizeOpts = PAGE_SIZES.map(sz =>
-    `<option value="${sz}" ${sz===pageSize?'selected':''}>${sz}</option>`
+    `<option value="${sz}" ${sz===s.pageSize?'selected':''}>
+      ${sz}
+    </option>`
   ).join('');
   const pager = `
     <div class="d-flex justify-content-between align-items-center mt-2">
       <div>
-        <button class="btn btn-sm btn-outline-primary me-2" ${prevDisabled}
-                onclick="changePage('${resource}',${page-1})">Prev</button>
-        <span>Page ${page} / ${totalPages}</span>
-        <button class="btn btn-sm btn-outline-primary ms-2" ${nextDisabled}
-                onclick="changePage('${resource}',${page+1})">Next</button>
+        <button class="btn btn-sm btn-outline-primary me-2" ${prevD}
+                onclick="changePage('${resource}',${s.page-1})">
+          Prev
+        </button>
+        <span>Page ${s.page} of ${totalPages}</span>
+        <button class="btn btn-sm btn-outline-primary ms-2" ${nextD}
+                onclick="changePage('${resource}',${s.page+1})">
+          Next
+        </button>
       </div>
       <div class="d-flex align-items-center">
         <label class="me-2 mb-0">Page size:</label>
@@ -311,9 +353,8 @@ function renderList(resource, records) {
       </div>
     </div>`;
 
-  // assemble view
   app.innerHTML = `
-    ${searchHTML}
+    ${toolbar}
     <table class="table table-striped">
       <thead><tr>${header}<th>Actions</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -322,24 +363,35 @@ function renderList(resource, records) {
   `;
 }
 
-// --- search & pagination handlers ---
+// --- handlers for search, sort, pagination ---
 function onSearch(resource, txt) {
   state[resource].search = txt;
   state[resource].page = 1;
-  loadAdminView(resource);
+  renderList(resource, state[resource]._lastRecords || []);
+}
+function onSort(resource, key) {
+  const s = state[resource];
+  if (s.sortKey === key) {
+    s.sortDir = s.sortDir==='asc' ? 'desc' : 'asc';
+  } else {
+    s.sortKey = key;
+    s.sortDir = 'asc';
+  }
+  renderList(resource, state[resource]._lastRecords || []);
 }
 function changePage(resource, p) {
   state[resource].page = p;
-  loadAdminView(resource);
+  renderList(resource, state[resource]._lastRecords || []);
 }
 function changePageSize(resource, sz) {
-  state[resource].pageSize = Number(sz);
-  state[resource].page = 1;
-  loadAdminView(resource);
+  const s = state[resource];
+  s.pageSize = Number(sz);
+  s.page = 1;
+  renderList(resource, state[resource]._lastRecords || []);
 }
 
 // --- form renderer & CRUD actions ---
-function renderForm(resource, record = {}) {
+function renderForm(resource, record={}) {
   const { columns, endpoint } = RESOURCES[resource];
   const isEdit = Boolean(record.id);
 
@@ -349,11 +401,11 @@ function renderForm(resource, record = {}) {
       return `
         <div class="mb-3">
           <label class="form-label">${c.label}</label>
-          <select id="f_${c.key}"
-                  class="form-select"
-                  ${c.readonly ? 'disabled' : ''}>
+          <select id="f_${c.key}" class="form-select" ${c.readonly?'disabled':''}>
             ${c.options.map(opt => `
-              <option value="${opt}" ${opt===val?'selected':''}>${opt}</option>
+              <option value="${opt}" ${opt===val?'selected':''}>
+                ${opt}
+              </option>
             `).join('')}
           </select>
         </div>`;
@@ -365,8 +417,8 @@ function renderForm(resource, record = {}) {
                class="form-control"
                type="${c.type||'text'}"
                value="${val}"
-               ${c.readonly ? 'readonly' : ''}
-               ${c.readonly ? '' : 'required'} />
+               ${c.readonly?'readonly':''}
+               ${c.readonly?'':'required'} />
       </div>`;
   }).join('');
 
@@ -383,7 +435,6 @@ function renderForm(resource, record = {}) {
       </button>
     </form>
   `;
-
   document.getElementById(`frm_${resource}`).onsubmit = async e => {
     e.preventDefault();
     const payload = {};
@@ -406,6 +457,7 @@ function renderForm(resource, record = {}) {
     }
   };
 }
+
 function newResource(resource) {
   renderForm(resource);
 }
@@ -415,7 +467,7 @@ async function editResource(resource, id) {
 }
 async function deleteResource(resource, id) {
   if (!confirm('Delete this item?')) return;
-  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method: 'DELETE' });
+  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method:'DELETE' });
   loadAdminView(resource);
 }
 
