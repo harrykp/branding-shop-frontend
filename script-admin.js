@@ -32,148 +32,26 @@ const STATUS_OPTIONS = {
 
 // --- define every resource, its API path, and fields to show/edit ---
 const RESOURCES = {
-  users: {
-    endpoint: '/users',
-    columns: [
-      { key: 'id',           label: 'ID',         readonly: true },
-      { key: 'name',         label: 'Name' },
-      { key: 'email',        label: 'Email',      type: 'email' },
-      { key: 'phone_number', label: 'Phone' },
-      { key: 'department_id',label: 'Dept ID',    type: 'number' }
-    ]
-  },
-  roles: {
-    endpoint: '/roles',
-    columns: [
-      { key: 'id',   label: 'ID',       readonly: true },
-      { key: 'name', label: 'Role Name' }
-    ]
-  },
-  products: {
-    endpoint: '/products',
-    columns: [
-      { key: 'id',           label: 'ID',          readonly: true },
-      { key: 'name',         label: 'Name' },
-      { key: 'description',  label: 'Description' },
-      { key: 'price',        label: 'Price',       type: 'number' },
-      { key: 'category_id',  label: 'Category ID', type: 'number' }
-    ]
-  },
+  // … other resources …
+
+  // Quotes: now show customer name, phone, product name & code
   quotes: {
     endpoint: '/quotes',
     columns: [
-      { key: 'id',                  label: 'ID',          readonly: true },
-      { key: 'customer_id',         label: 'Customer ID', type: 'number' },
-      { key: 'product_category_id', label: 'Cat. ID',     type: 'number' },
-      { key: 'quantity',            label: 'Quantity',    type: 'number' },
-      { key: 'unit_price',          label: 'Unit Price',  type: 'number' },
-      { key: 'total',               label: 'Total',       type: 'number', readonly:true },
-      { key: 'status',              label: 'Status',      options: STATUS_OPTIONS.quotes },
-      { key: 'created_at',          label: 'Created At',  readonly: true }
+      { key: 'id',             label: 'ID',             readonly: true },
+      { key: 'customer_name',  label: 'Customer',       readonly: true },
+      { key: 'customer_phone', label: 'Phone',          readonly: true },
+      { key: 'product_name',   label: 'Product',        readonly: true },
+      { key: 'product_code',   label: 'Code',           readonly: true },
+      { key: 'quantity',       label: 'Quantity',       type: 'number' },
+      { key: 'unit_price',     label: 'Unit Price',     type: 'number' },
+      { key: 'total',          label: 'Total',          type: 'number', readonly: true },
+      { key: 'status',         label: 'Status',         options: STATUS_OPTIONS.quotes },
+      { key: 'created_at',     label: 'Created At',     readonly: true }
     ]
   },
-  orders: {
-    endpoint: '/orders',
-    columns: [
-      { key: 'id',             label: 'ID',          readonly: true },
-      { key: 'user_id',        label: 'Customer ID', type: 'number' },
-      { key: 'quote_id',       label: 'Quote ID',    type: 'number' },
-      { key: 'total',          label: 'Total',       type: 'number' },
-      { key: 'status',         label: 'Status',      options: STATUS_OPTIONS.orders },
-      { key: 'placed_at',      label: 'Placed At',   readonly: true },
-      { key: 'payment_status', label: 'Pay Status' }
-    ]
-  },
-  jobs: {
-    endpoint: '/jobs',
-    columns: [
-      { key: 'id',            label: 'ID',        readonly: true },
-      { key: 'order_id',      label: 'Order ID',  type: 'number' },
-      { key: 'type',          label: 'Type' },
-      { key: 'status',        label: 'Status',    options: STATUS_OPTIONS.jobs },
-      { key: 'department_id', label: 'Dept ID',   type: 'number' },
-      { key: 'assigned_to',   label: 'Assigned',  type: 'number' },
-      { key: 'qty',           label: 'Qty',       type: 'number' },
-      { key: 'start_date',    label: 'Start Date' },
-      { key: 'due_date',      label: 'Due Date' }
-    ]
-  },
-  suppliers: {
-    endpoint: '/suppliers',
-    columns: [
-      { key: 'id',      label: 'ID',   readonly: true },
-      { key: 'name',    label: 'Name' },
-      { key: 'website', label: 'Website' }
-    ]
-  },
-  catalog: {
-    endpoint: '/catalog',
-    columns: [
-      { key: 'id',          label: 'ID',        readonly: true },
-      { key: 'supplier_id', label: 'Supplier',  type: 'number' },
-      { key: 'sku',         label: 'SKU' },
-      { key: 'name',        label: 'Name' },
-      { key: 'cost',        label: 'Cost',      type: 'number' }
-    ]
-  },
-  'purchase-orders': {
-    endpoint: '/purchase-orders',
-    columns: [
-      { key: 'id',         label: 'ID',       readonly: true },
-      { key: 'supplier_id',label: 'Supplier', type: 'number' },
-      { key: 'created_at', label: 'Created',  readonly: true },
-      { key: 'status',     label: 'Status',   options: STATUS_OPTIONS['purchase-orders'] }
-    ]
-  },
-  leads: {
-    endpoint: '/leads',
-    columns: [
-      { key: 'id',         label: 'ID',         readonly: true },
-      { key: 'created_by', label: 'Created By', type: 'number' },
-      { key: 'name',       label: 'Name' },
-      { key: 'email',      label: 'Email',      type: 'email' },
-      { key: 'phone',      label: 'Phone' },
-      { key: 'status',     label: 'Status',     options: STATUS_OPTIONS.leads },
-      { key: 'created_at', label: 'Created At', readonly: true }
-    ]
-  },
-  deals: {
-    endpoint: '/deals',
-    columns: [
-      { key: 'id',          label: 'ID',        readonly: true },
-      { key: 'lead_id',     label: 'Lead ID',   type: 'number' },
-      { key: 'assigned_to', label: 'Assigned',  type: 'number' },
-      { key: 'value',       label: 'Value',     type: 'number' },
-      { key: 'status',      label: 'Status',    options: STATUS_OPTIONS.deals },
-      { key: 'created_at',  label: 'Created At',readonly: true }
-    ]
-  },
-  crm: { /* stub until you wire /crm if desired */ },
-  hr: {
-    endpoint: '/hr',
-    columns: [
-      { key: 'id',         label: 'ID',     readonly: true },
-      { key: 'user_id',    label: 'User ID',type: 'number' },
-      { key: 'ssn',        label: 'SSN' },
-      { key: 'hire_date',  label: 'Hire Date' },
-      { key: 'position',   label: 'Position' },
-      { key: 'salary',     label: 'Salary',   type: 'number' }
-    ]
-  },
-  finance: {
-    endpoint: '/payments',
-    columns: [
-      { key: 'id',             label: 'ID',       readonly: true },
-      { key: 'order_id',       label: 'Order ID', type: 'number' },
-      { key: 'gateway',        label: 'Gateway' },
-      { key: 'transaction_id', label: 'Txn ID' },
-      { key: 'amount',         label: 'Amount',   type: 'number' },
-      { key: 'status',         label: 'Status',   options: STATUS_OPTIONS.finance },
-      { key: 'paid_at',        label: 'Paid At' },
-      { key: 'created_at',     label: 'Created At', readonly: true }
-    ]
-  },
-  reports: { /* stub */ }
+
+  // … rest of your resources …
 };
 
 // --- generic fetch helper ---
@@ -207,7 +85,7 @@ async function loadAdminView(view) {
 
 // --- generic list renderer ---
 function renderList(resource, records) {
-  const { columns, endpoint } = RESOURCES[resource];
+  const { columns } = RESOURCES[resource];
   const header = columns.map(c => `<th>${c.label}</th>`).join('');
   const rows = records.map(rec => {
     const cells = columns.map(c =>
@@ -282,7 +160,7 @@ function renderForm(resource, record = {}) {
     columns.forEach(c => {
       if (!c.readonly) {
         let v = document.getElementById(`f_${c.key}`).value;
-        if (c.type==='number') v = parseFloat(v);
+        if (c.type === 'number') v = parseFloat(v);
         payload[c.key] = v;
       }
     });
