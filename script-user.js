@@ -17,7 +17,7 @@ async function fetchJSON(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
-// wire up nav clicks
+// wire nav
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -30,81 +30,62 @@ async function loadUserView(view) {
   try {
     switch (view) {
       case 'dashboard':  return showDashboard();
-      case 'quotes':     return showQuotes();
       case 'requests':   return showRequests();
       case 'invoices':   return showInvoices();
       case 'complaints': return showComplaints();
-      default:
-        app.innerHTML = '<p>Unknown view</p>';
+      case 'quotes':     return showQuotes();
+      default:            app.innerHTML = '<p>Unknown view</p>';
     }
   } catch (err) {
     app.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
   }
 }
 
-// ─── Dashboard ─────────────────────────────────────────────────────────────
 async function showDashboard() {
   app.innerHTML = `
     <h3>Welcome to your Dashboard</h3>
-    <p>Use the menu to request a quote, view orders/invoices, or file complaints.</p>
+    <p>Use the menu to request quotes, view orders/invoices, or file complaints.</p>
   `;
 }
 
-// ─── Quotes (new) ───────────────────────────────────────────────────────────
 async function showQuotes() {
-  // 1) get product list
-  const products = await fetchJSON('/products');
-  // 2) render form
+  const quotes = await fetchJSON('/quotes');
   app.innerHTML = `
-    <h3>Request a Quote</h3>
-    <form id="frm-quote">
-      <div class="mb-3">
-        <label class="form-label">Product</label>
-        <select id="q_product" class="form-select" required>
-          <option value="">— select —</option>
-          ${products.map(p =>
-            `<option value="${p.id}">
-               ${p.name} (${p.sku}) — $${parseFloat(p.price).toFixed(2)} / ${p.usage_unit||'unit'}
-             </option>`
-          ).join('')}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Quantity</label>
-        <input id="q_qty" type="number" class="form-control" min="1" value="1" required>
-      </div>
-      <button class="btn btn-primary">Get Quote</button>
-    </form>
-
-    <div id="quote-result" class="mt-4"></div>
-  `;
-
-  document.getElementById('frm-quote').onsubmit = async e => {
-    e.preventDefault();
-    const product_id = +document.getElementById('q_product').value;
-    const quantity   = +document.getElementById('q_qty').value;
-    try {
-      const quote = await fetchJSON('/quotes', {
-        method: 'POST',
-        body: JSON.stringify({ product_id, quantity })
-      });
-      document.getElementById('quote-result').innerHTML = `
-        <div class="alert alert-success">
-          Quote #${quote.id}: 
-          Unit Price $${parseFloat(quote.unit_price).toFixed(2)}, 
-          Total $${parseFloat(quote.total).toFixed(2)},
-          Status: ${quote.status}
+    <h3>My Quotes</h3>
+    ${quotes.map(q => `
+      <div class="card mb-2">
+        <div class="card-body">
+          <strong>#${q.id}</strong>
+          — ${q.product_name}
+          — qty ${q.quantity}
+          — $${parseFloat(q.total).toFixed(2)}
+          — ${q.status}
+          ${q.status==='pending'
+            ? `<button class="btn btn-sm btn-success ms-2"
+                      onclick="submitOrderFromQuote(${q.id})">
+                 Convert to Order
+               </button>`
+            : ''}
         </div>
-      `;
-    } catch (err) {
-      document.getElementById('quote-result').innerHTML = `
-        <div class="alert alert-danger">Failed to get quote: ${err.message}</div>
-      `;
-    }
-  };
+      </div>
+    `).join('')}
+  `;
 }
 
-// ─── My Orders (requests) ───────────────────────────────────────────────────
+async function submitOrderFromQuote(quoteId) {
+  if (!confirm(`Convert quote #${quoteId} into an order?`)) return;
+  try {
+    const order = await fetchJSON('/orders', {
+      method: 'POST',
+      body: JSON.stringify({ quote_id: quoteId })
+    });
+    alert(`Order #${order.id} created!`);
+    loadUserView('requests');
+  } catch (err) {
+    alert('Conversion failed: ' + err.message);
+  }
+}
+
 async function showRequests() {
   const orders = await fetchJSON('/orders');
   app.innerHTML = `
@@ -113,7 +94,9 @@ async function showRequests() {
     ${orders.map(o => `
       <div class="card mb-2">
         <div class="card-body">
-          <strong>#${o.id}</strong> — ${o.status} — $${parseFloat(o.total).toFixed(2)}
+          <strong>#${o.id}</strong>
+          — ${o.status}
+          — $${parseFloat(o.total).toFixed(2)}
         </div>
       </div>
     `).join('')}
