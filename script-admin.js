@@ -104,6 +104,21 @@ const RESOURCES = {
       { key: 'category_id',  label: 'Category ID', type: 'number' }
     ]
   },
+  pricingRules: { 
+    endpoint: '/pricing-rules', 
+    columns: [ 
+      { key: 'id',                  label: 'ID',           readonly: true }, 
+      { key: 'name',                label: 'Name' }, 
+      { key: 'product_category_id', label: 'Category ID',  type: 'number' }, 
+      { key: 'category_name',       label: 'Category' }, 
+      { key: 'rule_type',           label: 'Rule Type' }, 
+      { key: 'min_qty',             label: 'Min Qty',      type: 'number' }, 
+      { key: 'max_qty',             label: 'Max Qty',      type: 'number' }, 
+      { key: 'unit_price',          label: 'Unit Price',   type: 'number' }, 
+      { key: 'created_at',          label: 'Created At',   readonly: true }, 
+      { key: 'updated_at',          label: 'Updated At',   readonly: true } 
+    ] 
+  },
   quotes: {
     endpoint: '/quotes',
     columns: [
@@ -156,20 +171,6 @@ const RESOURCES = {
       { key: 'sku',         label: 'SKU' },
       { key: 'name',        label: 'Name' },
       { key: 'cost',        label: 'Cost',      type: 'number' }
-    ]
-  },
-  pricingRules: {
-    endpoint: '/pricing-rules',
-    columns: [
-      { key: 'id',                 label: 'ID',           readonly: true },
-      { key: 'name',               label: 'Name' },
-      { key: 'product_category_id',label: 'Category ID',  type: 'number' },
-      { key: 'rule_type',          label: 'Rule Type' },
-      { key: 'min_qty',            label: 'Min Qty',      type: 'number' },
-      { key: 'max_qty',            label: 'Max Qty',      type: 'number' },
-      { key: 'unit_price',         label: 'Unit Price',   type: 'number' },
-      { key: 'created_at',         label: 'Created At',   readonly: true },
-      { key: 'updated_at',         label: 'Updated At',   readonly: true }
     ]
   },
   'purchase-orders': {
