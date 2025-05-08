@@ -44,10 +44,10 @@ const jobsColumns = [
 ];
 
 const purchaseOrdersColumns = [
-  { key: 'id',         label: 'ID',       readonly: true },
-  { key: 'supplier_id',label: 'Supplier', type: 'number' },
-  { key: 'created_at', label: 'Created At', readonly: true },
-  { key: 'status',     label: 'Status',   options: STATUS_OPTIONS['purchase-orders'] }
+  { key: 'id',          label: 'ID',        readonly: true },
+  { key: 'supplier_id', label: 'Supplier',  type: 'number' },
+  { key: 'created_at',  label: 'Created At',readonly: true },
+  { key: 'status',      label: 'Status',    options: STATUS_OPTIONS['purchase-orders'] }
 ];
 
 const dailyTransactionsColumns = [
@@ -230,13 +230,14 @@ async function loadAdminView(view) {
   if (cfg && cfg.endpoint) {
     const list = await fetchJSON(cfg.endpoint);
     app.innerHTML = renderList(view, list);
+    attachFilter(view);
   } else {
     app.innerHTML = `<h3>${view.charAt(0).toUpperCase() + view.slice(1)}</h3>
                      <p>Under construction…</p>`;
   }
 }
 
-// --- generic list renderer ---
+// --- render list with search bar ---
 function renderList(resource, records) {
   const { columns } = RESOURCES[resource];
   const header = columns.map(c => `<th>${c.label}</th>`).join('');
@@ -254,13 +255,14 @@ function renderList(resource, records) {
       </td>
     </tr>`;
   }).join('');
+
   return `
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3>${resource.charAt(0).toUpperCase() + resource.slice(1)}</h3>
-      <button class="btn btn-success" onclick="newResource('${resource}')">
-        + New
-      </button>
+      <button class="btn btn-success" onclick="newResource('${resource}')">+ New</button>
     </div>
+    <input id="search-${resource}" class="form-control mb-3"
+           placeholder="Search ${resource.charAt(0).toUpperCase() + resource.slice(1)}…"/>
     <table class="table table-striped">
       <thead><tr>${header}<th>Actions</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -268,19 +270,34 @@ function renderList(resource, records) {
   `;
 }
 
+// --- attach filter logic ---
+function attachFilter(resource) {
+  const input = document.getElementById(`search-${resource}`);
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase();
+    document.querySelectorAll('#app-admin table tbody tr')
+      .forEach(tr => {
+        tr.style.display =
+          tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+  });
+}
+
 // --- generic form renderer ---
 function renderForm(resource, record = {}) {
   const { columns, endpoint } = RESOURCES[resource];
   const isEdit = Boolean(record.id);
+
   const fields = columns.map(c => {
     const val = record[c.key] != null ? record[c.key] : '';
     if (c.options) {
       return `
         <div class="mb-3">
           <label class="form-label">${c.label}</label>
-          <select id="f_${c.key}" class="form-select" ${c.readonly ? 'disabled' : ''}>
+          <select id="f_${c.key}" class="form-select" ${c.readonly?'disabled':''}>
             ${c.options.map(opt => `
-              <option value="${opt}" ${opt === val ? 'selected' : ''}>${opt}</option>
+              <option value="${opt}" ${opt===val?'selected':''}>${opt}</option>
             `).join('')}
           </select>
         </div>`;
@@ -288,30 +305,28 @@ function renderForm(resource, record = {}) {
     return `
       <div class="mb-3">
         <label class="form-label">${c.label}</label>
-        <input id="f_${c.key}"
-               class="form-control"
-               type="${c.type || 'text'}"
-               value="${val}"
-               ${c.readonly ? 'readonly' : ''}
-               ${c.readonly ? '' : 'required'} />
+        <input id="f_${c.key}" class="form-control" type="${c.type||'text'}"
+               value="${val}" ${c.readonly?'readonly':''} ${c.readonly?'':'required'} />
       </div>`;
   }).join('');
+
   app.innerHTML = `
-    <h3>${isEdit ? 'Edit' : 'New'} ${resource.slice(0, -1)}</h3>
+    <h3>${isEdit?'Edit':'New'} ${resource.slice(0,-1)}</h3>
     <form id="frm_${resource}">
       ${fields}
-      <button type="submit" class="btn btn-primary">${isEdit ? 'Save' : 'Create'}</button>
+      <button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
       <button type="button" class="btn btn-secondary ms-2"
               onclick="loadAdminView('${resource}')">Cancel</button>
     </form>
   `;
+
   document.getElementById(`frm_${resource}`).onsubmit = async e => {
     e.preventDefault();
     const payload = {};
     columns.forEach(c => {
       if (!c.readonly) {
         let v = document.getElementById(`f_${c.key}`).value;
-        if (c.type === 'number') v = parseFloat(v);
+        if (c.type==='number') v = parseFloat(v);
         payload[c.key] = v;
       }
     });
