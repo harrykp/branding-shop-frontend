@@ -338,16 +338,22 @@ function renderList(resource, records) {
       `<td>${rec[c.key]!=null ? rec[c.key] : ''}</td>`
     ).join('');
     return `<tr>${cells}
-      <td>
-        <button class="btn btn-sm btn-outline-secondary me-1"
-                onclick="editResource('${resource}',${rec.id})">
-          Edit
-        </button>
-        <button class="btn btn-sm btn-outline-danger"
-                onclick="deleteResource('${resource}',${rec.id})">
-          Delete
-        </button>
-      </td>
+<td>
+  <button class="btn btn-sm btn-outline-secondary me-1"
+          onclick="editResource('${resource}',${rec.id})">
+    Edit
+  </button>
+  <button class="btn btn-sm btn-outline-danger me-1"
+          onclick="deleteResource('${resource}',${rec.id})">
+    Delete
+  </button>
+  ${resource === 'deals'
+    ? `<button class="btn btn-sm btn-outline-primary"
+                onclick="pushDeal(${rec.id})">
+         Push to Prod
+       </button>`
+    : ''}
+</td>
     </tr>`;
   }).join('');
 
