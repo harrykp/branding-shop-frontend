@@ -59,45 +59,61 @@ async function showDashboard() {
 
 // === Quotes ===
 async function showQuotes() {
-  // fetch all categories and your existing quotes
-  const [cats, quotes] = await Promise.all([
-    fetchJSON('/product-categories'),
-    fetchJSON('/quotes')
-  ]);
+  // 1) fetch all products
+  const products = await fetchJSON('/products');
 
-  let html = `
+  // 2) render the form
+  app.innerHTML = `
     <h3>Request a Quote</h3>
-    <form onsubmit="submitQuote(event)" class="mb-4">
+    <form id="frm-quote" class="mb-4">
       <div class="mb-3">
-        <label class="form-label">Product Category</label>
-        <select id="quote-cat" class="form-select" required>
-          ${cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+        <label class="form-label">Product</label>
+        <select id="q-product" class="form-select" required>
+          ${products.map(p =>
+            `<option value="${p.id}">
+               ${p.name} (${p.sku}) — $${parseFloat(p.price).toFixed(2)} / ${p.usage_unit || 'unit'}
+             </option>`
+          ).join('')}
         </select>
       </div>
       <div class="mb-3">
         <label class="form-label">Quantity</label>
-        <input id="quote-qty" type="number" class="form-control" min="1" required>
+        <input id="q-qty" type="number" min="1" class="form-control" required>
       </div>
-      <button class="btn btn-primary">Submit Quote</button>
+      <button class="btn btn-primary">Get Quote</button>
     </form>
-
-    <h3>My Quotes</h3>
-    ${quotes.length
-      ? quotes.map(q=>`
-        <div class="card mb-2">
-          <div class="card-body">
-            <strong>#${q.id}</strong> —
-            ${q.category_name} —
-            Qty: ${q.quantity} —
-            $${parseFloat(q.total).toFixed(2)} —
-            ${q.status}
-          </div>
-        </div>
-      `).join('')
-      : '<p>No quotes yet.</p>'
-    }
+    <div id="quote-result"></div>
   `;
-  app.innerHTML = html;
+
+  // 3) handle form submission
+  document.getElementById('frm-quote').onsubmit = async e => {
+    e.preventDefault();
+    const product_id = +document.getElementById('q-product').value;
+    const quantity   = +document.getElementById('q-qty').value;
+
+    try {
+      const quote = await fetchJSON('/quotes', {
+        method: 'POST',
+        body: JSON.stringify({ product_id, quantity })
+      });
+
+      document.getElementById('quote-result').innerHTML = `
+        <div class="alert alert-success">
+          Quote #${quote.id}:<br>
+          Unit Price: $${parseFloat(quote.unit_price).toFixed(2)}<br>
+          Quantity: ${quote.quantity}<br>
+          <strong>Total: $${parseFloat(quote.total).toFixed(2)}</strong><br>
+          Status: <em>${quote.status}</em>
+        </div>
+      `;
+    } catch (err) {
+      document.getElementById('quote-result').innerHTML = `
+        <div class="alert alert-danger">
+          Failed to get quote: ${err.message}
+        </div>
+      `;
+    }
+  };
 }
 
 async function submitQuote(e) {
