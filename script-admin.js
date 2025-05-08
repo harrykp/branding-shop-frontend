@@ -425,10 +425,8 @@ function renderForm(resource, record = {}) {
       return `
         <div class="mb-3">
           <label class="form-label">${c.label}</label>
-          <select id="f_${c.key}" class="form-select" ${c.readonly ? 'disabled' : ''}>
-            ${c.options.map(opt => `
-              <option value="${opt}" ${opt===val?'selected':''}>${opt}</option>
-            `).join('')}
+          <select id="f_${c.key}" class="form-select" ${c.readonly?'disabled':''}>
+            ${c.options.map(opt => `<option value="${opt}" ${opt===val?'selected':''}>${opt}</option>`).join('')}
           </select>
         </div>`;
     }
@@ -448,8 +446,7 @@ function renderForm(resource, record = {}) {
     <form id="frm_${resource}">
       ${fields}
       <button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
-      <button type="button" class="btn btn-secondary ms-2"
-              onclick="loadAdminView('${resource}')">Cancel</button>
+      <button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button>
     </form>
   `;
   document.getElementById(`frm_${resource}`).onsubmit = async e => {
