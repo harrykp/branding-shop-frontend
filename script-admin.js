@@ -193,17 +193,29 @@ const RESOURCES = {
       { key: 'created_at',  label: 'Created At', readonly: true }
     ]
   },
-  deals: {
-    endpoint: '/deals',
-    columns: [
-      { key: 'id',         label: 'ID',        readonly: true },
-      { key: 'lead_id',    label: 'Lead ID',   type: 'number' },
-      { key: 'assigned_to',label: 'Assigned To', type: 'number' },
-      { key: 'value',      label: 'Value',     type: 'number' },
-      { key: 'status',     label: 'Status',    options: STATUS_OPTIONS.deals },
-      { key: 'created_at', label: 'Created At',readonly: true }
-    ]
-  },
+deals: {
+  endpoint: '/deals',
+  columns: [
+    { key: 'deal_id',           label: 'Deal ID',          readonly: true },
+    { key: 'lead_id',           label: 'Lead ID',          type: 'number' },
+    { key: 'lead_name',         label: 'Lead Name' },
+    { key: 'sales_rep_id',      label: 'Rep ID',           type: 'number' },
+    { key: 'sales_rep',         label: 'Sales Rep' },
+    { key: 'product_id',        label: 'Product ID',       type: 'number' },
+    { key: 'product',           label: 'Product Name' },
+    { key: 'product_code',      label: 'SKU' },
+    { key: 'quote_id',          label: 'Quote ID',         type: 'number' },
+    { key: 'quote_qty',         label: 'Qty Quoted',       type: 'number' },
+    { key: 'quote_unit_price',  label: 'Unit Price',       type: 'number' },
+    { key: 'quote_total',       label: 'Quote Total',      type: 'number', readonly: true },
+    { key: 'deal_value',        label: 'Deal Value',       type: 'number' },
+    { key: 'deal_status',       label: 'Status',           options: STATUS_OPTIONS.deals },
+    { key: 'customer_id',       label: 'Cust. ID',         type: 'number' },
+    { key: 'customer_name',     label: 'Customer' },
+    { key: 'customer_phone',    label: 'Phone' },
+    { key: 'deal_date',         label: 'Created At',       readonly: true }
+  ]
+},
   crm: { /* stub until needed */ },
   hr: {
     endpoint: '/hr',
