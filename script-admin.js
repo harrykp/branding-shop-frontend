@@ -149,11 +149,95 @@ const RESOURCES = {
   },
   jobs: {
     endpoint: '/jobs',
-    columns: jobsColumns
+    columns: [
+      // identity
+      { key: 'job_id',            label: 'Job ID',        readonly: true },
+      { key: 'deal_id',           label: 'Deal ID',       type: 'number' },
+      { key: 'deal_value',        label: 'Deal Value',    type: 'number' },
+
+      // customer & order
+      { key: 'customer_id',       label: 'Cust. ID',      type: 'number' },
+      { key: 'customer_name',     label: 'Customer' },
+      { key: 'customer_phone',    label: 'Phone' },
+      { key: 'order_id',          label: 'Order ID',      type: 'number' },
+      { key: 'order_total',       label: 'Order Value',   type: 'number' },
+      { key: 'payment_status',    label: 'Pay Status' },
+
+      // product/quote info
+      { key: 'product_id',        label: 'Prod. ID',      type: 'number' },
+      { key: 'product_name',      label: 'Product' },
+      { key: 'product_code',      label: 'SKU' },
+      { key: 'qty_ordered',       label: 'Qty Ordered',   type: 'number' },
+      { key: 'qty_completed',     label: 'Qty Completed', type: 'number' },
+      { key: 'pct_complete',      label: '% Complete',    type: 'number' },
+
+      // scheduling
+      { key: 'start_date',        label: 'Start Date' },
+      { key: 'completion_date',   label: 'Completion Date' },
+      { key: 'due_date',          label: 'Due Date' },
+
+      // ownership & department
+      { key: 'sales_rep',         label: 'Sales Rep' },
+      { key: 'department',        label: 'Dept' },
+
+      // financials & comments
+      { key: 'completed_value',   label: 'Paid',          type: 'number' },
+      { key: 'balance_unpaid',    label: 'Balance',       type: 'number' },
+      { key: 'comments',          label: 'Comments' },
+
+      // audit
+      { key: 'updated_by_name',   label: 'Updated By' },
+      { key: 'updated_at',        label: 'Updated At',    readonly: true },
+
+      // workflow status
+      { key: 'job_status',        label: 'Status',        options: STATUS_OPTIONS.jobs }
+    ]
   },
   production: {
     endpoint: '/jobs',
-    columns: jobsColumns
+    columns: [
+      // identity
+      { key: 'job_id',            label: 'Job ID',        readonly: true },
+      { key: 'deal_id',           label: 'Deal ID',       type: 'number' },
+      { key: 'deal_value',        label: 'Deal Value',    type: 'number' },
+
+      // customer & order
+      { key: 'customer_id',       label: 'Cust. ID',      type: 'number' },
+      { key: 'customer_name',     label: 'Customer' },
+      { key: 'customer_phone',    label: 'Phone' },
+      { key: 'order_id',          label: 'Order ID',      type: 'number' },
+      { key: 'order_total',       label: 'Order Value',   type: 'number' },
+      { key: 'payment_status',    label: 'Pay Status' },
+
+      // product/quote info
+      { key: 'product_id',        label: 'Prod. ID',      type: 'number' },
+      { key: 'product_name',      label: 'Product' },
+      { key: 'product_code',      label: 'SKU' },
+      { key: 'qty_ordered',       label: 'Qty Ordered',   type: 'number' },
+      { key: 'qty_completed',     label: 'Qty Completed', type: 'number' },
+      { key: 'pct_complete',      label: '% Complete',    type: 'number' },
+
+      // scheduling
+      { key: 'start_date',        label: 'Start Date' },
+      { key: 'completion_date',   label: 'Completion Date' },
+      { key: 'due_date',          label: 'Due Date' },
+
+      // ownership & department
+      { key: 'sales_rep',         label: 'Sales Rep' },
+      { key: 'department',        label: 'Dept' },
+
+      // financials & comments
+      { key: 'completed_value',   label: 'Paid',          type: 'number' },
+      { key: 'balance_unpaid',    label: 'Balance',       type: 'number' },
+      { key: 'comments',          label: 'Comments' },
+
+      // audit
+      { key: 'updated_by_name',   label: 'Updated By' },
+      { key: 'updated_at',        label: 'Updated At',    readonly: true },
+
+      // workflow status
+      { key: 'job_status',        label: 'Status',        options: STATUS_OPTIONS.jobs }
+    ]
   },
   suppliers: {
     endpoint: '/suppliers',
