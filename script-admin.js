@@ -44,46 +44,42 @@ const STATUS_OPTIONS = {
 };
 
 // --- reusable column sets ---
+// (jobsColumns now includes all the extra fields you requested)
 const jobsColumns = [
   { key: 'id',            label: 'ID',           readonly: true },
   { key: 'deal_id',       label: 'Deal ID',      type: 'number' },
   { key: 'deal_value',    label: 'Deal Value',   type: 'number' },
 
-  // customer & order
   { key: 'customer_id',    label: 'Cust. ID',     type: 'number' },
   { key: 'customer_name',  label: 'Customer' },
   { key: 'customer_phone', label: 'Phone' },
+
   { key: 'order_id',       label: 'Order ID',     type: 'number' },
   { key: 'order_total',    label: 'Order Value',  type: 'number' },
   { key: 'payment_status', label: 'Pay Status' },
 
-  // product/quote info
   { key: 'product_id',     label: 'Prod. ID',     type: 'number' },
   { key: 'product_name',   label: 'Product' },
   { key: 'product_code',   label: 'SKU' },
+
   { key: 'qty_ordered',    label: 'Qty Ordered',  type: 'number' },
   { key: 'qty_completed',  label: 'Qty Completed',type: 'number' },
   { key: 'pct_complete',   label: '% Complete',   type: 'number' },
 
-  // scheduling
   { key: 'start_date',     label: 'Start Date' },
   { key: 'completion_date',label: 'Completion Date' },
   { key: 'due_date',       label: 'Due Date' },
 
-  // ownership & department
   { key: 'sales_rep',      label: 'Sales Rep' },
   { key: 'department',     label: 'Dept' },
 
-  // financials & comments
   { key: 'completed_value',label: 'Paid',         type: 'number' },
   { key: 'balance_unpaid', label: 'Balance',      type: 'number' },
   { key: 'comments',       label: 'Comments' },
 
-  // audit
   { key: 'updated_by_name',label: 'Updated By' },
   { key: 'updated_at',     label: 'Updated At',   readonly: true },
 
-  // workflow status
   { key: 'job_status',     label: 'Status',       options: STATUS_OPTIONS.jobs }
 ];
 
@@ -178,6 +174,31 @@ const RESOURCES = {
       { key: 'payment_status', label: 'Pay Status' }
     ]
   },
+  deals: {
+    endpoint: '/deals',
+    // tell the UI that the primary key for deals is `deal_id`
+    idKey: 'deal_id',
+    columns: [
+      { key: 'deal_id',         label: 'Deal ID',          readonly: true },
+      { key: 'lead_id',         label: 'Lead ID',          type: 'number' },
+      { key: 'lead_name',       label: 'Lead Name' },
+      { key: 'sales_rep_id',    label: 'Rep ID',           type: 'number' },
+      { key: 'sales_rep',       label: 'Sales Rep' },
+      { key: 'product_id',      label: 'Product ID',       type: 'number' },
+      { key: 'product',         label: 'Product Name' },
+      { key: 'product_code',    label: 'SKU' },
+      { key: 'quote_id',        label: 'Quote ID',         type: 'number' },
+      { key: 'quote_qty',       label: 'Qty Quoted',       type: 'number' },
+      { key: 'quote_unit_price',label: 'Unit Price',       type: 'number' },
+      { key: 'quote_total',     label: 'Quote Total',      type: 'number', readonly: true },
+      { key: 'deal_value',      label: 'Deal Value',       type: 'number' },
+      { key: 'deal_status',     label: 'Status',           options: STATUS_OPTIONS.deals },
+      { key: 'customer_id',     label: 'Cust. ID',         type: 'number' },
+      { key: 'customer_name',   label: 'Customer' },
+      { key: 'customer_phone',  label: 'Phone' },
+      { key: 'deal_date',       label: 'Created At',       readonly: true }
+    ]
+  },
   jobs: {
     endpoint: '/jobs',
     columns: jobsColumns
@@ -224,32 +245,7 @@ const RESOURCES = {
       { key: 'created_at',  label: 'Created At', readonly: true }
     ]
   },
-
-  // ——— UPDATED DEALS RESOURCE ———
-  deals: {
-    endpoint: '/deals',
-    columns: [
-      { key: 'id',                label: 'Deal ID',         readonly: true },
-      { key: 'lead_id',           label: 'Lead ID',         type: 'number' },
-      { key: 'quote_id',          label: 'Quote ID',        type: 'number' },
-      { key: 'sales_rep_id',      label: 'Rep ID',          type: 'number' },
-      { key: 'sales_rep',         label: 'Sales Rep' },
-      { key: 'product_id',        label: 'Product ID',      type: 'number' },
-      { key: 'product',           label: 'Product Name' },
-      { key: 'product_code',      label: 'SKU' },
-      { key: 'quote_qty',         label: 'Qty Quoted',      type: 'number' },
-      { key: 'quote_unit_price',  label: 'Unit Price',      type: 'number' },
-      { key: 'quote_total',       label: 'Quote Total',     type: 'number', readonly: true },
-      { key: 'deal_value',        label: 'Deal Value',      type: 'number' },
-      { key: 'deal_status',       label: 'Status',          options: STATUS_OPTIONS.deals },
-      { key: 'customer_id',       label: 'Cust. ID',        type: 'number' },
-      { key: 'customer_name',     label: 'Customer' },
-      { key: 'customer_phone',    label: 'Phone' },
-      { key: 'deal_date',         label: 'Created At',      readonly: true }
-    ]
-  },
-
-  crm: { /* stub */ },
+  crm: { /* stub until needed */ },
   hr: {
     endpoint: '/hr',
     columns: [
@@ -313,7 +309,7 @@ async function loadAdminView(view) {
 
 // --- render table + controls ---
 function renderList(resource, records) {
-  const { columns } = RESOURCES[resource];
+  const { columns, idKey } = RESOURCES[resource];
   const s = state[resource];
 
   // 1) apply search
@@ -344,7 +340,7 @@ function renderList(resource, records) {
   const start = (s.page-1)*s.pageSize;
   const pageRecs = arr.slice(start, start + s.pageSize);
 
-  // toolbar: search + new
+  // toolbar
   const toolbar = `
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="input-group" style="width:250px">
@@ -366,7 +362,7 @@ function renderList(resource, records) {
       </button>
     </div>`;
 
-  // header with sort arrows
+  // header
   const header = columns.map(c => {
     const arrow = s.sortKey===c.key
       ? (s.sortDir==='asc'?' ▲':' ▼')
@@ -378,31 +374,34 @@ function renderList(resource, records) {
   }).join('');
 
   // rows
+  const idField = idKey || 'id';
   const rows = pageRecs.map(rec => {
+    const recId = rec[idField];
     const cells = columns.map(c =>
       `<td>${rec[c.key]!=null ? rec[c.key] : ''}</td>`
     ).join('');
     return `<tr>${cells}
       <td>
         <button class="btn btn-sm btn-outline-secondary me-1"
-                onclick="editResource('${resource}',${rec.id})">
+                onclick="editResource('${resource}',${recId})">
           Edit
         </button>
         <button class="btn btn-sm btn-outline-danger me-1"
-                onclick="deleteResource('${resource}',${rec.id})">
+                onclick="deleteResource('${resource}',${recId})">
           Delete
         </button>
         ${resource === 'deals'
           ? `<button class="btn btn-sm btn-outline-primary"
-                      onclick="pushDeal(${rec.id})">
+                      onclick="pushDeal(${recId})">
                Push to Prod
              </button>`
-          : ''}
+          : ''
+        }
       </td>
     </tr>`;
   }).join('');
 
-  // pagination controls
+  // pagination
   const prevD = s.page<=1?'disabled':'';
   const nextD = s.page>=totalPages?'disabled':'';
   const sizeOpts = PAGE_SIZES.map(sz =>
@@ -441,65 +440,42 @@ function renderList(resource, records) {
 }
 
 // --- control handlers ---
-function onSearch(resource, text) {
-  state[resource].search = text;
-  state[resource].page = 1;
-  renderList(resource, state[resource]._lastRecords);
-}
-function onSort(resource, key) {
-  const s = state[resource];
-  if (s.sortKey===key) {
-    s.sortDir = s.sortDir==='asc'?'desc':'asc';
-  } else {
-    s.sortKey = key;
-    s.sortDir = 'asc';
-  }
-  renderList(resource, state[resource]._lastRecords);
-}
-function changePage(resource, pg) {
-  state[resource].page = pg;
-  renderList(resource, state[resource]._lastRecords);
-}
-function changePageSize(resource, sz) {
-  state[resource].pageSize = Number(sz);
-  state[resource].page = 1;
-  renderList(resource, state[resource]._lastRecords);
-}
+function onSearch(resource, text) { state[resource].search = text; state[resource].page = 1; renderList(resource, state[resource]._lastRecords); }
+function onSort(resource, key)   { const s=state[resource]; if(s.sortKey===key){s.sortDir=s.sortDir==='asc'?'desc':'asc'}else{s.sortKey=key;s.sortDir='asc'}; renderList(resource, state[resource]._lastRecords); }
+function changePage(resource, pg){ state[resource].page=pg; renderList(resource, state[resource]._lastRecords); }
+function changePageSize(resource,sz){ state[resource].pageSize=Number(sz); state[resource].page=1; renderList(resource, state[resource]._lastRecords); }
 
-// --- form renderer & CRUD actions ---
+// --- form renderer & CRUD ---
 function renderForm(resource, record = {}) {
   const { columns, endpoint } = RESOURCES[resource];
+  // for deals we need record.id for save, so copy deal_id → id
+  if (RESOURCES[resource].idKey) record.id = record[RESOURCES[resource].idKey];
+
   const isEdit = Boolean(record.id);
   const fields = columns.map(c => {
-    const val = record[c.key] != null ? record[c.key] : '';
+    const val = record[c.key]!=null?record[c.key]:'';
     if (c.options) {
-      return `
-        <div class="mb-3">
-          <label class="form-label">${c.label}</label>
-          <select id="f_${c.key}" class="form-select" ${c.readonly?'disabled':''}>
-            ${c.options.map(opt => `<option value="${opt}" ${opt===val?'selected':''}>${opt}</option>`).join('')}
-          </select>
-        </div>`;
+      return `<div class="mb-3"><label class="form-label">${c.label}</label>
+        <select id="f_${c.key}" class="form-select" ${c.readonly?'disabled':''}>
+          ${c.options.map(opt=>`<option value="${opt}" ${opt===val?'selected':''}>${opt}</option>`).join('')}
+        </select></div>`;
     }
-    return `
-      <div class="mb-3">
-        <label class="form-label">${c.label}</label>
-        <input id="f_${c.key}"
-               class="form-control"
-               type="${c.type||'text'}"
-               value="${val}"
-               ${c.readonly?'readonly':''}
-               ${c.readonly?'':'required'} />
-      </div>`;
+    return `<div class="mb-3"><label class="form-label">${c.label}</label>
+      <input id="f_${c.key}" class="form-control" type="${c.type||'text'}"
+             value="${val}" ${c.readonly?'readonly':''} ${c.readonly?'':'required'} />
+    </div>`;
   }).join('');
+
   app.innerHTML = `
     <h3>${isEdit?'Edit':'New'} ${resource.slice(0,-1)}</h3>
     <form id="frm_${resource}">
       ${fields}
       <button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
-      <button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button>
+      <button type="button" class="btn btn-secondary ms-2"
+              onclick="loadAdminView('${resource}')">Cancel</button>
     </form>
   `;
+
   document.getElementById(`frm_${resource}`).onsubmit = async e => {
     e.preventDefault();
     const payload = {};
@@ -521,24 +497,23 @@ function renderForm(resource, record = {}) {
   };
 }
 
-function newResource(resource) {
-  renderForm(resource);
-}
+function newResource(resource) { renderForm(resource); }
 async function editResource(resource, id) {
   const rec = await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`);
   renderForm(resource, rec);
 }
 async function deleteResource(resource, id) {
   if (!confirm('Delete this item?')) return;
-  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method: 'DELETE' });
+  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method:'DELETE' });
   loadAdminView(resource);
 }
 
-// --- special: Push deal to production ---
+// ──────────────────────────────────────────────────────────────
+// Push a deal into production
 async function pushDeal(dealId) {
   if (!confirm(`Push deal #${dealId} to production?`)) return;
   try {
-    const job = await fetchJSON(`/jobs/push/${dealId}`, { method: 'POST' });
+    const job = await fetchJSON(`/jobs/push/${dealId}`, { method:'POST' });
     alert(`Created production job #${job.id}`);
     loadAdminView('production');
   } catch (err) {
