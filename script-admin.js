@@ -45,15 +45,46 @@ const STATUS_OPTIONS = {
 
 // --- reusable column sets ---
 const jobsColumns = [
-  { key: 'id',           label: 'ID',          readonly: true },
-  { key: 'order_id',     label: 'Order ID',    type: 'number' },
-  { key: 'type',         label: 'Type' },
-  { key: 'status',       label: 'Status',      options: STATUS_OPTIONS.jobs },
-  { key: 'department_id',label: 'Dept ID',     type: 'number' },
-  { key: 'assigned_to',  label: 'Assigned To', type: 'number' },
-  { key: 'qty',          label: 'Qty',         type: 'number' },
-  { key: 'start_date',   label: 'Start Date' },
-  { key: 'due_date',     label: 'Due Date' }
+  { key: 'id',            label: 'ID',           readonly: true },
+  { key: 'deal_id',       label: 'Deal ID',      type: 'number' },
+  { key: 'deal_value',    label: 'Deal Value',   type: 'number' },
+
+  // customer & order
+  { key: 'customer_id',    label: 'Cust. ID',     type: 'number' },
+  { key: 'customer_name',  label: 'Customer' },
+  { key: 'customer_phone', label: 'Phone' },
+  { key: 'order_id',       label: 'Order ID',     type: 'number' },
+  { key: 'order_total',    label: 'Order Value',  type: 'number' },
+  { key: 'payment_status', label: 'Pay Status' },
+
+  // product/quote info
+  { key: 'product_id',     label: 'Prod. ID',     type: 'number' },
+  { key: 'product_name',   label: 'Product' },
+  { key: 'product_code',   label: 'SKU' },
+  { key: 'qty_ordered',    label: 'Qty Ordered',  type: 'number' },
+  { key: 'qty_completed',  label: 'Qty Completed',type: 'number' },
+  { key: 'pct_complete',   label: '% Complete',   type: 'number' },
+
+  // scheduling
+  { key: 'start_date',     label: 'Start Date' },
+  { key: 'completion_date',label: 'Completion Date' },
+  { key: 'due_date',       label: 'Due Date' },
+
+  // ownership & department
+  { key: 'sales_rep',      label: 'Sales Rep' },
+  { key: 'department',     label: 'Dept' },
+
+  // financials & comments
+  { key: 'completed_value',label: 'Paid',         type: 'number' },
+  { key: 'balance_unpaid', label: 'Balance',      type: 'number' },
+  { key: 'comments',       label: 'Comments' },
+
+  // audit
+  { key: 'updated_by_name',label: 'Updated By' },
+  { key: 'updated_at',     label: 'Updated At',   readonly: true },
+
+  // workflow status
+  { key: 'job_status',     label: 'Status',       options: STATUS_OPTIONS.jobs }
 ];
 
 const purchaseOrdersColumns = [
@@ -104,20 +135,20 @@ const RESOURCES = {
       { key: 'category_id',  label: 'Category ID', type: 'number' }
     ]
   },
-  pricingRules: { 
-    endpoint: '/pricing-rules', 
-    columns: [ 
-      { key: 'id',                  label: 'ID',           readonly: true }, 
-      { key: 'name',                label: 'Name' }, 
-      { key: 'product_category_id', label: 'Category ID',  type: 'number' }, 
-      { key: 'category_name',       label: 'Category' }, 
-      { key: 'rule_type',           label: 'Rule Type' }, 
-      { key: 'min_qty',             label: 'Min Qty',      type: 'number' }, 
-      { key: 'max_qty',             label: 'Max Qty',      type: 'number' }, 
-      { key: 'unit_price',          label: 'Unit Price',   type: 'number' }, 
-      { key: 'created_at',          label: 'Created At',   readonly: true }, 
-      { key: 'updated_at',          label: 'Updated At',   readonly: true } 
-    ] 
+  pricingRules: {
+    endpoint: '/pricing-rules',
+    columns: [
+      { key: 'id',                  label: 'ID',           readonly: true },
+      { key: 'name',                label: 'Name' },
+      { key: 'product_category_id', label: 'Category ID',  type: 'number' },
+      { key: 'category_name',       label: 'Category' },
+      { key: 'rule_type',           label: 'Rule Type' },
+      { key: 'min_qty',             label: 'Min Qty',      type: 'number' },
+      { key: 'max_qty',             label: 'Max Qty',      type: 'number' },
+      { key: 'unit_price',          label: 'Unit Price',   type: 'number' },
+      { key: 'created_at',          label: 'Created At',   readonly: true },
+      { key: 'updated_at',          label: 'Updated At',   readonly: true }
+    ]
   },
   quotes: {
     endpoint: '/quotes',
@@ -149,95 +180,11 @@ const RESOURCES = {
   },
   jobs: {
     endpoint: '/jobs',
-    columns: [
-      // identity
-      { key: 'job_id',            label: 'Job ID',        readonly: true },
-      { key: 'deal_id',           label: 'Deal ID',       type: 'number' },
-      { key: 'deal_value',        label: 'Deal Value',    type: 'number' },
-
-      // customer & order
-      { key: 'customer_id',       label: 'Cust. ID',      type: 'number' },
-      { key: 'customer_name',     label: 'Customer' },
-      { key: 'customer_phone',    label: 'Phone' },
-      { key: 'order_id',          label: 'Order ID',      type: 'number' },
-      { key: 'order_total',       label: 'Order Value',   type: 'number' },
-      { key: 'payment_status',    label: 'Pay Status' },
-
-      // product/quote info
-      { key: 'product_id',        label: 'Prod. ID',      type: 'number' },
-      { key: 'product_name',      label: 'Product' },
-      { key: 'product_code',      label: 'SKU' },
-      { key: 'qty_ordered',       label: 'Qty Ordered',   type: 'number' },
-      { key: 'qty_completed',     label: 'Qty Completed', type: 'number' },
-      { key: 'pct_complete',      label: '% Complete',    type: 'number' },
-
-      // scheduling
-      { key: 'start_date',        label: 'Start Date' },
-      { key: 'completion_date',   label: 'Completion Date' },
-      { key: 'due_date',          label: 'Due Date' },
-
-      // ownership & department
-      { key: 'sales_rep',         label: 'Sales Rep' },
-      { key: 'department',        label: 'Dept' },
-
-      // financials & comments
-      { key: 'completed_value',   label: 'Paid',          type: 'number' },
-      { key: 'balance_unpaid',    label: 'Balance',       type: 'number' },
-      { key: 'comments',          label: 'Comments' },
-
-      // audit
-      { key: 'updated_by_name',   label: 'Updated By' },
-      { key: 'updated_at',        label: 'Updated At',    readonly: true },
-
-      // workflow status
-      { key: 'job_status',        label: 'Status',        options: STATUS_OPTIONS.jobs }
-    ]
+    columns: jobsColumns
   },
   production: {
     endpoint: '/jobs',
-    columns: [
-      // identity
-      { key: 'job_id',            label: 'Job ID',        readonly: true },
-      { key: 'deal_id',           label: 'Deal ID',       type: 'number' },
-      { key: 'deal_value',        label: 'Deal Value',    type: 'number' },
-
-      // customer & order
-      { key: 'customer_id',       label: 'Cust. ID',      type: 'number' },
-      { key: 'customer_name',     label: 'Customer' },
-      { key: 'customer_phone',    label: 'Phone' },
-      { key: 'order_id',          label: 'Order ID',      type: 'number' },
-      { key: 'order_total',       label: 'Order Value',   type: 'number' },
-      { key: 'payment_status',    label: 'Pay Status' },
-
-      // product/quote info
-      { key: 'product_id',        label: 'Prod. ID',      type: 'number' },
-      { key: 'product_name',      label: 'Product' },
-      { key: 'product_code',      label: 'SKU' },
-      { key: 'qty_ordered',       label: 'Qty Ordered',   type: 'number' },
-      { key: 'qty_completed',     label: 'Qty Completed', type: 'number' },
-      { key: 'pct_complete',      label: '% Complete',    type: 'number' },
-
-      // scheduling
-      { key: 'start_date',        label: 'Start Date' },
-      { key: 'completion_date',   label: 'Completion Date' },
-      { key: 'due_date',          label: 'Due Date' },
-
-      // ownership & department
-      { key: 'sales_rep',         label: 'Sales Rep' },
-      { key: 'department',        label: 'Dept' },
-
-      // financials & comments
-      { key: 'completed_value',   label: 'Paid',          type: 'number' },
-      { key: 'balance_unpaid',    label: 'Balance',       type: 'number' },
-      { key: 'comments',          label: 'Comments' },
-
-      // audit
-      { key: 'updated_by_name',   label: 'Updated By' },
-      { key: 'updated_at',        label: 'Updated At',    readonly: true },
-
-      // workflow status
-      { key: 'job_status',        label: 'Status',        options: STATUS_OPTIONS.jobs }
-    ]
+    columns: jobsColumns
   },
   suppliers: {
     endpoint: '/suppliers',
@@ -277,30 +224,32 @@ const RESOURCES = {
       { key: 'created_at',  label: 'Created At', readonly: true }
     ]
   },
-deals: {
-  endpoint: '/deals',
-  columns: [
-    { key: 'deal_id',           label: 'Deal ID',          readonly: true },
-    { key: 'lead_id',           label: 'Lead ID',          type: 'number' },
-    { key: 'lead_name',         label: 'Lead Name' },
-    { key: 'sales_rep_id',      label: 'Rep ID',           type: 'number' },
-    { key: 'sales_rep',         label: 'Sales Rep' },
-    { key: 'product_id',        label: 'Product ID',       type: 'number' },
-    { key: 'product',           label: 'Product Name' },
-    { key: 'product_code',      label: 'SKU' },
-    { key: 'quote_id',          label: 'Quote ID',         type: 'number' },
-    { key: 'quote_qty',         label: 'Qty Quoted',       type: 'number' },
-    { key: 'quote_unit_price',  label: 'Unit Price',       type: 'number' },
-    { key: 'quote_total',       label: 'Quote Total',      type: 'number', readonly: true },
-    { key: 'deal_value',        label: 'Deal Value',       type: 'number' },
-    { key: 'deal_status',       label: 'Status',           options: STATUS_OPTIONS.deals },
-    { key: 'customer_id',       label: 'Cust. ID',         type: 'number' },
-    { key: 'customer_name',     label: 'Customer' },
-    { key: 'customer_phone',    label: 'Phone' },
-    { key: 'deal_date',         label: 'Created At',       readonly: true }
-  ]
-},
-  crm: { /* stub until needed */ },
+
+  // ——— UPDATED DEALS RESOURCE ———
+  deals: {
+    endpoint: '/deals',
+    columns: [
+      { key: 'id',                label: 'Deal ID',         readonly: true },
+      { key: 'lead_id',           label: 'Lead ID',         type: 'number' },
+      { key: 'quote_id',          label: 'Quote ID',        type: 'number' },
+      { key: 'sales_rep_id',      label: 'Rep ID',          type: 'number' },
+      { key: 'sales_rep',         label: 'Sales Rep' },
+      { key: 'product_id',        label: 'Product ID',      type: 'number' },
+      { key: 'product',           label: 'Product Name' },
+      { key: 'product_code',      label: 'SKU' },
+      { key: 'quote_qty',         label: 'Qty Quoted',      type: 'number' },
+      { key: 'quote_unit_price',  label: 'Unit Price',      type: 'number' },
+      { key: 'quote_total',       label: 'Quote Total',     type: 'number', readonly: true },
+      { key: 'deal_value',        label: 'Deal Value',      type: 'number' },
+      { key: 'deal_status',       label: 'Status',          options: STATUS_OPTIONS.deals },
+      { key: 'customer_id',       label: 'Cust. ID',        type: 'number' },
+      { key: 'customer_name',     label: 'Customer' },
+      { key: 'customer_phone',    label: 'Phone' },
+      { key: 'deal_date',         label: 'Created At',      readonly: true }
+    ]
+  },
+
+  crm: { /* stub */ },
   hr: {
     endpoint: '/hr',
     columns: [
@@ -434,22 +383,22 @@ function renderList(resource, records) {
       `<td>${rec[c.key]!=null ? rec[c.key] : ''}</td>`
     ).join('');
     return `<tr>${cells}
-<td>
-  <button class="btn btn-sm btn-outline-secondary me-1"
-          onclick="editResource('${resource}',${rec.id})">
-    Edit
-  </button>
-  <button class="btn btn-sm btn-outline-danger me-1"
-          onclick="deleteResource('${resource}',${rec.id})">
-    Delete
-  </button>
-  ${resource === 'deals'
-    ? `<button class="btn btn-sm btn-outline-primary"
-                onclick="pushDeal(${rec.id})">
-         Push to Prod
-       </button>`
-    : ''}
-</td>
+      <td>
+        <button class="btn btn-sm btn-outline-secondary me-1"
+                onclick="editResource('${resource}',${rec.id})">
+          Edit
+        </button>
+        <button class="btn btn-sm btn-outline-danger me-1"
+                onclick="deleteResource('${resource}',${rec.id})">
+          Delete
+        </button>
+        ${resource === 'deals'
+          ? `<button class="btn btn-sm btn-outline-primary"
+                      onclick="pushDeal(${rec.id})">
+               Push to Prod
+             </button>`
+          : ''}
+      </td>
     </tr>`;
   }).join('');
 
@@ -584,16 +533,13 @@ async function deleteResource(resource, id) {
   await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method: 'DELETE' });
   loadAdminView(resource);
 }
-// ──────────────────────────────────────────────────────────────
-// Push a deal into production via our new endpoint
+
+// --- special: Push deal to production ---
 async function pushDeal(dealId) {
   if (!confirm(`Push deal #${dealId} to production?`)) return;
   try {
-    const job = await fetchJSON(`/jobs/push/${dealId}`, {
-      method: 'POST'
-    });
+    const job = await fetchJSON(`/jobs/push/${dealId}`, { method: 'POST' });
     alert(`Created production job #${job.id}`);
-    // Optionally refresh the jobs or deals view
     loadAdminView('production');
   } catch (err) {
     alert('Push failed: ' + err.message);
