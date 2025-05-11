@@ -3,7 +3,7 @@
 console.log('🔥 script-admin.js – Admin Portal with Enhanced Production Jobs UI');
 
 // Base API config
-tconst API_BASE = 'https://branding-shop-backend.onrender.com/api';
+const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
 
