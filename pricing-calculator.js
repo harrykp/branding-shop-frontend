@@ -2,52 +2,59 @@
 
 /**
  * Real-time pricing calculator for the Quote form.
- * Only shows Product, Quantity, Unit Price, and Total Price.
- * Fetches pricing rules and calculates total on the backend.
+ * Exposes calculatePrice() on window so other scripts can call it.
+ * Relies on fetchJSON(path, opts) from script-user.js for auth headers.
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Element references
+// 1) Define calculatePrice globally
+async function calculatePrice() {
   const productSelect    = document.getElementById('product-select');
   const quantityInput    = document.getElementById('quantity-input');
   const unitPriceDisplay = document.getElementById('unit-price-display');
-  const totalPriceDisplay = document.getElementById('total-price-display');
+  const totalPriceDisplay= document.getElementById('total-price-display');
 
-  // Bail if not on the quote form view
+  // Bail if form not present
   if (!productSelect || !quantityInput || !unitPriceDisplay || !totalPriceDisplay) {
     return;
   }
 
-  // Recalculate on changes
-  [productSelect, quantityInput].forEach(el => el.addEventListener('input', calculatePrice));
+  const payload = {
+    product_id: parseInt(productSelect.value, 10) || null,
+    quantity:   parseInt(quantityInput.value, 10) || 0
+  };
 
-  // Initial calculation
-  calculatePrice();
+  if (!payload.product_id || payload.quantity < 1) {
+    unitPriceDisplay.textContent  = '0.00';
+    totalPriceDisplay.textContent = '0.00';
+    return;
+  }
 
-  async function calculatePrice() {
-    const payload = {
-      product_id: parseInt(productSelect.value, 10) || null,
-      quantity:   parseInt(quantityInput.value, 10) || 0
-    };
+  try {
+    // fetchJSON defined in script-user.js, includes API_BASE and auth headers
+    const { unitPrice, total } = await fetchJSON(
+      '/pricing-rules/calc',
+      { method: 'POST', body: JSON.stringify(payload) }
+    );
+    unitPriceDisplay.textContent  = unitPrice.toFixed(2);
+    totalPriceDisplay.textContent = total.toFixed(2);
+  } catch (err) {
+    console.error('Pricing calculation error:', err);
+    // leave last values or zeros
+  }
+}
 
-    // Reset if invalid
-    if (!payload.product_id || payload.quantity < 1) {
-      unitPriceDisplay.textContent  = '0.00';
-      totalPriceDisplay.textContent = '0.00';
-      return;
-    }
+// 2) Wire calculatePrice to the form inputs once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const productSelect = document.getElementById('product-select');
+  const quantityInput = document.getElementById('quantity-input');
 
-    try {
-      // Use global fetchJSON (includes auth headers & base URL)
-      const { unitPrice, total } = await fetchJSON(
-        '/pricing-rules/calc',
-        { method: 'POST', body: JSON.stringify(payload) }
-      );
-      unitPriceDisplay.textContent  = unitPrice.toFixed(2);
-      totalPriceDisplay.textContent = total.toFixed(2);
-    } catch (err) {
-      console.error('Pricing calculation error:', err);
-      // Keep displays at last known values or zeros
-    }
+  if (productSelect && quantityInput) {
+    productSelect.addEventListener('change', calculatePrice);
+    quantityInput.addEventListener('input', calculatePrice);
+    // initial calculation
+    calculatePrice();
   }
 });
+
+// Expose globally
+window.calculatePrice = calculatePrice;
