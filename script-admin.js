@@ -313,6 +313,13 @@ function renderList(resource) {
     app.innerHTML = html;
     return;
   }
+// --- controls ---
+function onSearch(resource,text){ state[resource].search=text; state[resource].page=1; renderList(resource); }
+function onFilter(resource,status){ state[resource].filterStatus=status; state[resource].page=1; renderList(resource); }
+function onSort(resource,key){ const s=state[resource]; if(s.sortKey===key) s.sortDir=s.sortDir==='asc'?'desc':'asc'; else { s.sortKey=key; s.sortDir='asc'; } renderList(resource); }
+function onGroup(resource,value){ state[resource].groupBy=value; renderList(resource); }
+function changePage(resource,page){ state[resource].page=page; renderList(resource); }
+function changePageSize(resource,size){ state[resource].pageSize=Number(size); state[resource].page=1; renderList(resource); }
 
   // --- Default list rendering ---
   if (cfg.statusKey && s.filterStatus) {
