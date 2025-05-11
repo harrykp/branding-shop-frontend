@@ -72,6 +72,45 @@ async function showQuotes() {
   `;
 }
 
+function newQuote() {
+  app.innerHTML = `
+    <h3>Request a New Quote</h3>
+    <form onsubmit="submitQuote(event)">
+      <div class="mb-3">
+        <label class="form-label">Product Name</label>
+        <input type="text" id="quote-product" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Quantity</label>
+        <input type="number" id="quote-quantity" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Total Estimated Cost</label>
+        <input type="number" step="0.01" id="quote-total" class="form-control" required>
+      </div>
+      <button class="btn btn-primary">Submit Quote</button>
+    </form>
+  `;
+}
+
+async function submitQuote(e) {
+  e.preventDefault();
+  const product_name = document.getElementById('quote-product').value;
+  const quantity     = +document.getElementById('quote-quantity').value;
+  const total        = +document.getElementById('quote-total').value;
+
+  try {
+    await fetchJSON('/quotes', {
+      method: 'POST',
+      body: JSON.stringify({ product_name, quantity, total })
+    });
+    alert('Quote submitted!');
+    loadUserView('quotes');
+  } catch (err) {
+    alert('Failed to submit quote: ' + err.message);
+  }
+}
+
 async function submitOrderFromQuote(quoteId) {
   if (!confirm(`Convert quote #${quoteId} into an order?`)) return;
   try {
@@ -249,9 +288,9 @@ function logout() {
   window.location.href = 'login.html';
 }
 
-// ✅ Hook up the +Request Quote button to load the quote view
+// ✅ Hook up the +Request Quote button to open the quote form
 document.getElementById('btn-new-quote')?.addEventListener('click', () => {
-  loadUserView('quotes');
+  newQuote();
 });
 
 loadUserView('dashboard');
