@@ -1,6 +1,6 @@
 // frontend/script-admin.js
 
-console.log('🔥 script-admin.js – Admin Portal with Enhanced Production Jobs UI');
+console.log('🔥 script-admin.js – Admin Portal – Production Jobs View');
 
 // Base API config
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
@@ -13,14 +13,14 @@ const headers = {
 };
 const app = document.getElementById('app-admin');
 
-// Inject Bootstrap modal for Job creation/editing
-document.body.insertAdjacentHTML('beforeend', `
+// Inject Bootstrap modal for Job create/edit
+const modalHtml = `
 <div class="modal fade" id="jobModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <form id="jobForm" class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="jobModalLabel">Job</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div class="mb-3">
@@ -60,11 +60,12 @@ document.body.insertAdjacentHTML('beforeend', `
     </form>
   </div>
 </div>
-`);
+`;
+document.body.insertAdjacentHTML('beforeend', modalHtml);
 const jobModal = new bootstrap.Modal(document.getElementById('jobModal'));
 const jobForm  = document.getElementById('jobForm');
 
-// State and configuration
+// State and config
 const PAGE_SIZES = [5, 10, 20, 50];
 const JOB_STATUSES = ['queued','in_progress','finished','cancelled'];
 const state = { production: null };
@@ -82,185 +83,186 @@ function initState() {
   }
 }
 
+// Column defs
 const jobsColumns = [
-  { key: 'id',         label: 'Job ID' },
-  { key: 'order_id',   label: 'Order ID' },
-  { key: 'type',       label: 'Type' },
-  { key: 'qty',        label: 'Quantity' },
-  { key: 'job_status', label: 'Status' },
-  { key: 'assigned_to',label: 'Assigned To' },
-  { key: 'start_date', label: 'Start Date' },
-  { key: 'due_date',   label: 'Due Date' },
-  { key: 'finished_at',label: 'Finished At' }
+  { key:'id', label:'Job ID' },
+  { key:'order_id', label:'Order ID' },
+  { key:'type', label:'Type' },
+  { key:'qty', label:'Quantity' },
+  { key:'job_status', label:'Status' },
+  { key:'assigned_to', label:'Assigned To' },
+  { key:'start_date', label:'Start Date' },
+  { key:'due_date', label:'Due Date' },
+  { key:'finished_at', label:'Finished At' }
 ];
 
 // Generic fetch helper
-async function fetchJSON(path, opts = {}) {
+async function fetchJSON(path, opts={}){
   const res = await fetch(API_BASE + path, { headers, ...opts });
   const txt = await res.text();
   if (!res.ok) throw new Error(`Error ${res.status}: ${txt}`);
   return txt ? JSON.parse(txt) : [];
 }
 
-// Load production view
+// Nav click handling
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
-    loadProductionView();
+    const view = el.dataset.view;
+    if (view === 'production') loadProductionView();
+    else loadPlaceholderView(view);
   })
 );
 
-async function loadProductionView() {
+// Placeholder for non-production
+function loadPlaceholderView(view) {
+  app.innerHTML = `<h3>${view.charAt(0).toUpperCase()+view.slice(1)} — Under Construction</h3>`;
+}
+
+// Load production jobs
+async function loadProductionView(){
   initState();
   app.innerHTML = `<h3>Loading Production Jobs…</h3>`;
   const jobs = await fetchJSON('/jobs');
-  state.production._lastRecords = Array.isArray(jobs) ? jobs : [];
+  state.production._lastRecords = Array.isArray(jobs)? jobs : [];
   renderProduction();
 }
 
-// Render production jobs table
-function renderProduction() {
+// Render production table
+function renderProduction(){
   const s = state.production;
-  let recs = Array.isArray(s._lastRecords) ? s._lastRecords : [];
+  let recs = Array.isArray(s._lastRecords)? s._lastRecords : [];
 
-  // Search & filter
+  // search
   if (s.search) {
-    recs = recs.filter(j =>
-      Object.values(j).some(v => String(v).toLowerCase().includes(s.search.toLowerCase()))
-    );
+    recs = recs.filter(j=> Object.values(j).some(v=> String(v).toLowerCase().includes(s.search.toLowerCase())));
   }
-  if (s.filterStatus) {
-    recs = recs.filter(j => j.job_status === s.filterStatus);
-  }
+  // filter
+  if (s.filterStatus) recs = recs.filter(j=> j.job_status===s.filterStatus);
 
-  // Sort
+  // sort
   if (s.sortKey) {
-    recs.sort((a,b) => {
-      const va = a[s.sortKey], vb = b[s.sortKey];
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (!isNaN(va) && !isNaN(vb)) return (va - vb) * (s.sortDir==='asc'?1:-1);
-      return String(va).localeCompare(vb) * (s.sortDir==='asc'?1:-1);
+    recs.sort((a,b)=>{
+      const va=a[s.sortKey], vb=b[s.sortKey];
+      if (va==null) return 1;
+      if (vb==null) return -1;
+      if (!isNaN(va) && !isNaN(vb)) return (va-vb)*(s.sortDir==='asc'?1:-1);
+      return String(va).localeCompare(vb)*(s.sortDir==='asc'?1:-1);
     });
   }
 
-  // Pagination
-  const total = recs.length;
-  const totalPages = Math.max(1, Math.ceil(total / s.pageSize));
-  s.page = Math.min(s.page, totalPages);
-  const start = (s.page - 1) * s.pageSize;
-  const pageRecs = recs.slice(start, start + s.pageSize);
+  // paginate
+  const total=recs.length;
+  const pages=Math.max(1,Math.ceil(total/s.pageSize));
+  s.page=Math.min(s.page,pages);
+  const start=(s.page-1)*s.pageSize;
+  const pageRecs=recs.slice(start,start+s.pageSize);
 
-  // Toolbar
-  let toolbar = `<div class="d-flex justify-content-between mb-3">` +
-    `<div class="input-group" style="width:350px">` +
-      `<span class="input-group-text">🔍</span>` +
-      `<input type="text" class="form-control" placeholder="Search…" value="${s.search}" oninput="onSearch(this.value)">` +
-      `<select class="form-select ms-2" style="width:160px" onchange="onFilter(this.value)">` +
-        `<option value="">All Statuses</option>` +
-        JOB_STATUSES.map(st =>
-          `<option value="${st}" ${s.filterStatus===st?'selected':''}>${st.replace('_',' ')}</option>`
-        ).join('') +
-      `</select>` +
-    `</div>` +
-    `<button class="btn btn-success" onclick="newJob()">+ New Job</button>` +
+  // toolbar
+  let toolbar = `<div class="d-flex justify-content-between mb-3">`+
+    `<div class="input-group" style="width:350px">`+
+      `<span class="input-group-text">🔍</span>`+
+      `<input type="text" class="form-control" placeholder="Search…" value="${s.search}" oninput="onSearch(this.value)">`+
+      `<select class="form-select ms-2" style="width:160px" onchange="onFilter(this.value)">`+
+        `<option value="">All Statuses</option>`+
+        `${JOB_STATUSES.map(st=>`<option value="${st}" ${s.filterStatus===st?'selected':''}>${st.replace('_',' ')}</option>`).join('')}`+
+      `</select>`+
+    `</div>`+
+    `<button class="btn btn-success" onclick="newJob()">+ New Job</button>`+
   `</div>`;
 
-  // Header
-  const header = jobsColumns.map(c => {
-    const arrow = s.sortKey===c.key ? (s.sortDir==='asc'?' ▲':' ▼') : '';
-    return `<th style="cursor:pointer" onclick="onSort('${c.key}')">${c.label}${arrow}</th>`;
+  // header
+  const head = jobsColumns.map(c=>{
+    const arr=s.sortKey===c.key?(s.sortDir==='asc'?' ▲':' ▼'):'';
+    return `<th style="cursor:pointer" onclick="onSort('${c.key}')">${c.label}${arr}</th>`;
   }).join('');
 
-  // Rows
-  const rows = pageRecs.map(j => {
-    const cells = jobsColumns.map(c => `<td>${j[c.key] != null ? j[c.key] : ''}</td>`).join('');
-    return `<tr>${cells}<td>` +
-      `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editJob(${j.id})">Edit</button>` +
-      `<button class="btn btn-sm btn-outline-danger" onclick="deleteJob(${j.id})">Delete</button>` +
+  // rows
+  const rows=pageRecs.map(j=>{
+    const cells=jobsColumns.map(c=>`<td>${j[c.key]!=null?j[c.key]:''}</td>`).join('');
+    return `<tr>${cells}<td>`+
+      `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editJob(${j.id})">Edit</button>`+
+      `<button class="btn btn-sm btn-outline-danger" onclick="deleteJob(${j.id})">Delete</button>`+
       `</td></tr>`;
   }).join('');
 
-  // Pagination controls
-  const prevD = s.page<=1?'disabled':'';
-  const nextD = s.page>=totalPages?'disabled':'';
-  const sizeOpts = PAGE_SIZES.map(sz => `<option value="${sz}" ${sz===s.pageSize?'selected':''}>${sz}</option>`).join('');
-  const pager = `<div class="d-flex justify-content-between align-items-center mt-2">` +
-    `<div>` +
-      `<button class="btn btn-sm btn-outline-primary me-2" ${prevD} onclick="onPage(${s.page-1})">Prev</button>` +
-      `<span>Page ${s.page} of ${totalPages}</span>` +
-      `<button class="btn btn-sm btn-outline-primary ms-2" ${nextD} onclick="onPage(${s.page+1})">Next</button>` +
-    `</div>` +
-    `<div class="d-flex align-items-center">` +
-      `<label class="me-2 mb-0">Page size:</label>` +
-      `<select class="form-select form-select-sm" style="width:70px" onchange="onPageSize(this.value)">${sizeOpts}</select>` +
-    `</div>` +
+  // pager
+  const prev=s.page<=1?'disabled':'';
+  const next=s.page>=pages?'disabled':'';
+  const opts=PAGE_SIZES.map(sz=>`<option value="${sz}" ${sz===s.pageSize?'selected':''}>${sz}</option>`).join('');
+  const pager=`<div class="d-flex justify-content-between align-items-center mt-2">`+
+    `<div>`+
+      `<button class="btn btn-sm btn-outline-primary me-2" ${prev} onclick="onPage(${s.page-1})">Prev</button>`+
+      `<span>Page ${s.page} of ${pages}</span>`+
+      `<button class="btn btn-sm btn-outline-primary ms-2" ${next} onclick="onPage(${s.page+1})">Next</button>`+
+    `</div>`+
+    `<div class="d-flex align-items-center">`+
+      `<label class="me-2 mb-0">Page size:</label>`+
+      `<select class="form-select form-select-sm" style="width:70px" onchange="onPageSize(this.value)">${opts}</select>`+
+    `</div>`+
   `</div>`;
 
-  app.innerHTML = `<h3>Production Jobs</h3>` + toolbar +
-                  `<table class="table table-striped"><thead><tr>${header}<th>Actions</th></tr></thead><tbody>${rows}</tbody></table>` +
-                  pager;
+  app.innerHTML=`<h3>Production Jobs</h3>${toolbar}`+
+               `<table class="table table-striped"><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`+
+               pager;
 }
 
-// Control handlers
-function onSearch(val)       { state.production.search = val; state.production.page = 1; renderProduction(); }
-function onFilter(val)       { state.production.filterStatus = val; state.production.page = 1; renderProduction(); }
-function onSort(key)         { const s=state.production; s.sortKey===key ? s.sortDir = s.sortDir==='asc'?'desc':'asc' : (s.sortKey=key,s.sortDir='asc'); renderProduction(); }
-function onPage(pg)          { state.production.page = pg; renderProduction(); }
-function onPageSize(sz)      { state.production.pageSize = Number(sz); state.production.page=1; renderProduction(); }
+// handlers
+function onSearch(v){state.production.search=v;state.production.page=1;renderProduction();}
+function onFilter(v){state.production.filterStatus=v;state.production.page=1;renderProduction();}
+function onSort(k){const s=state.production; s.sortKey===k? s.sortDir=s.sortDir==='asc'?'desc':'asc' : (s.sortKey=k,s.sortDir='asc'); renderProduction();}
+function onPage(p){state.production.page=p;renderProduction();}
+function onPageSize(sz){state.production.pageSize=Number(sz);state.production.page=1;renderProduction();}
 
-// CRUD with modal
-function newJob() {
+// CRUD
+function newJob(){
   jobForm.reset();
-  document.getElementById('jobModalLabel').textContent = 'New Production Job';
-  jobForm.onsubmit = async e => {
+  document.getElementById('jobModalLabel').textContent='New Job';
+  jobForm.onsubmit=async e=>{
     e.preventDefault();
-    const payload = {
-      order_id:    +document.getElementById('job-order-id').value,
-      type:        document.getElementById('job-type').value,
-      qty:         +document.getElementById('job-qty').value,
-      assigned_to: +document.getElementById('job-assigned-to').value || null,
-      due_date:    document.getElementById('job-due-date').value || null,
-      job_status:  document.getElementById('job-status').value
+    const payload={
+      order_id:+document.getElementById('job-order-id').value,
+      type:document.getElementById('job-type').value,
+      qty:+document.getElementById('job-qty').value,
+      assigned_to:+document.getElementById('job-assigned-to').value||null,
+      due_date:document.getElementById('job-due-date').value||null,
+      job_status:document.getElementById('job-status').value
     };
-    await fetchJSON('/jobs', { method:'POST', body: JSON.stringify(payload) });
+    await fetchJSON('/jobs',{method:'POST',body:JSON.stringify(payload)});
     jobModal.hide();
     loadProductionView();
   };
   jobModal.show();
 }
-
-async function editJob(id) {
-  const rec = await fetchJSON(`/jobs/${id}`);
-  document.getElementById('jobModalLabel').textContent = `Edit Job #${id}`;
-  document.getElementById('job-order-id').value    = rec.order_id;
-  document.getElementById('job-type').value        = rec.type;
-  document.getElementById('job-qty').value         = rec.qty;
-  document.getElementById('job-assigned-to').value = rec.assigned_to || '';
-  document.getElementById('job-due-date').value    = rec.due_date ? rec.due_date.slice(0,10) : '';
-  document.getElementById('job-status').value      = rec.job_status;
-
-  jobForm.onsubmit = async e => {
+async function editJob(id){
+  const rec=await fetchJSON(`/jobs/${id}`);
+  document.getElementById('jobModalLabel').textContent=`Edit Job #${id}`;
+  document.getElementById('job-order-id').value=rec.order_id;
+  document.getElementById('job-type').value=rec.type;
+  document.getElementById('job-qty').value=rec.qty;
+  document.getElementById('job-assigned-to').value=rec.assigned_to||'';
+  document.getElementById('job-due-date').value=rec.due_date?rec.due_date.slice(0,10):'';
+  document.getElementById('job-status').value=rec.job_status;
+  jobForm.onsubmit=async e=>{
     e.preventDefault();
-    const payload = {
-      type:        document.getElementById('job-type').value,
-      qty:         +document.getElementById('job-qty').value,
-      assigned_to: +document.getElementById('job-assigned-to').value || null,
-      due_date:    document.getElementById('job-due-date').value || null,
-      job_status:  document.getElementById('job-status').value
+    const payload={
+      type:document.getElementById('job-type').value,
+      qty:+document.getElementById('job-qty').value,
+      assigned_to:+document.getElementById('job-assigned-to').value||null,
+      due_date:document.getElementById('job-due-date').value||null,
+      job_status:document.getElementById('job-status').value
     };
-    await fetchJSON(`/jobs/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
+    await fetchJSON(`/jobs/${id}`,{method:'PATCH',body:JSON.stringify(payload)});
     jobModal.hide();
     loadProductionView();
   };
   jobModal.show();
 }
-
-async function deleteJob(id) {
-  if (!confirm('Delete this job?')) return;
-  await fetchJSON(`/jobs/${id}`, { method:'DELETE' });
+async function deleteJob(id){
+  if(!confirm('Delete this job?'))return;
+  await fetchJSON(`/jobs/${id}`,{method:'DELETE'});
   loadProductionView();
 }
 
-// Initialize
+// Init
 loadProductionView();
