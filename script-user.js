@@ -248,4 +248,10 @@ function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
 }
+
+// ✅ Hook up the +Request Quote button to load the quote view
+document.getElementById('btn-new-quote')?.addEventListener('click', () => {
+  loadUserView('quotes');
+});
+
 loadUserView('dashboard');
