@@ -2,7 +2,7 @@
 console.log('🔥 script-admin.js – metadata-driven CRUD with search, pagination & sorting');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
-const token    = localStorage.getItem('token');
+const token = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
 
 const headers = {
@@ -156,31 +156,31 @@ const RESOURCES = {
     endpoint: '/deals',
     idKey: 'deal_id',
     columns: [
-      { key: 'deal_id',      label: 'Deal ID',     readonly: true, type: 'number' },
-      { key: 'lead_id',      label: 'Lead ID',     type: 'number' },
-      { key: 'lead_name',    label: 'Lead Name' },
-      { key: 'product_id',   label: 'Product ID',  type: 'number' },
-      { key: 'product',      label: 'Product Name' },
-      { key: 'quote_total',  label: 'Quote Total', type: 'number' },
-      { key: 'deal_value',   label: 'Deal Value',  type: 'number' },
-      { key: 'deal_status',  label: 'Status',      options: STATUS_OPTIONS.deals },
-      { key: 'deal_date',    label: 'Deal Date',   readonly: true }
+      { key: 'deal_id',     label: 'Deal ID',     readonly: true, type: 'number' },
+      { key: 'lead_id',     label: 'Lead ID',     type: 'number' },
+      { key: 'lead_name',   label: 'Lead Name' },
+      { key: 'product_id',  label: 'Product ID',  type: 'number' },
+      { key: 'product',     label: 'Product Name' },
+      { key: 'quote_total', label: 'Quote Total', type: 'number' },
+      { key: 'deal_value',  label: 'Deal Value',  type: 'number' },
+      { key: 'deal_status', label: 'Status',      options: STATUS_OPTIONS.deals },
+      { key: 'deal_date',   label: 'Deal Date',   readonly: true }
     ]
   },
-  jobs:       { endpoint: '/jobs', columns: jobsColumns },
-  production: { endpoint: '/jobs', columns: jobsColumns, statusKey: 'job_status' },
+  jobs:       { endpoint: '/jobs',      columns: jobsColumns },
+  production: { endpoint: '/jobs',      columns: jobsColumns, statusKey: 'job_status' },
   suppliers:  { endpoint: '/suppliers', columns: [
       { key: 'id',      label: 'ID',   readonly: true },
       { key: 'name',    label: 'Name' },
       { key: 'website', label: 'Website' }
     ]
   },
-  catalog:    { endpoint: '/catalog', columns: [
-      { key: 'id',          label: 'ID',        readonly: true },
-      { key: 'supplier_id', label: 'Supplier',  type: 'number' },
-      { key: 'sku',         label: 'SKU' },
-      { key: 'name',        label: 'Name' },
-      { key: 'cost',        label: 'Cost',      type: 'number' }
+  catalog:    { endpoint: '/catalog',   columns: [
+      { key: 'id',         label: 'ID',        readonly: true },
+      { key: 'supplier_id',label: 'Supplier',  type: 'number' },
+      { key: 'sku',        label: 'SKU' },
+      { key: 'name',       label: 'Name' },
+      { key: 'cost',       label: 'Cost',      type: 'number' }
     ]
   },
   'purchase-orders': {
@@ -191,27 +191,27 @@ const RESOURCES = {
       { key: 'status',      label: 'Status',   options: STATUS_OPTIONS['purchase-orders'] }
     ]
   },
-  hr:         { endpoint: '/hr', columns: [
-      { key: 'id',        label: 'ID',      readonly: true },
-      { key: 'user_id',   label: 'User ID', type: 'number' },
-      { key: 'position',  label: 'Position' },
-      { key: 'salary',    label: 'Salary',  type: 'number' }
+  hr:         { endpoint: '/hr',        columns: [
+      { key: 'id',       label: 'ID',      readonly: true },
+      { key: 'user_id',  label: 'User ID', type: 'number' },
+      { key: 'position', label: 'Position' },
+      { key: 'salary',   label: 'Salary',  type: 'number' }
     ]
   },
-  finance:    { endpoint: '/payments', columns: [
-      { key: 'id',             label: 'ID',       readonly: true },
-      { key: 'order_id',       label: 'Order ID', type: 'number' },
-      { key: 'amount',         label: 'Amount',   type: 'number' },
-      { key: 'status',         label: 'Status',   options: STATUS_OPTIONS.finance },
-      { key: 'paid_at',        label: 'Paid At' }
+  finance:    { endpoint: '/payments',  columns: [
+      { key: 'id',        label: 'ID',       readonly: true },
+      { key: 'order_id',  label: 'Order ID', type: 'number' },
+      { key: 'amount',    label: 'Amount',   type: 'number' },
+      { key: 'status',    label: 'Status',   options: STATUS_OPTIONS.finance },
+      { key: 'paid_at',   label: 'Paid At' }
     ]
   },
   reports:    { endpoint: '/daily-transactions', columns: [
-      { key: 'id',               label: 'ID',               readonly: true },
-      { key: 'date',             label: 'Date' },
-      { key: 'payments_received',label: 'Received',        type: 'number' },
-      { key: 'expenses_paid',    label: 'Expenses',        type: 'number' },
-      { key: 'end_of_day_cash',  label: 'End Cash',        type: 'number' }
+      { key: 'id',              label: 'ID',               readonly: true },
+      { key: 'date',            label: 'Date' },
+      { key: 'payments_received',label: 'Received',       type: 'number' },
+      { key: 'expenses_paid',   label: 'Expenses',        type: 'number' },
+      { key: 'end_of_day_cash', label: 'End Cash',        type: 'number' }
     ]
   }
 };
@@ -232,7 +232,7 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// --- main view loader ---
+// --- main view loader (unwraps data.jobs when present) ---
 async function loadAdminView(view) {
   initState(view);
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
@@ -242,17 +242,20 @@ async function loadAdminView(view) {
     return;
   }
   const data = await fetchJSON(cfg.endpoint);
-  state[view]._lastRecords = Array.isArray(data) ? data : [];
+  // if response is plain array, use it; if it's { jobs: [...] }, unwrap
+  state[view]._lastRecords = Array.isArray(data)
+    ? data
+    : Array.isArray(data.jobs)
+      ? data.jobs
+      : [];
   renderList(view);
 }
 
-// --- render table + toolbar (no grouping) ---
+// --- render table + toolbar (including production status filter) ---
 function renderList(resource) {
   const cfg = RESOURCES[resource];
   const cols = cfg.columns;
   const s    = state[resource];
-
-  // filter by search
   let arr = s._lastRecords.filter(rec =>
     !s.search ||
     Object.values(rec).some(v =>
@@ -260,10 +263,30 @@ function renderList(resource) {
     )
   );
 
-  // filter by status if defined
-  if (cfg.statusKey && s.filterStatus) {
-    arr = arr.filter(rec => rec[cfg.statusKey] === s.filterStatus);
+  // status filter dropdown for any resource with statusKey
+  let toolbar = `
+    <div class="d-flex justify-content-between mb-3">
+      <input class="form-control" style="width:250px"
+             placeholder="Search…" value="${s.search}"
+             oninput="onSearch('${resource}',this.value)" />`;
+  if (cfg.statusKey) {
+    // use STATUS_OPTIONS.jobs when filtering production jobs
+    const opts = cfg.statusKey === 'job_status'
+      ? STATUS_OPTIONS.jobs
+      : STATUS_OPTIONS[resource] || [];
+    toolbar += `
+      <select class="form-select ms-2" style="width:150px"
+              onchange="onFilter('${resource}',this.value)">
+        <option value="">All Statuses</option>
+        ${opts.map(o=>
+          `<option value="${o}"${s.filterStatus===o?' selected':''}>${o.replace('_',' ')}</option>`
+        ).join('')}
+      </select>`;
+    arr = arr.filter(rec => !s.filterStatus || rec[cfg.statusKey] === s.filterStatus);
   }
+  toolbar += `
+      <button class="btn btn-success" onclick="newResource('${resource}')">+ New</button>
+    </div>`;
 
   // sort
   if (s.sortKey) {
@@ -271,110 +294,119 @@ function renderList(resource) {
       const va = a[s.sortKey], vb = b[s.sortKey];
       if (va == null) return 1;
       if (vb == null) return -1;
-      if (!isNaN(va) && !isNaN(vb)) return (va - vb) * (s.sortDir === 'asc' ? 1 : -1);
-      return String(va).localeCompare(vb) * (s.sortDir === 'asc' ? 1 : -1);
+      if (!isNaN(va) && !isNaN(vb)) return (va - vb) * (s.sortDir==='asc'?1:-1);
+      return String(va).localeCompare(vb) * (s.sortDir==='asc'?1:-1);
     });
   }
 
   // paginate
   const total = arr.length;
-  const pages = Math.max(1, Math.ceil(total / s.pageSize));
+  const pages = Math.max(1, Math.ceil(total/s.pageSize));
   s.page = Math.min(s.page, pages);
-  const start = (s.page - 1) * s.pageSize;
-  const pageData = arr.slice(start, start + s.pageSize);
+  const start = (s.page-1)*s.pageSize;
+  const pageData = arr.slice(start, start+s.pageSize);
 
-  // toolbar
-  let html = `<div class="d-flex justify-content-between mb-3">
-    <input class="form-control" style="width:250px" placeholder="Search…" value="${s.search}"
-           oninput="onSearch('${resource}',this.value)">
-    ${cfg.statusKey ? `<select class="form-select ms-2" style="width:150px" onchange="onFilter('${resource}',this.value)">
-      <option value="">All Statuses</option>
-      ${STATUS_OPTIONS[resource].map(o => `<option value="${o}"${s.filterStatus===o?' selected':''}>${o}</option>`).join('')}
-    </select>` : ''}
-    <button class="btn btn-success" onclick="newResource('${resource}')">+ New</button>
-  </div>`;
-
-  // table
-  html += `<table class="table table-striped"><thead><tr>
-    ${cols.map(c => `<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`).join('')}
-    <th>Actions</th>
-  </tr></thead><tbody>`;
-  pageData.forEach(rec => {
-    const idVal = rec[cfg.idKey || 'id'];
-    html += `<tr>${cols.map(c => `<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`).join('')}
-      <td>
-        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('${resource}',${idVal})">Edit</button>
-        <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteResource('${resource}',${idVal})">Delete</button>
-        ${resource==='deals'?`<button class="btn btn-sm btn-outline-primary" onclick="pushDeal(${idVal})">Push to Prod</button>`:''}
-      </td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-
-  // pagination controls
-  html += `<div class="d-flex justify-content-between align-items-center mt-2">
-    <button class="btn btn-sm btn-outline-primary" ${s.page<=1?'disabled':''} onclick="changePage('${resource}',${s.page-1})">Prev</button>
-    <span>Page ${s.page} of ${pages}</span>
-    <button class="btn btn-sm btn-outline-primary" ${s.page>=pages?'disabled':''} onclick="changePage('${resource}',${s.page+1})">Next</button>
-    <select class="form-select form-select-sm" style="width:70px" onchange="changePageSize('${resource}',this.value)">
-      ${PAGE_SIZES.map(sz => `<option value="${sz}"${sz===s.pageSize?' selected':''}>${sz}</option>`).join('')}
-    </select>
-  </div>`;
+  // build table
+  let html = toolbar + `
+    <table class="table table-striped">
+      <thead><tr>
+        ${cols.map(c=>`<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`).join('')}
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${pageData.map(rec=>{
+          const idVal = rec[cfg.idKey||'id'];
+          return `
+            <tr>
+              ${cols.map(c=>`<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`).join('')}
+              <td>
+                <button class="btn btn-sm btn-outline-secondary me-1"
+                        onclick="editResource('${resource}',${idVal})">Edit</button>
+                <button class="btn btn-sm btn-outline-danger me-1"
+                        onclick="deleteResource('${resource}',${idVal})">Delete</button>
+                ${resource==='deals'
+                  ? `<button class="btn btn-sm btn-outline-primary"
+                              onclick="pushDeal(${idVal})">Push to Prod</button>`
+                  : ''}
+              </td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-between align-items-center mt-2">
+      <button class="btn btn-sm btn-outline-primary" ${s.page<=1?'disabled':''}
+              onclick="changePage('${resource}',${s.page-1})">Prev</button>
+      <span>Page ${s.page} of ${pages}</span>
+      <button class="btn btn-sm btn-outline-primary" ${s.page>=pages?'disabled':''}
+              onclick="changePage('${resource}',${s.page+1})">Next</button>
+      <select class="form-select form-select-sm" style="width:70px"
+              onchange="changePageSize('${resource}',this.value)">
+        ${PAGE_SIZES.map(sz=>
+          `<option value="${sz}"${sz===s.pageSize?' selected':''}>${sz}</option>`
+        ).join('')}
+      </select>
+    </div>`;
 
   app.innerHTML = html;
 }
 
 // --- table controls ---
-function onSearch(resource,text){
-  state[resource].search=text;
-  state[resource].page=1;
+function onSearch(resource, text) {
+  state[resource].search = text;
+  state[resource].page = 1;
   renderList(resource);
 }
-function onFilter(resource,status){
-  state[resource].filterStatus=status;
-  state[resource].page=1;
+function onFilter(resource, status) {
+  state[resource].filterStatus = status;
+  state[resource].page = 1;
   renderList(resource);
 }
-function onSort(resource,key){
+function onSort(resource, key) {
   const s = state[resource];
-  if (s.sortKey === key) s.sortDir = s.sortDir === 'asc' ? 'desc' : 'asc';
-  else { s.sortKey = key; s.sortDir = 'asc'; }
+  if (s.sortKey === key) {
+    s.sortDir = s.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    s.sortKey = key;
+    s.sortDir = 'asc';
+  }
   renderList(resource);
 }
-function changePage(resource,page){
+function changePage(resource, page) {
   state[resource].page = page;
   renderList(resource);
 }
-function changePageSize(resource,size){
+function changePageSize(resource, size) {
   state[resource].pageSize = Number(size);
   state[resource].page = 1;
   renderList(resource);
 }
 
 // --- CRUD form renderer ---
-function renderForm(resource,record={}){
+function renderForm(resource, record={}) {
   const cfg = RESOURCES[resource];
   if (cfg.idKey) record.id = record[cfg.idKey];
   const isEdit = Boolean(record.id);
-  let html = `<h3>${isEdit?'Edit':'New'} ${resource}</h3><form id="frm_${resource}">`;
+  let html = `<h3>${isEdit?'Edit':'New'} ${resource}</h3>
+              <form id="frm_${resource}">`;
   cfg.columns.forEach(c => {
     const val = record[c.key] != null ? record[c.key] : '';
     html += `<div class="mb-3">
-      <label for="f_${c.key}" class="form-label">${c.label}</label>`;
+               <label for="f_${c.key}" class="form-label">${c.label}</label>`;
     if (c.options) {
       html += `<select id="f_${c.key}" class="form-select"${c.readonly?' disabled':''}>` +
-        c.options.map(o => `<option value="${o}"${o===val?' selected':''}>${o}</option>`).join('') +
-      `</select>`;
+                c.options.map(o=>`<option value="${o}"${o===val?' selected':''}>${o}</option>`).join('') +
+              `</select>`;
     } else {
-      html += `<input id="f_${c.key}" class="form-control" type="${c.type||'text'}" value="${val}"${c.readonly?' readonly':' required'}>`;
+      html += `<input id="f_${c.key}" class="form-control" type="${c.type||'text'}"
+                     value="${val}"${c.readonly?' readonly':' required'}>`;
     }
     html += `</div>`;
   });
   html += `<button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
-           <button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button>
-    </form>`;
+           <button type="button" class="btn btn-secondary ms-2"
+                   onclick="loadAdminView('${resource}')">Cancel</button>
+           </form>`;
   app.innerHTML = html;
-
   document.getElementById(`frm_${resource}`).onsubmit = async e => {
     e.preventDefault();
     const payload = {};
@@ -392,28 +424,26 @@ function renderForm(resource,record={}){
   };
 }
 
-// --- resource CRUD helpers ---
-async function newResource(resource){ renderForm(resource); }
-async function editResource(resource,id){
+// --- new/edit/delete/push helpers ---
+async function newResource(resource) { renderForm(resource); }
+async function editResource(resource, id) {
   const rec = await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`);
   renderForm(resource, rec);
 }
-async function deleteResource(resource,id){
+async function deleteResource(resource, id) {
   if (!confirm('Delete this item?')) return;
-  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method:'DELETE' });
+  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method: 'DELETE' });
   loadAdminView(resource);
 }
-
-// --- push deal into production ---
-async function pushDeal(dealId){
+async function pushDeal(dealId) {
   if (!confirm(`Push deal #${dealId} to production?`)) return;
-  const job = await fetchJSON(`/jobs/push/${dealId}`, { method:'POST' });
+  const job = await fetchJSON(`/jobs/push/${dealId}`, { method: 'POST' });
   alert(`Created production job #${job.id}`);
   loadAdminView('production');
 }
 
 // --- logout & init ---
-function logout(){
+function logout() {
   localStorage.removeItem('token');
   window.location.href = 'login.html';
 }
