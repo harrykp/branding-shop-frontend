@@ -260,20 +260,22 @@ function renderList(resource) {
     );
 
   // Production grouping/coloring
-  if (resource === 'production') {
-    // Toolbar
-    let html = `<div class="d-flex justify-content-between mb-3">
-      <input class="form-control" style="width:250px" placeholder="Search…" value="${s.search}"
-             oninput="onSearch('production',this.value)">
-      <select class="form-select ms-2" style="width:150px"
-              onchange="onFilter('production',this.value)">
-        <option value="">All Statuses</option>
-        ${STATUS_OPTIONS.jobs.map(o=>
-          `<option value="${o}"${s.filterStatus===o?' selected':''}>${o.replace('_',' ')}</option>`
-        ).join('')}
-      </select>
-      <button class="btn btn-success" onclick="newResource('production')">+ New</button>
-    </div>`;
+ if (resource === 'production') {
+    // toolbar
+    let html = `<div class="d-flex justify-content-between mb-3">` +
+      `<input class="form-control" style="width:250px" placeholder="Search…" value="${s.search}" oninput="onSearch('production',this.value)"/>` +
+      `<select class="form-select ms-2" style="width:150px" onchange="onFilter('production',this.value)">` +
+        `<option value="">All Statuses</option>` +
+        STATUS_OPTIONS.jobs.map(o => `<option value="${o}"${s.filterStatus===o?' selected':''}>${o}</option>`).join('') +
+      `</select>` +
+      `<select class="form-select ms-2" style="width:200px" onchange="onGroup('production',this.value)">` +
+        `<option value="status"${s.groupBy==='status'?' selected':''}>Group by Status</option>` +
+        `<option value="department"${s.groupBy==='department'?' selected':''}>Group by Department</option>` +
+        `<option value="product_category"${s.groupBy==='product_category'?' selected':''}>Group by Category</option>` +
+        `<option value="start_date"${s.groupBy==='start_date'?' selected':''}>Group by Start Date</option>` +
+      `</select>` +
+      `<button class="btn btn-success" onclick="newResource('production')">+ New</button>` +
+    `</div>`;
 
     // Group Data
     const groups = {};
