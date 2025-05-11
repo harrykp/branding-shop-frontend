@@ -1,8 +1,7 @@
-// frontend/script-admin.js
+// branding-shop-frontend/script-admin.js
 
-console.log('🔥 script-admin.js – Admin Portal');
+console.log('🔥 script-admin.js – metadata-driven CRUD with search, pagination & sorting');
 
-// --- Base API Configuration ---
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
@@ -13,68 +12,12 @@ const headers = {
 };
 const app = document.getElementById('app-admin');
 
-// --- Inject Bootstrap modal for Job create/edit ---
-const modalHtml = `
-<div class="modal fade" id="jobModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="jobForm" class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="jobModalLabel">Job</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Order ID</label>
-          <input type="number" id="job-order-id" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Type</label>
-          <input type="text" id="job-type" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Quantity</label>
-          <input type="number" id="job-qty" class="form-control" min="1" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Assigned To (User ID)</label>
-          <input type="number" id="job-assigned-to" class="form-control">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Due Date</label>
-          <input type="date" id="job-due-date" class="form-control">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Status</label>
-          <select id="job-status" class="form-select">
-            <option value="queued">Queued</option>
-            <option value="in_progress">In Progress</option>
-            <option value="finished">Finished</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-`;
-document.body.insertAdjacentHTML('beforeend', modalHtml);
-const jobModal = new bootstrap.Modal(document.getElementById('jobModal'));
-const jobForm  = document.getElementById('jobForm');
-
-// --- State & Config ---
+// --- pagination sizes and state per resource ---
 const PAGE_SIZES = [5, 10, 20, 50];
-const STATUS_OPTIONS = {
-  production: ['queued','in_progress','finished','cancelled']
-  // Add other status arrays if needed
-};
 const state = {};
-function initState(view) {
-  if (!state[view]) {
-    state[view] = {
+function initState(res) {
+  if (!state[res]) {
+    state[res] = {
       page: 1,
       pageSize: 10,
       search: '',
@@ -86,45 +29,209 @@ function initState(view) {
   }
 }
 
-// --- Column Definitions ---
-const jobsColumns = [
-  { key: 'id',         label: 'Job ID' },
-  { key: 'order_id',   label: 'Order ID' },
-  { key: 'type',       label: 'Type' },
-  { key: 'qty',        label: 'Quantity' },
-  { key: 'job_status', label: 'Status' },
-  { key: 'assigned_to',label: 'Assigned To' },
-  { key: 'start_date', label: 'Start Date' },
-  { key: 'due_date',   label: 'Due Date' },
-  { key: 'finished_at',label: 'Finished At' }
-];
-
-// --- Resource Configuration ---
-const RESOURCES = {
-  users:      { endpoint: '/users', columns: [] },
-  roles:      { endpoint: '/roles', columns: [] },
-  products:   { endpoint: '/products', columns: [] },
-  quotes:     { endpoint: '/quotes', columns: [] },
-  orders:     { endpoint: '/orders', columns: [] },
-  production: { endpoint: '/jobs', columns: jobsColumns, statusKey: 'job_status' },
-  finance:    { endpoint: '/payments', columns: [] }
+// --- status options per resource ---
+const STATUS_OPTIONS = {
+  users: [], roles: [], products: [],
+  quotes: ['pending','approved','rejected','cancelled'],
+  orders: ['new','processing','shipped','delivered','cancelled'],
+  jobs: ['queued','in_progress','finished','cancelled'],
+  suppliers: [], catalog: [],
+  'purchase-orders': ['pending','placed','received','cancelled'],
+  purchaseOrders: ['pending','placed','received','cancelled'],
+  leads: ['new','contacted','qualified','lost'],
+  deals: ['qualified','won','lost'],
+  hr: [], finance: ['pending','completed','failed','refunded'], reports: []
 };
 
-// --- Generic Fetch Helper ---
+// --- reusable column sets ---
+const jobsColumns = [
+  { key: 'id',            label: 'ID',           readonly: true },
+  { key: 'deal_id',       label: 'Deal ID',      type: 'number' },
+  { key: 'deal_value',    label: 'Deal Value',   type: 'number' },
+  { key: 'customer_id',    label: 'Cust. ID',     type: 'number' },
+  { key: 'customer_name',  label: 'Customer' },
+  { key: 'customer_phone', label: 'Phone' },
+  { key: 'order_id',       label: 'Order ID',     type: 'number' },
+  { key: 'order_total',    label: 'Order Value',  type: 'number' },
+  { key: 'payment_status', label: 'Pay Status' },
+  { key: 'product_id',     label: 'Prod. ID',     type: 'number' },
+  { key: 'product_name',   label: 'Product' },
+  { key: 'product_code',   label: 'SKU' },
+  { key: 'qty_ordered',    label: 'Qty Ordered',  type: 'number' },
+  { key: 'qty_completed',  label: 'Qty Completed',type: 'number' },
+  { key: 'pct_complete',   label: '% Complete',   type: 'number' },
+  { key: 'start_date',     label: 'Start Date' },
+  { key: 'completion_date',label: 'Completion Date' },
+  { key: 'due_date',       label: 'Due Date' },
+  { key: 'sales_rep',      label: 'Sales Rep' },
+  { key: 'department',     label: 'Dept' },
+  { key: 'completed_value',label: 'Paid',         type: 'number' },
+  { key: 'balance_unpaid', label: 'Balance',      type: 'number' },
+  { key: 'comments',       label: 'Comments' },
+  { key: 'updated_by_name',label: 'Updated By' },
+  { key: 'updated_at',     label: 'Updated At',   readonly: true },
+  { key: 'job_status',     label: 'Status',       options: STATUS_OPTIONS.jobs }
+];
+const purchaseOrdersColumns = [
+  { key: 'id',          label: 'ID',         readonly: true },
+  { key: 'supplier_id', label: 'Supplier',   type: 'number' },
+  { key: 'created_at',  label: 'Created At', readonly: true },
+  { key: 'status',      label: 'Status',     options: STATUS_OPTIONS.purchaseOrders }
+];
+const dailyTransactionsColumns = [
+  { key: 'id',               label: 'ID',               readonly: true },
+  { key: 'date',             label: 'Date' },
+  { key: 'start_of_day_cash',label: 'Start Cash',      type: 'number' },
+  { key: 'payments_received',label: 'Received',        type: 'number' },
+  { key: 'expenses_paid',    label: 'Expenses',        type: 'number' },
+  { key: 'bank_deposit',     label: 'Bank Deposit',    type: 'number' },
+  { key: 'end_of_day_cash',  label: 'End Cash',        type: 'number' },
+  { key: 'updated_by',       label: 'Updated By',      type: 'number' },
+  { key: 'updated_at',       label: 'Updated At',      readonly: true }
+];
+
+// --- define every resource, its API path, and fields to show/edit ---
+const RESOURCES = {
+  users: { endpoint:'/users',           columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'name', label:'Name' },
+      { key:'email', label:'Email', type:'email' },
+      { key:'phone_number', label:'Phone' },
+      { key:'department_id', label:'Dept ID', type:'number' }
+    ]
+  },
+  roles: { endpoint:'/roles',           columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'name', label:'Role Name' }
+    ]
+  },
+  products: { endpoint:'/products',     columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'name', label:'Name' },
+      { key:'description', label:'Description' },
+      { key:'price', label:'Price', type:'number' },
+      { key:'category_id', label:'Category ID', type:'number' }
+    ]
+  },
+  pricingRules: { endpoint:'/pricing-rules', columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'name', label:'Name' },
+      { key:'product_category_id', label:'Category ID', type:'number' },
+      { key:'category_name', label:'Category' },
+      { key:'rule_type', label:'Rule Type' },
+      { key:'min_qty', label:'Min Qty', type:'number' },
+      { key:'max_qty', label:'Max Qty', type:'number' },
+      { key:'unit_price', label:'Unit Price', type:'number' },
+      { key:'created_at', label:'Created At', readonly:true },
+      { key:'updated_at', label:'Updated At', readonly:true }
+    ]
+  },
+  quotes: { endpoint:'/quotes',         columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'customer_id', label:'Customer ID', type:'number' },
+      { key:'customer_name', label:'Customer' },
+      { key:'customer_phone', label:'Phone' },
+      { key:'product_id', label:'Product ID', type:'number' },
+      { key:'product_name', label:'Product' },
+      { key:'quantity', label:'Quantity', type:'number' },
+      { key:'unit_price', label:'Unit Price', type:'number' },
+      { key:'total', label:'Total', type:'number', readonly:true },
+      { key:'status', label:'Status', options: STATUS_OPTIONS.quotes },
+      { key:'created_at', label:'Created At', readonly:true }
+    ]
+  },
+  orders: { endpoint:'/orders',         columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'user_id', label:'Customer ID', type:'number' },
+      { key:'quote_id', label:'Quote ID', type:'number' },
+      { key:'total', label:'Total', type:'number' },
+      { key:'status', label:'Status', options: STATUS_OPTIONS.orders },
+      { key:'placed_at', label:'Placed At', readonly:true },
+      { key:'payment_status', label:'Pay Status' }
+    ]
+  },
+  deals: { endpoint:'/deals',           idKey:'deal_id', columns:[
+      { key:'deal_id', label:'Deal ID', readonly:true },
+      { key:'lead_id', label:'Lead ID', type:'number' },
+      { key:'lead_name', label:'Lead Name' },
+      { key:'sales_rep_id', label:'Rep ID', type:'number' },
+      { key:'sales_rep', label:'Sales Rep' },
+      { key:'product_id', label:'Product ID', type:'number' },
+      { key:'product', label:'Product Name' },
+      { key:'product_code', label:'SKU' },
+      { key:'quote_id', label:'Quote ID', type:'number' },
+      { key:'quote_qty', label:'Qty Quoted', type:'number' },
+      { key:'quote_unit_price', label:'Unit Price', type:'number' },
+      { key:'quote_total', label:'Quote Total', type:'number', readonly:true },
+      { key:'deal_value', label:'Deal Value', type:'number' },
+      { key:'deal_status', label:'Status', options: STATUS_OPTIONS.deals },
+      { key:'customer_id', label:'Cust. ID', type:'number' },
+      { key:'customer_name', label:'Customer' },
+      { key:'customer_phone', label:'Phone' },
+      { key:'deal_date', label:'Created At', readonly:true }
+    ]
+  },
+  jobs: { endpoint:'/jobs',             columns: jobsColumns },
+  production: { endpoint:'/jobs',       columns: jobsColumns, statusKey: 'job_status' },
+  suppliers: { endpoint:'/suppliers',   columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'name', label:'Name' },
+      { key:'website', label:'Website' }
+    ]
+  },
+  catalog: { endpoint:'/catalog',       columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'supplier_id', label:'Supplier', type:'number' },
+      { key:'sku', label:'SKU' },
+      { key:'name', label:'Name' },
+      { key:'cost', label:'Cost', type:'number' }
+    ]
+  },
+  'purchase-orders': { endpoint:'/purchase-orders', columns: purchaseOrdersColumns },
+  purchaseOrders:     { endpoint:'/purchase-orders', columns: purchaseOrdersColumns },
+  leads: { endpoint:'/leads',           columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'created_by', label:'Created By', type:'number' },
+      { key:'name', label:'Name' },
+      { key:'email', label:'Email', type:'email' },
+      { key:'phone', label:'Phone' },
+      { key:'status', label:'Status', options: STATUS_OPTIONS.leads },
+      { key:'created_at', label:'Created At', readonly:true }
+    ]
+  },
+  crm: {},
+  hr: { endpoint:'/hr',                 columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'user_id', label:'User ID', type:'number' },
+      { key:'ssn', label:'SSN' },
+      { key:'hire_date', label:'Hire Date' },
+      { key:'position', label:'Position' },
+      { key:'salary', label:'Salary', type:'number' }
+    ]
+  },
+  finance: { endpoint:'/payments',       columns:[
+      { key:'id', label:'ID', readonly:true },
+      { key:'order_id', label:'Order ID', type:'number' },
+      { key:'gateway', label:'Gateway' },
+      { key:'transaction_id', label:'Txn ID' },
+      { key:'amount', label:'Amount', type:'number' },
+      { key:'status', label:'Status', options: STATUS_OPTIONS.finance },
+      { key:'paid_at', label:'Paid At' },
+      { key:'created_at', label:'Created At', readonly:true }
+    ]
+  },
+  reports: { endpoint:'/daily-transactions', columns: dailyTransactionsColumns }
+};
+
+// --- generic fetch helper ---
 async function fetchJSON(path, opts = {}) {
-  try {
-    const res = await fetch(API_BASE + path, { headers, ...opts });
-    const txt = await res.text();
-    if (!res.ok) throw new Error(txt || res.statusText);
-    return txt ? JSON.parse(txt) : [];
-  } catch (err) {
-    console.error(`Fetch ${path} failed:`, err);
-    alert('Network error. Please try again later.');
-    return [];
-  }
+  const res = await fetch(API_BASE + path, { headers, ...opts });
+  const txt = await res.text();
+  if (!res.ok) throw new Error(`Error ${res.status}: ${txt}`);
+  return txt ? JSON.parse(txt) : null;
 }
 
-// --- Navigation Wiring ---
+// --- wire menu clicks ---
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -132,183 +239,186 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// --- Main View Loader ---
+// --- main view loader ---
 async function loadAdminView(view) {
   initState(view);
-  app.innerHTML = `<h3>Loading ${view.charAt(0).toUpperCase() + view.slice(1)}…</h3>`;
-
+  app.innerHTML = `<h3>Loading ${view}…</h3>`;
   const cfg = RESOURCES[view];
-  if (!cfg) {
+  if (!cfg || !cfg.endpoint) {
     app.innerHTML = `<h3>${view.charAt(0).toUpperCase() + view.slice(1)}</h3><p>Under construction…</p>`;
     return;
   }
-
   const list = await fetchJSON(cfg.endpoint);
-  state[view]._lastRecords = Array.isArray(list) ? list : [];
-  renderList(view, state[view]._lastRecords, cfg.columns, cfg.statusKey);
+  state[view]._lastRecords = list || [];
+  renderList(view, state[view]._lastRecords);
 }
 
-// --- List Renderer (search, filter, sort, paginate) ---
-function renderList(view, records, columns, statusKey) {
-  const s = state[view];
-  let arr = records.slice();
+// --- render table + controls ---
+function renderList(resource, records) {
+  const { columns, statusKey } = RESOURCES[resource];
+  const s = state[resource];
 
-  // search
-  if (s.search) {
-    arr = arr.filter(rec => Object.values(rec).some(v =>
+  // 1) apply search
+  let arr = records.filter(rec =>
+    s.search === '' ||
+    Object.values(rec).some(v =>
       String(v).toLowerCase().includes(s.search.toLowerCase())
-    ));
-  }
-  // status filter
+    )
+  );
+
+  // 2) apply status filter if production
   if (statusKey && s.filterStatus) {
     arr = arr.filter(rec => rec[statusKey] === s.filterStatus);
   }
 
-  // sort
+  // 3) apply sort
   if (s.sortKey) {
-    arr.sort((a,b) => {
+    arr = [...arr].sort((a,b) => {
       const va = a[s.sortKey], vb = b[s.sortKey];
       if (va == null) return 1;
       if (vb == null) return -1;
-      if (!isNaN(va) && !isNaN(vb)) return (va - vb) * (s.sortDir === 'asc' ? 1 : -1);
+      if (!isNaN(va) && !isNaN(vb)) {
+        return (va - vb) * (s.sortDir === 'asc' ? 1 : -1);
+      }
       return String(va).localeCompare(vb) * (s.sortDir === 'asc' ? 1 : -1);
     });
   }
 
-  // paginate
+  // 4) paginate
   const total = arr.length;
-  const pages = Math.max(1, Math.ceil(total / s.pageSize));
-  s.page = Math.min(s.page, pages);
+  const totalPages = Math.max(1, Math.ceil(total / s.pageSize));
+  s.page = Math.min(s.page, totalPages);
   const start = (s.page - 1) * s.pageSize;
   const pageRecs = arr.slice(start, start + s.pageSize);
 
   // toolbar
-  let toolbar = `<div class="d-flex justify-content-between mb-3">` +
-    `<div class="input-group" style="width:350px">` +
+  let toolbar = `<div class="d-flex justify-content-between align-items-center mb-3">` +
+    `<div class="input-group" style="width:250px">` +
       `<span class="input-group-text">🔍</span>` +
-      `<input type="text" class="form-control" placeholder="Search…" value="${s.search}" oninput="onSearch('${view}',this.value)">`;
+      `<input type="text" class="form-control" placeholder="Search…" value="${s.search}" oninput="onSearch('${resource}',this.value)">` +
+      `<button class="btn btn-outline-secondary" type="button" title="Clear" onclick="onSearch('${resource}','')">✖</button>` +
+    `</div>`;
 
-  if (statusKey) {
-    toolbar += `<select class="form-select ms-2" style="width:150px" onchange="onFilter('${view}',this.value)">` +
+  // add status filter dropdown for production
+  if (resource === 'production') {
+    toolbar += `<select class="form-select ms-2" style="width:150px" onchange="onFilter('${resource}',this.value)">` +
       `<option value="">All Statuses</option>` +
-      STATUS_OPTIONS[view].map(opt =>
-        `<option value="${opt}" ${s.filterStatus === opt ? 'selected' : ''}>${opt.replace('_',' ')}</option>`
+      STATUS_OPTIONS.jobs.map(opt =>
+        `<option value="${opt}" ${s.filterStatus===opt?'selected':''}>${opt.replace('_',' ')}</option>`
       ).join('') +
       `</select>`;
   }
 
-  toolbar += `</div>` +
-    `<button class="btn btn-success" onclick="newResource('${view}')">+ New</button>` +
-  `</div>`;
+  toolbar += `<button class="btn btn-success" onclick="newResource('${resource}')">+ New</button></div>`;
 
   // header
   const header = columns.map(c => {
-    const arrow = s.sortKey === c.key ? (s.sortDir === 'asc' ? ' ▲' : ' ▼') : '';
-    return `<th style="cursor:pointer" onclick="onSort('${view}','${c.key}')">${c.label}${arrow}</th>`;
+    const arrow = s.sortKey === c.key ? (s.sortDir==='asc'?' ▲':' ▼') : '';
+    return `<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}${arrow}</th>`;
   }).join('');
 
   // rows
-  const idKey = columns.find(c => c.key === 'id') ? 'id' : Object.keys(records[0] || {})[0];
-  const rowsHtml = pageRecs.map(rec => {
-    const cells = columns.map(c => `<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`).join('');
+  const idKey = RESOURCES[resource].idKey || 'id';
+  const rows = pageRecs.map(rec => {
+    const cells = columns.map(c => `<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('');
     return `<tr>${cells}<td>` +
-      `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('${view}',${rec[idKey]})">Edit</button>` +
-      `<button class="btn btn-sm btn-outline-danger" onclick="deleteResource('${view}',${rec[idKey]})">Delete</button>` +
+      `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('${resource}',${rec[idKey]})">Edit</button>` +
+      `<button class="btn btn-sm btn-outline-danger" onclick="deleteResource('${resource}',${rec[idKey]})">Delete</button>` +
+      `${resource==='deals'?`<button class="btn btn-sm btn-outline-primary" onclick="pushDeal(${rec[idKey]})">Push to Prod</button>`:''}` +
       `</td></tr>`;
   }).join('');
 
   // pagination
-  const prev = s.page <= 1 ? 'disabled' : '';
-  const next = s.page >= pages ? 'disabled' : '';
-  const opts = PAGE_SIZES.map(sz => `<option value="${sz}" ${sz === s.pageSize ? 'selected' : ''}>${sz}</option>`).join('');
+  const prevD = s.page<=1?'disabled':'';
+  const nextD = s.page>=totalPages?'disabled':'';
+  const sizeOpts = PAGE_SIZES.map(sz => `<option value="${sz}" ${sz===s.pageSize?'selected':''}>${sz}</option>`).join('');
   const pager = `<div class="d-flex justify-content-between align-items-center mt-2">` +
     `<div>` +
-      `<button class="btn btn-sm btn-outline-primary me-2" ${prev} onclick="onPage('${view}',${s.page-1})">Prev</button>` +
-      `<span>Page ${s.page} of ${pages}</span>` +
-      `<button class="btn btn-sm btn-outline-primary ms-2" ${next} onclick="onPage('${view}',${s.page+1})">Next</button>` +
+      `<button class="btn btn-sm btn-outline-primary me-2" ${prevD} onclick="changePage('${resource}',${s.page-1})">Prev</button>` +
+      `<span>Page ${s.page} of ${totalPages}</span>` +
+      `<button class="btn btn-sm btn-outline-primary ms-2" ${nextD} onclick="changePage('${resource}',${s.page+1})">Next</button>` +
     `</div>` +
     `<div class="d-flex align-items-center">` +
       `<label class="me-2 mb-0">Page size:</label>` +
-      `<select class="form-select form-select-sm" style="width:70px" onchange="onPageSize('${view}',this.value)">${opts}</select>` +
+      `<select class="form-select form-select-sm" style="width:70px" onchange="changePageSize('${resource}',this.value)">${sizeOpts}</select>` +
     `</div>` +
   `</div>`;
 
-  app.innerHTML = `<h3>${view.charAt(0).toUpperCase() + view.slice(1)}</h3>` + toolbar +
-                 `<table class="table table-striped"><thead><tr>${header}<th>Actions</th></tr></thead><tbody>${rowsHtml}</tbody></table>` +
-                 pager;
+  app.innerHTML = toolbar + `<table class="table table-striped"><thead><tr>${header}<th>Actions</th></tr></thead><tbody>${rows}</tbody></table>` + pager;
 }
 
-// --- Control Handlers ---
-function onSearch(view,val)    { state[view].search=val; state[view].page=1; loadAdminView(view); }
-function onFilter(view,val)    { state[view].filterStatus=val; state[view].page=1; loadAdminView(view); }
-function onSort(view,key)      { const s=state[view]; s.sortKey===key? s.sortDir=s.sortDir==='asc'?'desc':'asc' : (s.sortKey=key,s.sortDir='asc'); renderList(view,state[view]._lastRecords,RESOURCES[view].columns,RESOURCES[view].statusKey); }
-function onPage(view,pg)       { state[view].page=pg; renderList(view,state[view]._lastRecords,RESOURCES[view].columns,RESOURCES[view].statusKey); }
-function onPageSize(view,sz)   { state[view].pageSize=Number(sz); state[view].page=1; renderList(view,state[view]._lastRecords,RESOURCES[view].columns,RESOURCES[view].statusKey); }
+// --- control handlers ---
+function onSearch(resource, text) { state[resource].search = text; state[resource].page = 1; renderList(resource, state[resource]._lastRecords); }
+function onFilter(resource, status) { state[resource].filterStatus = status; state[resource].page = 1; renderList(resource, state[resource]._lastRecords); }
+function onSort(resource, key) { const s = state[resource]; if (s.sortKey===key) { s.sortDir = s.sortDir==='asc'?'desc':'asc'; } else { s.sortKey=key; s.sortDir='asc'; } renderList(resource, state[resource]._lastRecords); }
+function changePage(resource, pg) { state[resource].page = pg; renderList(resource, state[resource]._lastRecords); }
+function changePageSize(resource, sz) { state[resource].pageSize = Number(sz); state[resource].page = 1; renderList(resource, state[resource]._lastRecords); }
 
-// --- Generic CRUD Stubs ---
-function newResource(view) {
-  if (view === 'production') return newJob();
-  app.innerHTML = `<h3>New ${view.slice(0,-1)}</h3><p>Under construction…</p>`;
+// --- form renderer & CRUD ---
+function renderForm(resource, record = {}) {
+  const { columns, endpoint, idKey } = RESOURCES[resource];
+  if (idKey) record.id = record[idKey];
+  const isEdit = Boolean(record.id);
+  const fields = columns.map(c => {
+    const val = record[c.key] != null ? record[c.key] : '';
+    if (c.options) {
+      return `<div class="mb-3"><label class="form-label">${c.label}</label>` +
+        `<select id="f_${c.key}" class="form-select" ${c.readonly?'disabled':''}>` +
+        c.options.map(opt=>`<option value="${opt}" ${opt===val?'selected':''}>${opt}</option>`).join('') +
+        `</select></div>`;
+    }
+    return `<div class="mb-3"><label class="form-label">${c.label}</label>` +
+      `<input id="f_${c.key}" class="form-control" type="${c.type||'text'}" value="${val}" ${c.readonly?'readonly':''} ${c.readonly?'':'required'}>` +
+      `</div>`;
+  }).join('');
+  app.innerHTML = `<h3>${isEdit?'Edit':'New'} ${resource.slice(0,-1)}</h3><form id="frm_${resource}">${fields}` +
+    `<button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>` +
+    `<button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button></form>`;
+  document.getElementById(`frm_${resource}`).onsubmit = async e => {
+    e.preventDefault();
+    const payload = {};
+    columns.forEach(c => {
+      if (!c.readonly) {
+        let v = document.getElementById(`f_${c.key}`).value;
+        if (c.type==='number') v = parseFloat(v);
+        payload[c.key] = v;
+      }
+    });
+    const url = isEdit ? `${endpoint}/${record.id}` : endpoint;
+    const method = isEdit ? 'PATCH' : 'POST';
+    try {
+      await fetchJSON(url, { method, body: JSON.stringify(payload) });
+      loadAdminView(resource);
+    } catch (err) {
+      alert(`Save failed: ${err.message}`);
+    }
+  };
 }
-async function editResource(view,id) {
-  if (view === 'production') return editJob(id);
-  app.innerHTML = `<h3>Edit ${view.slice(0,-1)} #${id}</h3><p>Under construction…</p>`;
+function newResource(resource) { renderForm(resource); }
+async function editResource(resource, id) {
+  const rec = await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`);
+  renderForm(resource, rec);
 }
-async function deleteResource(view,id) {
+async function deleteResource(resource, id) {
   if (!confirm('Delete this item?')) return;
-  await fetchJSON(`${RESOURCES[view].endpoint}/${id}`, { method:'DELETE' });
-  loadAdminView(view);
+  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method:'DELETE' });
+  loadAdminView(resource);
+}
+// --- push deal to production ---
+async function pushDeal(dealId) {
+  if (!confirm(`Push deal #${dealId} to production?`)) return;
+  try {
+    const job = await fetchJSON(`/jobs/push/${dealId}`, { method:'POST' });
+    alert(`Created production job #${job.id}`);
+    loadAdminView('production');
+  } catch (err) {
+    alert('Push failed: ' + err.message);
+  }
 }
 
-// --- CRUD for Jobs via Modal ---
-function newJob() {
-  jobForm.reset();
-  document.getElementById('jobModalLabel').textContent = 'New Job';
-  jobForm.onsubmit = async e => {
-    e.preventDefault();
-    const payload = {
-      order_id:    +document.getElementById('job-order-id').value,
-      type:        document.getElementById('job-type').value,
-      qty:         +document.getElementById('job-qty').value,
-      assigned_to: +document.getElementById('job-assigned-to').value || null,
-      due_date:    document.getElementById('job-due-date').value || null,
-      job_status:  document.getElementById('job-status').value
-    };
-    await fetchJSON('/jobs',{ method:'POST', body: JSON.stringify(payload) });
-    jobModal.hide();
-    loadAdminView('production');
-  };
-  jobModal.show();
+// --- logout & initial load ---
+function logout() {
+  localStorage.removeItem('token');
+  window.location.href = 'login.html';
 }
-async function editJob(id) {
-  const rec = await fetchJSON(`/jobs/${id}`);
-  document.getElementById('jobModalLabel').textContent = `Edit Job #${id}`;
-  document.getElementById('job-order-id').value    = rec.order_id;
-  document.getElementById('job-type').value        = rec.type;
-  document.getElementById('job-qty').value         = rec.qty;
-  document.getElementById('job-assigned-to').value = rec.assigned_to || '';
-  document.getElementById('job-due-date').value    = rec.due_date ? rec.due_date.slice(0,10) : '';
-  document.getElementById('job-status').value      = rec.job_status;
-  jobForm.onsubmit = async e => {
-    e.preventDefault();
-    const payload = {
-      type:        document.getElementById('job-type').value,
-      qty:         +document.getElementById('job-qty').value,
-      assigned_to: +document.getElementById('job-assigned-to').value || null,
-      due_date:    document.getElementById('job-due-date').value || null,
-      job_status:  document.getElementById('job-status').value
-    };
-    await fetchJSON(`/jobs/${id}`,{ method:'PATCH', body:JSON.stringify(payload) });
-    jobModal.hide();
-    loadAdminView('production');
-  };
-  jobModal.show();
-}
-async function deleteJob(id) {
-  if (!confirm('Delete this job?')) return;
-  await fetchJSON(`/jobs/${id}`,{ method:'DELETE' });
-  loadAdminView('production');
-}
-
-// --- Initialize App ---
 loadAdminView('users');
