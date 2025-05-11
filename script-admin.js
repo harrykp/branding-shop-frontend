@@ -1,8 +1,9 @@
 // frontend/script-admin.js
 
-console.log('🔥 script-admin.js – CRUD + Production UI Enhancements');
+console.log('🔥 script-admin.js – Admin Portal with Enhanced Production Jobs UI');
 
-const API_BASE = 'https://branding-shop-backend.onrender.com/api';
+// Base API config
+tconst API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
 
@@ -13,7 +14,7 @@ const headers = {
 const app = document.getElementById('app-admin');
 
 // Inject Bootstrap modal for Job creation/editing
-const modalHtml = `
+document.body.insertAdjacentHTML('beforeend', `
 <div class="modal fade" id="jobModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <form id="jobForm" class="modal-content">
@@ -59,15 +60,14 @@ const modalHtml = `
     </form>
   </div>
 </div>
-`;
-document.body.insertAdjacentHTML('beforeend', modalHtml);
-const jobModalEl = document.getElementById('jobModal');
-const jobModal   = new bootstrap.Modal(jobModalEl);
-const jobForm    = document.getElementById('jobForm');
+`);
+const jobModal = new bootstrap.Modal(document.getElementById('jobModal'));
+const jobForm  = document.getElementById('jobForm');
 
-// State for production board
+// State and configuration
 const PAGE_SIZES = [5, 10, 20, 50];
-const state = {};
+const JOB_STATUSES = ['queued','in_progress','finished','cancelled'];
+const state = { production: null };
 function initState() {
   if (!state.production) {
     state.production = {
@@ -82,7 +82,6 @@ function initState() {
   }
 }
 
-// Job columns definition
 const jobsColumns = [
   { key: 'id',         label: 'Job ID' },
   { key: 'order_id',   label: 'Order ID' },
@@ -95,7 +94,7 @@ const jobsColumns = [
   { key: 'finished_at',label: 'Finished At' }
 ];
 
-// Fetch helper
+// Generic fetch helper
 async function fetchJSON(path, opts = {}) {
   const res = await fetch(API_BASE + path, { headers, ...opts });
   const txt = await res.text();
@@ -103,7 +102,7 @@ async function fetchJSON(path, opts = {}) {
   return txt ? JSON.parse(txt) : [];
 }
 
-// Wire nav click
+// Load production view
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -111,51 +110,57 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// Load production list
 async function loadProductionView() {
   initState();
   app.innerHTML = `<h3>Loading Production Jobs…</h3>`;
   const jobs = await fetchJSON('/jobs');
-  state.production._lastRecords = jobs;
+  state.production._lastRecords = Array.isArray(jobs) ? jobs : [];
   renderProduction();
 }
 
-// Render production table with search, filter, sort, paginate
+// Render production jobs table
 function renderProduction() {
   const s = state.production;
-  let arr = s._lastRecords
-    .filter(j => !s.search || Object.values(j).some(v =>
-      String(v).toLowerCase().includes(s.search.toLowerCase())
-    ))
-    .filter(j => !s.filterStatus || j.job_status === s.filterStatus);
+  let recs = Array.isArray(s._lastRecords) ? s._lastRecords : [];
 
+  // Search & filter
+  if (s.search) {
+    recs = recs.filter(j =>
+      Object.values(j).some(v => String(v).toLowerCase().includes(s.search.toLowerCase()))
+    );
+  }
+  if (s.filterStatus) {
+    recs = recs.filter(j => j.job_status === s.filterStatus);
+  }
+
+  // Sort
   if (s.sortKey) {
-    arr.sort((a,b) => {
+    recs.sort((a,b) => {
       const va = a[s.sortKey], vb = b[s.sortKey];
       if (va == null) return 1;
       if (vb == null) return -1;
-      if (!isNaN(va) && !isNaN(vb)) {
-        return (va - vb) * (s.sortDir === 'asc' ? 1 : -1);
-      }
-      return String(va).localeCompare(vb) * (s.sortDir === 'asc' ? 1 : -1);
+      if (!isNaN(va) && !isNaN(vb)) return (va - vb) * (s.sortDir==='asc'?1:-1);
+      return String(va).localeCompare(vb) * (s.sortDir==='asc'?1:-1);
     });
   }
 
-  const totalPages = Math.max(1, Math.ceil(arr.length / s.pageSize));
+  // Pagination
+  const total = recs.length;
+  const totalPages = Math.max(1, Math.ceil(total / s.pageSize));
   s.page = Math.min(s.page, totalPages);
   const start = (s.page - 1) * s.pageSize;
-  const pageRecs = arr.slice(start, start + s.pageSize);
+  const pageRecs = recs.slice(start, start + s.pageSize);
 
   // Toolbar
-  const toolbar = `<div class="d-flex justify-content-between mb-3">` +
+  let toolbar = `<div class="d-flex justify-content-between mb-3">` +
     `<div class="input-group" style="width:350px">` +
       `<span class="input-group-text">🔍</span>` +
       `<input type="text" class="form-control" placeholder="Search…" value="${s.search}" oninput="onSearch(this.value)">` +
       `<select class="form-select ms-2" style="width:160px" onchange="onFilter(this.value)">` +
         `<option value="">All Statuses</option>` +
-        `['queued','in_progress','finished','cancelled'].map(st =>` +
-          `<option value="${st}" ${s.filterStatus===st?'selected':''}>${st.replace('_',' ')}</option>` +
-        `).join('')` +
+        JOB_STATUSES.map(st =>
+          `<option value="${st}" ${s.filterStatus===st?'selected':''}>${st.replace('_',' ')}</option>`
+        ).join('') +
       `</select>` +
     `</div>` +
     `<button class="btn btn-success" onclick="newJob()">+ New Job</button>` +
@@ -163,7 +168,7 @@ function renderProduction() {
 
   // Header
   const header = jobsColumns.map(c => {
-    const arrow = s.sortKey === c.key ? (s.sortDir==='asc'?' ▲':' ▼') : '';
+    const arrow = s.sortKey===c.key ? (s.sortDir==='asc'?' ▲':' ▼') : '';
     return `<th style="cursor:pointer" onclick="onSort('${c.key}')">${c.label}${arrow}</th>`;
   }).join('');
 
@@ -177,8 +182,8 @@ function renderProduction() {
   }).join('');
 
   // Pagination controls
-  const prevD = s.page <= 1 ? 'disabled' : '';
-  const nextD = s.page >= totalPages ? 'disabled' : '';
+  const prevD = s.page<=1?'disabled':'';
+  const nextD = s.page>=totalPages?'disabled':'';
   const sizeOpts = PAGE_SIZES.map(sz => `<option value="${sz}" ${sz===s.pageSize?'selected':''}>${sz}</option>`).join('');
   const pager = `<div class="d-flex justify-content-between align-items-center mt-2">` +
     `<div>` +
@@ -192,19 +197,19 @@ function renderProduction() {
     `</div>` +
   `</div>`;
 
-  app.innerHTML = `<h3>Production Jobs</h3>${toolbar}` +
+  app.innerHTML = `<h3>Production Jobs</h3>` + toolbar +
                   `<table class="table table-striped"><thead><tr>${header}<th>Actions</th></tr></thead><tbody>${rows}</tbody></table>` +
                   pager;
 }
 
-// --- control handlers ---
+// Control handlers
 function onSearch(val)       { state.production.search = val; state.production.page = 1; renderProduction(); }
 function onFilter(val)       { state.production.filterStatus = val; state.production.page = 1; renderProduction(); }
-function onSort(key)         { const s=state.production; if(s.sortKey===key) s.sortDir=s.sortDir==='asc'?'desc':'asc'; else {s.sortKey=key; s.sortDir='asc';} renderProduction(); }
+function onSort(key)         { const s=state.production; s.sortKey===key ? s.sortDir = s.sortDir==='asc'?'desc':'asc' : (s.sortKey=key,s.sortDir='asc'); renderProduction(); }
 function onPage(pg)          { state.production.page = pg; renderProduction(); }
 function onPageSize(sz)      { state.production.pageSize = Number(sz); state.production.page=1; renderProduction(); }
 
-// --- CRUD functions with modal ---
+// CRUD with modal
 function newJob() {
   jobForm.reset();
   document.getElementById('jobModalLabel').textContent = 'New Production Job';
@@ -216,7 +221,7 @@ function newJob() {
       qty:         +document.getElementById('job-qty').value,
       assigned_to: +document.getElementById('job-assigned-to').value || null,
       due_date:    document.getElementById('job-due-date').value || null,
-      status:      document.getElementById('job-status').value
+      job_status:  document.getElementById('job-status').value
     };
     await fetchJSON('/jobs', { method:'POST', body: JSON.stringify(payload) });
     jobModal.hide();
@@ -232,7 +237,7 @@ async function editJob(id) {
   document.getElementById('job-type').value        = rec.type;
   document.getElementById('job-qty').value         = rec.qty;
   document.getElementById('job-assigned-to').value = rec.assigned_to || '';
-  document.getElementById('job-due-date').value    = rec.due_date ? rec.due_date.substring(0,10) : '';
+  document.getElementById('job-due-date').value    = rec.due_date ? rec.due_date.slice(0,10) : '';
   document.getElementById('job-status').value      = rec.job_status;
 
   jobForm.onsubmit = async e => {
@@ -242,7 +247,7 @@ async function editJob(id) {
       qty:         +document.getElementById('job-qty').value,
       assigned_to: +document.getElementById('job-assigned-to').value || null,
       due_date:    document.getElementById('job-due-date').value || null,
-      status:      document.getElementById('job-status').value
+      job_status:  document.getElementById('job-status').value
     };
     await fetchJSON(`/jobs/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
     jobModal.hide();
@@ -257,5 +262,5 @@ async function deleteJob(id) {
   loadProductionView();
 }
 
-// initiate
+// Initialize
 loadProductionView();
