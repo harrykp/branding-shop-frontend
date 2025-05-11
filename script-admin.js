@@ -1,9 +1,8 @@
 // branding-shop-frontend/script-admin.js
-
 console.log('🔥 script-admin.js – metadata-driven CRUD with search, pagination & sorting');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
-const token    = localStorage.getItem('token');
+const token = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
 
 const headers = {
@@ -11,9 +10,6 @@ const headers = {
   'Authorization': `Bearer ${token}`
 };
 const app = document.getElementById('app-admin');
-
-// Bootstrap modal instance
-const jobModal = new bootstrap.Modal(document.getElementById('jobModal'));
 
 // --- pagination sizes and state per resource ---
 const PAGE_SIZES = [5, 10, 20, 50];
@@ -37,31 +33,48 @@ const STATUS_OPTIONS = {
   users: [],
   roles: [],
   products: [],
-  pricingRules: [],
-  quotes: ['pending','approved','rejected','cancelled'],
-  orders: ['new','processing','shipped','delivered','cancelled'],
-  jobs: ['queued','in_progress','finished','cancelled'],
+  quotes: ['pending', 'approved', 'rejected', 'cancelled'],
+  orders: ['new', 'processing', 'shipped', 'delivered', 'cancelled'],
+  jobs: ['queued', 'in_progress', 'finished', 'cancelled'],
   suppliers: [],
   catalog: [],
-  'purchase-orders': ['pending','placed','received','cancelled'],
-  purchaseOrders: ['pending','placed','received','cancelled'],
-  leads: ['new','contacted','qualified','lost'],
-  deals: ['qualified','won','lost'],
+  'purchase-orders': ['pending', 'placed', 'received', 'cancelled'],
+  purchaseOrders: ['pending', 'placed', 'received', 'cancelled'],
+  leads: ['new', 'contacted', 'qualified', 'lost'],
+  deals: ['qualified', 'won', 'lost'],
+  crm: [],
   hr: [],
-  finance: ['pending','completed','failed','refunded'],
+  finance: ['pending', 'completed', 'failed', 'refunded'],
   reports: []
 };
 
 // --- reusable column sets for jobs ---
 const jobsColumns = [
   { key: 'id', label: 'ID', readonly: true },
-  { key: 'type', label: 'Type' },
-  { key: 'qty', label: 'Qty', type: 'number' },
-  { key: 'assigned_to', label: 'Assigned To', type: 'number' },
+  { key: 'deal_id', label: 'Deal ID', type: 'number' },
+  { key: 'deal_value', label: 'Deal Value', type: 'number' },
+  { key: 'customer_id', label: 'Cust. ID', type: 'number' },
+  { key: 'customer_name', label: 'Customer' },
+  { key: 'customer_phone', label: 'Phone' },
+  { key: 'order_id', label: 'Order ID', type: 'number' },
+  { key: 'order_total', label: 'Order Value', type: 'number' },
+  { key: 'payment_status', label: 'Pay Status' },
+  { key: 'product_id', label: 'Prod. ID', type: 'number' },
+  { key: 'product_name', label: 'Product' },
+  { key: 'product_code', label: 'SKU' },
+  { key: 'quote_qty', label: 'Qty Ordered', type: 'number' },
+  { key: 'qty_completed', label: 'Qty Completed', type: 'number' },
+  { key: 'pct_complete', label: '% Complete', type: 'number' },
   { key: 'start_date', label: 'Start Date' },
   { key: 'due_date', label: 'Due Date' },
-  { key: 'status', label: 'Status', options: STATUS_OPTIONS.jobs },
-  { key: 'pct_complete', label: '% Complete', type: 'number' }
+  { key: 'sales_rep', label: 'Sales Rep' },
+  { key: 'department', label: 'Dept' },
+  { key: 'completed_value', label: 'Paid', type: 'number' },
+  { key: 'balance_unpaid', label: 'Balance', type: 'number' },
+  { key: 'comments', label: 'Comments' },
+  { key: 'updated_by_name', label: 'Updated By' },
+  { key: 'updated_at', label: 'Updated At', readonly: true },
+  { key: 'job_status', label: 'Status', options: STATUS_OPTIONS.jobs }
 ];
 
 // --- resource definitions ---
@@ -138,7 +151,7 @@ const RESOURCES = {
     endpoint: '/deals',
     idKey: 'deal_id',
     columns: [
-      { key: 'deal_id', label: 'Deal ID', readonly: true },
+      { key: 'deal_id', label: 'Deal ID', readonly: true, type: 'number' },
       { key: 'lead_id', label: 'Lead ID', type: 'number' },
       { key: 'lead_name', label: 'Lead Name' },
       { key: 'product_id', label: 'Product ID', type: 'number' },
@@ -149,19 +162,15 @@ const RESOURCES = {
       { key: 'deal_date', label: 'Deal Date', readonly: true }
     ]
   },
-  jobs: { endpoint: '/jobs', columns: jobsColumns },
-  production: { endpoint: '/jobs', columns: jobsColumns, statusKey: 'status' },
-  suppliers: {
-    endpoint: '/suppliers',
-    columns: [
+  jobs:       { endpoint: '/jobs', columns: jobsColumns },
+  production: { endpoint: '/jobs', columns: jobsColumns, statusKey: 'job_status' },
+  suppliers:  { endpoint: '/suppliers', columns: [
       { key: 'id', label: 'ID', readonly: true },
       { key: 'name', label: 'Name' },
       { key: 'website', label: 'Website' }
     ]
   },
-  catalog: {
-    endpoint: '/catalog',
-    columns: [
+  catalog:    { endpoint: '/catalog', columns: [
       { key: 'id', label: 'ID', readonly: true },
       { key: 'supplier_id', label: 'Supplier', type: 'number' },
       { key: 'sku', label: 'SKU' },
@@ -169,35 +178,27 @@ const RESOURCES = {
       { key: 'cost', label: 'Cost', type: 'number' }
     ]
   },
-  'purchase-orders': {
-    endpoint: '/purchase-orders',
-    columns: [
+  'purchase-orders': { endpoint: '/purchase-orders', columns: [
       { key: 'id', label: 'ID', readonly: true },
       { key: 'supplier_id', label: 'Supplier', type: 'number' },
       { key: 'status', label: 'Status', options: STATUS_OPTIONS['purchase-orders'] }
     ]
   },
-  leads: {
-    endpoint: '/leads',
-    columns: [
+  leads:      { endpoint: '/leads', columns: [
       { key: 'id', label: 'ID', readonly: true },
       { key: 'name', label: 'Name' },
       { key: 'email', label: 'Email', type: 'email' },
       { key: 'status', label: 'Status', options: STATUS_OPTIONS.leads }
     ]
   },
-  hr: {
-    endpoint: '/hr',
-    columns: [
+  hr:         { endpoint: '/hr', columns: [
       { key: 'id', label: 'ID', readonly: true },
       { key: 'user_id', label: 'User ID', type: 'number' },
       { key: 'position', label: 'Position' },
       { key: 'salary', label: 'Salary', type: 'number' }
     ]
   },
-  finance: {
-    endpoint: '/payments',
-    columns: [
+  finance:    { endpoint: '/payments', columns: [
       { key: 'id', label: 'ID', readonly: true },
       { key: 'order_id', label: 'Order ID', type: 'number' },
       { key: 'amount', label: 'Amount', type: 'number' },
@@ -205,9 +206,7 @@ const RESOURCES = {
       { key: 'paid_at', label: 'Paid At' }
     ]
   },
-  reports: {
-    endpoint: '/daily-transactions',
-    columns: [
+  reports:    { endpoint: '/daily-transactions', columns: [
       { key: 'id', label: 'ID', readonly: true },
       { key: 'date', label: 'Date' },
       { key: 'payments_received', label: 'Received', type: 'number' },
@@ -237,140 +236,299 @@ document.querySelectorAll('[data-view]').forEach(el =>
 async function loadAdminView(view) {
   initState(view);
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
-  if (view === 'production') {
-    const data = await fetchJSON(RESOURCES.production.endpoint);
-    state.production._lastRecords = data;
-    return renderProduction();
+  const cfg = RESOURCES[view];
+  if (!cfg || !cfg.endpoint) {
+    app.innerHTML = `<h3>${view}</h3><p>Under construction…</p>`;
+    return;
   }
-  // ... (generic CRUD for other views) ...
+  const data = await fetchJSON(cfg.endpoint);
+  state[view]._lastRecords = Array.isArray(data) ? data : [];
+  renderList(view);
 }
 
-// --- render Production board ---
-function renderProduction() {
-  const s = state.production;
-  let arr = s._lastRecords
-    .filter(j => !s.search || Object.values(j).some(v => String(v).toLowerCase().includes(s.search.toLowerCase())));
-  if (s.filterStatus) arr = arr.filter(j => j.status === s.filterStatus);
+// --- render table + toolbar ---
+function renderList(resource) {
+  const cfg = RESOURCES[resource];
+  const cols = cfg.columns;
+  const s = state[resource];
+
+  let arr = s._lastRecords.filter(rec =>
+    !s.search ||
+    Object.values(rec).some(v =>
+      String(v).toLowerCase().includes(s.search.toLowerCase())
+    )
+  );
+
+  if (cfg.statusKey && s.filterStatus) {
+    arr = arr.filter(rec => rec[cfg.statusKey] === s.filterStatus);
+  }
+
   if (s.sortKey) {
-    arr.sort((a,b) => {
+    arr.sort((a, b) => {
       const va = a[s.sortKey], vb = b[s.sortKey];
       if (va == null) return 1;
       if (vb == null) return -1;
-      return (isNaN(va) ? String(va).localeCompare(vb) : va - vb) * (s.sortDir==='asc'?1:-1);
+      if (!isNaN(va) && !isNaN(vb)) {
+        return (va - vb) * (s.sortDir === 'asc' ? 1 : -1);
+      }
+      return String(va).localeCompare(vb) * (s.sortDir === 'asc' ? 1 : -1);
     });
   }
+
   const total = arr.length;
   const pages = Math.max(1, Math.ceil(total / s.pageSize));
   s.page = Math.min(s.page, pages);
-  const page = arr.slice((s.page-1)*s.pageSize, (s.page-1)*s.pageSize + s.pageSize);
+  const start = (s.page - 1) * s.pageSize;
+  const pageData = arr.slice(start, start + s.pageSize);
 
   let html = `
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <input class="form-control me-2" style="width:250px" placeholder="Search…"
-             value="${s.search}" oninput="onSearch('production',this.value)">
-      <select class="form-select me-2" style="width:150px"
-              onchange="onFilter('production',this.value)">
-        <option value="">All Statuses</option>
-        ${STATUS_OPTIONS.jobs.map(o => `<option value="${o}"${s.filterStatus===o?' selected':''}>${o}</option>`).join('')}
-      </select>
-      <button class="btn btn-success" onclick="openJobModal()">+ New Job</button>
-    </div>`;
+    <div class="d-flex justify-content-between mb-3">
+      <input
+        class="form-control"
+        style="width:250px"
+        placeholder="Search…"
+        value="${s.search}"
+        oninput="onSearch('${resource}', this.value)"
+      />`;
 
-  ['queued','in_progress','finished','cancelled'].forEach(status => {
-    const group = page.filter(j => j.status === status);
-    if (!group.length) return;
-    html += `<h5 class="mt-4 text-${
-      { queued:'secondary', in_progress:'primary', finished:'success', cancelled:'danger' }[status]
-    }">${status.replace('_',' ')}</h5>
-      <table class="table table-bordered">
-        <thead>
-          <tr>${jobsColumns.map(c => `<th>${c.label}</th>`).join('')}
-              <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${group.map(j => {
-            const pct = j.qty ? Math.round((j.qty_completed||0)/j.qty*100) : 0;
-            return `<tr>
-              ${jobsColumns.map(c => {
-                if (c.key==='pct_complete') {
-                  return `<td>
-                    <div class="progress">
-                      <div class="progress-bar" role="progressbar"
-                           style="width:${pct}%"
-                           aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
-                        ${pct}%
-                      </div>
-                    </div>
-                  </td>`;
-                }
-                return `<td>${j[c.key] ?? ''}</td>`;
-              }).join('')}
-              <td>
-                <button class="btn btn-sm btn-outline-secondary me-1"
-                        onclick="openJobModal(${j.id})">Edit</button>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
-  });
+  if (resource === 'production') {
+    html += `
+      <select
+        class="form-select ms-2"
+        style="width:150px"
+        onchange="onFilter('${resource}', this.value)"
+      >
+        <option value="">All Statuses</option>
+        ${STATUS_OPTIONS.jobs
+          .map(
+            o =>
+              `<option value="${o}"${
+                s.filterStatus === o ? ' selected' : ''
+              }>${o.replace('_', ' ')}</option>`
+          )
+          .join('')}
+      </select>`;
+  }
 
   html += `
-    <div class="d-flex justify-content-between align-items-center mt-3">
-      <button class="btn btn-sm btn-outline-primary"${s.page<=1?' disabled':''}
-              onclick="changePage('production',${s.page-1})">Prev</button>
+      <button
+        class="btn btn-success"
+        onclick="newResource('${resource}')"
+      >
+        + New
+      </button>
+    </div>`;
+
+  // table
+  html += `
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          ${cols
+            .map(
+              c =>
+                `<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`
+            )
+            .join('')}
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pageData
+          .map(rec => {
+            const idVal = rec[cfg.idKey || 'id'];
+            return `
+          <tr>
+            ${cols
+              .map(c => `<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`)
+              .join('')}
+            <td>
+              <button
+                class="btn btn-sm btn-outline-secondary me-1"
+                onclick="editResource('${resource}', ${idVal})"
+              >Edit</button>
+              <button
+                class="btn btn-sm btn-outline-danger me-1"
+                onclick="deleteResource('${resource}', ${idVal})"
+              >Delete</button>
+              ${
+                resource === 'deals'
+                  ? `<button
+                      class="btn btn-sm btn-outline-primary"
+                      onclick="pushDeal(${idVal})"
+                    >Push to Prod</button>`
+                  : ''
+              }
+            </td>
+          </tr>`;
+          })
+          .join('')}
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-between align-items-center">
+      <button
+        class="btn btn-sm btn-outline-primary"
+        ${s.page <= 1 ? 'disabled' : ''}
+        onclick="changePage('${resource}',${s.page - 1})"
+      >Prev</button>
       <span>Page ${s.page} of ${pages}</span>
-      <button class="btn btn-sm btn-outline-primary"${s.page>=pages?' disabled':''}
-              onclick="changePage('production',${s.page+1})">Next</button>
-      <select class="form-select form-select-sm" style="width:70px"
-              onchange="changePageSize('production',this.value)">
-        ${PAGE_SIZES.map(sz => `<option value="${sz}"${sz===s.pageSize?' selected':''}>${sz}</option>`).join('')}
+      <button
+        class="btn btn-sm btn-outline-primary"
+        ${s.page >= pages ? 'disabled' : ''}
+        onclick="changePage('${resource}',${s.page + 1})"
+      >Next</button>
+      <select
+        class="form-select form-select-sm"
+        style="width:70px"
+        onchange="changePageSize('${resource}', this.value)"
+      >
+        ${PAGE_SIZES.map(
+          sz =>
+            `<option value="${sz}"${
+              sz === s.pageSize ? ' selected' : ''
+            }>${sz}</option>`
+        ).join('')}
       </select>
     </div>`;
 
   app.innerHTML = html;
 }
 
-// --- open modal for new/edit ---
-function openJobModal(id) {
-  document.getElementById('jobModalLabel').textContent = id ? 'Edit Job' : 'New Job';
-  if (!id) {
-    ['job-id','job-type','job-qty','job-assigned','job-due'].forEach(f => document.getElementById(f).value = '');
+// --- table controls ---
+function onSearch(resource, text) {
+  state[resource].search = text;
+  state[resource].page = 1;
+  renderList(resource);
+}
+function onFilter(resource, status) {
+  state[resource].filterStatus = status;
+  state[resource].page = 1;
+  renderList(resource);
+}
+function onSort(resource, key) {
+  const s = state[resource];
+  if (s.sortKey === key) {
+    s.sortDir = s.sortDir === 'asc' ? 'desc' : 'asc';
   } else {
-    const job = state.production._lastRecords.find(j => j.id === id);
-    document.getElementById('job-id').value       = job.id;
-    document.getElementById('job-type').value     = job.type;
-    document.getElementById('job-qty').value      = job.qty;
-    document.getElementById('job-assigned').value = job.assigned_to || '';
-    document.getElementById('job-due').value      = job.due_date?.split('T')[0] || '';
+    s.sortKey = key;
+    s.sortDir = 'asc';
   }
-  jobModal.show();
+  renderList(resource);
+}
+function changePage(resource, page) {
+  state[resource].page = page;
+  renderList(resource);
+}
+function changePageSize(resource, size) {
+  state[resource].pageSize = Number(size);
+  state[resource].page = 1;
+  renderList(resource);
 }
 
-// --- save from modal ---
-document.getElementById('save-job').addEventListener('click', async () => {
-  const id       = document.getElementById('job-id').value;
-  const payload  = {
-    type:        document.getElementById('job-type').value,
-    qty:         +document.getElementById('job-qty').value,
-    assigned_to:+document.getElementById('job-assigned').value||null,
-    due_date:    document.getElementById('job-due').value||null
-  };
-  const url      = id ? `/jobs/${id}` : '/jobs';
-  const method   = id ? 'PATCH'    : 'POST';
-  await fetchJSON(url, { method, body: JSON.stringify(payload) });
-  jobModal.hide();
+// --- CRUD form renderer ---
+function renderForm(resource, record = {}) {
+  const cfg = RESOURCES[resource];
+  if (cfg.idKey) record.id = record[cfg.idKey];
+  const isEdit = Boolean(record.id);
+
+  let html = `<h3>${isEdit ? 'Edit' : 'New'} ${resource}</h3>
+    <form id="frm_${resource}">`;
+
+  cfg.columns.forEach(c => {
+    const val = record[c.key] != null ? record[c.key] : '';
+    html += `<div class="mb-3">`;
+    // label with for attribute
+    html += `<label for="f_${c.key}" class="form-label">${c.label}</label>`;
+    if (c.options) {
+      html += `<select
+                id="f_${c.key}"
+                class="form-select"
+                ${c.readonly ? 'disabled' : ''}
+              >${c.options
+                .map(
+                  o =>
+                    `<option value="${o}"${
+                      o === val ? ' selected' : ''
+                    }>${o}</option>`
+                )
+                .join('')}</select>`;
+    } else {
+      html += `<input
+                id="f_${c.key}"
+                class="form-control"
+                type="${c.type || 'text'}"
+                value="${val}"
+                ${c.readonly ? 'readonly' : 'required'}
+              />`;
+    }
+    html += `</div>`;
+  });
+
+  html += `
+      <button type="submit" class="btn btn-primary">
+        ${isEdit ? 'Save' : 'Create'}
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary ms-2"
+        onclick="loadAdminView('${resource}')"
+      >Cancel</button>
+    </form>`;
+
+  app.innerHTML = html;
+
+  document
+    .getElementById(`frm_${resource}`)
+    .onsubmit = async e => {
+      e.preventDefault();
+      const payload = {};
+      cfg.columns.forEach(c => {
+        if (!c.readonly) {
+          let v = document.getElementById(`f_${c.key}`).value;
+          if (c.type === 'number') v = parseFloat(v);
+          payload[c.key] = v;
+        }
+      });
+      const url = cfg.endpoint + (isEdit ? `/${record.id}` : '');
+      const method = isEdit ? 'PATCH' : 'POST';
+      await fetchJSON(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+      loadAdminView(resource);
+    };
+}
+
+async function newResource(resource) {
+  renderForm(resource);
+}
+async function editResource(resource, id) {
+  const rec = await fetchJSON(
+    `${RESOURCES[resource].endpoint}/${id}`
+  );
+  renderForm(resource, rec);
+}
+async function deleteResource(resource, id) {
+  if (!confirm('Delete this item?')) return;
+  await fetchJSON(
+    `${RESOURCES[resource].endpoint}/${id}`,
+    { method: 'DELETE' }
+  );
+  loadAdminView(resource);
+}
+
+// --- push deal into production ---
+async function pushDeal(dealId) {
+  if (!confirm(`Push deal #${dealId} to production?`)) return;
+  const job = await fetchJSON(
+    `/jobs/push/${dealId}`,
+    { method: 'POST' }
+  );
+  alert(`Created production job #${job.id}`);
   loadAdminView('production');
-});
+}
 
-// --- table controls reused ---
-function onSearch(r,t)   { state[r].search       = t; state[r].page=1; renderProduction(); }
-function onFilter(r,s)   { state[r].filterStatus = s; state[r].page=1; renderProduction(); }
-function changePage(r,p) { state[r].page    = p; renderProduction(); }
-function changePageSize(r,s){ state[r].pageSize=Number(s); state[r].page=1; renderProduction(); }
-
-// --- logout & initial load ---
+// --- logout & init ---
 function logout() {
   localStorage.removeItem('token');
   window.location.href = 'login.html';
