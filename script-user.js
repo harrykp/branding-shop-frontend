@@ -29,12 +29,12 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// “+ Request Quote” button
+// + Request Quote button
 const newQuoteBtn = document.getElementById('btn-new-quote');
 if (newQuoteBtn) newQuoteBtn.addEventListener('click', () => newQuote());
 
 /**
- * Load the specified user view
+ * Load the specified view
  */
 async function loadUserView(view) {
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
@@ -44,20 +44,42 @@ async function loadUserView(view) {
       case 'requests':   return showRequests();
       case 'invoices':   return showInvoices();
       case 'complaints': return showComplaints();
-      case 'quotes':     return newQuote();
-      default:
-        app.innerHTML = '<p>Unknown view</p>';
+      case 'quotes':     return showQuotes();
+      default:            app.innerHTML = '<p>Unknown view</p>';
     }
   } catch (err) {
     app.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
   }
 }
 
-/** Dashboard View */
+/** Dashboard */
 async function showDashboard() {
   app.innerHTML = `
     <h3>Welcome to your Dashboard</h3>
-    <p>Use the menu to request quotes, view orders/invoices, or file complaints.</p>
+    <p>Use the menu to request quotes, view invoices, or file complaints.</p>
+  `;
+}
+
+/** Show list of quotes with option to request new */
+async function showQuotes() {
+  const quotes = await fetchJSON('/quotes');
+  app.innerHTML = `
+    <h3>My Quotes</h3>
+    <button class="btn btn-primary mb-3" onclick="newQuote()">+ Request Quote</button>
+    ${quotes.map(q => `
+      <div class="card mb-2">
+        <div class="card-body">
+          <strong>#${q.id}</strong>
+          — ${q.product_name}
+          — qty ${q.quantity}
+          — GHS ${parseFloat(q.total).toFixed(2)}
+          — ${q.status}
+          ${q.status === 'pending'
+            ? `<button class="btn btn-sm btn-success ms-2" onclick="submitOrderFromQuote(${q.id})">Convert to Order</button>`
+            : ''}
+        </div>
+      </div>
+    `).join('')}
   `;
 }
 
@@ -94,32 +116,38 @@ async function newQuote() {
     </form>
   `;
 
-  // Load products when category changes
-  document.getElementById('category-select').addEventListener('change', async e => {
+  const categorySelect = document.getElementById('category-select');
+  const productSelect = document.getElementById('product-select');
+  const quantityInput = document.getElementById('quantity-input');
+
+  // Load products on category change
+  categorySelect.addEventListener('change', async e => {
     const categoryId = e.target.value;
-    const prodSel = document.getElementById('product-select');
     if (!categoryId) {
-      prodSel.innerHTML = `<option value="">Select category first</option>`;
-      prodSel.disabled = true;
+      productSelect.innerHTML = `<option value="">Select category first</option>`;
+      productSelect.disabled = true;
       calculatePrice();
       return;
     }
     const products = await fetchJSON(`/products?category_id=${categoryId}`);
-    prodSel.innerHTML = `<option value="">Choose product…</option>` +
+    productSelect.innerHTML = `<option value="">Choose product…</option>` +
       products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    prodSel.disabled = false;
+    productSelect.disabled = false;
     calculatePrice();
   });
 
   // Live pricing on product or quantity change
-  document.getElementById('product-select').addEventListener('input', calculatePrice);
-  document.getElementById('quantity-input').addEventListener('input', calculatePrice);
+  productSelect.addEventListener('change', calculatePrice);
+  quantityInput.addEventListener('input', calculatePrice);
 
-  // Form submission
+  // Submit handler
   document.getElementById('form-quote').addEventListener('submit', submitQuote);
+
+  // Initial pricing
+  calculatePrice();
 }
 
-/** Submit the new quote */
+/** Calculate and submit quote */
 async function submitQuote(e) {
   e.preventDefault();
   const payload = {
@@ -135,44 +163,19 @@ async function submitQuote(e) {
   }
 }
 
-/** Show list of quotes */
-async function showQuotes() {
-  const quotes = await fetchJSON('/quotes');
-  app.innerHTML = `
-    <h3>My Quotes</h3>
-    ${quotes.map(q => `
-      <div class="card mb-2">
-        <div class="card-body">
-          <strong>#${q.id}</strong>
-          — ${q.product_name}
-          — qty ${q.quantity}
-          — GHS ${parseFloat(q.total).toFixed(2)}
-          — ${q.status}
-          ${q.status === 'pending'
-            ? `<button class="btn btn-sm btn-success ms-2" onclick="submitOrderFromQuote(${q.id})">Convert to Order</button>`
-            : ''}
-        </div>
-      </div>
-    `).join('')}
-  `;
-}
+// Remaining functions unchanged: submitOrderFromQuote, showRequests, newOrder, submitOrder, showInvoices, payOrder, showComplaints, submitComplaint, logout, then initial load
 
-/** Convert a quote to an order */
-async function submitOrderFromQuote(quoteId) {
+function submitOrderFromQuote(quoteId) {
   if (!confirm(`Convert quote #${quoteId} into an order?`)) return;
-  try {
-    const order = await fetchJSON('/orders', {
-      method: 'POST',
-      body: JSON.stringify({ quote_id: quoteId })
-    });
+  fetchJSON('/orders', {
+    method: 'POST',
+    body: JSON.stringify({ quote_id: quoteId })
+  }).then(order => {
     alert(`Order #${order.id} created!`);
     loadUserView('requests');
-  } catch (err) {
-    alert('Conversion failed: ' + err.message);
-  }
+  }).catch(err => alert('Conversion failed: ' + err.message));
 }
 
-/** Show user orders */
 async function showRequests() {
   const orders = await fetchJSON('/orders');
   app.innerHTML = `
@@ -181,16 +184,13 @@ async function showRequests() {
     ${orders.map(o => `
       <div class="card mb-2">
         <div class="card-body">
-          <strong>#${o.id}</strong>
-          — ${o.status}
-          — GHS ${parseFloat(o.total).toFixed(2)}
+          <strong>#${o.id}</strong> — ${o.status} — GHS ${parseFloat(o.total).toFixed(2)}
         </div>
       </div>
     `).join('')}
   `;
 }
 
-/** Form to submit manual order */
 function newOrder() {
   app.innerHTML = `
     <h3>Submit New Order</h3>
@@ -204,7 +204,6 @@ function newOrder() {
   `;
 }
 
-/** Handle manual order submit */
 async function submitOrder(e) {
   e.preventDefault();
   const quote_id = +document.getElementById('ord-quote').value;
@@ -217,12 +216,8 @@ async function submitOrder(e) {
   }
 }
 
-/** Show invoices and payments */
 async function showInvoices() {
-  const [orders, payments] = await Promise.all([
-    fetchJSON('/orders'),
-    fetchJSON('/payments')
-  ]);
+  const [orders, payments] = await Promise.all([ fetchJSON('/orders'), fetchJSON('/payments') ]);
   app.innerHTML = `
     <h3>Invoices</h3>
     <table class="table table-striped">
@@ -259,7 +254,6 @@ async function showInvoices() {
   `;
 }
 
-/** Handle payment */
 async function payOrder(order_id, total) {
   const amount = prompt(`Amount for Order #${order_id}`, total);
   if (!amount) return;
@@ -274,12 +268,8 @@ async function payOrder(order_id, total) {
   }
 }
 
-/** Show complaints and file new */
 async function showComplaints() {
-  const [orders, complaints] = await Promise.all([
-    fetchJSON('/orders'),
-    fetchJSON('/complaints')
-  ]);
+  const [orders, complaints] = await Promise.all([ fetchJSON('/orders'), fetchJSON('/complaints') ]);
   app.innerHTML = `
     <h3>My Complaints</h3>
     ${complaints.map(c => `
@@ -307,13 +297,9 @@ async function showComplaints() {
   `;
 }
 
-/** Handle complaint submit */
 async function submitComplaint(e) {
   e.preventDefault();
-  const payload = {
-    order_id: +document.getElementById('cmp-order').value,
-    complaint_text: document.getElementById('cmp-text').value
-  };
+  const payload = { order_id: +document.getElementById('cmp-order').value, complaint_text: document.getElementById('cmp-text').value };
   try {
     await fetchJSON('/complaints', { method: 'POST', body: JSON.stringify(payload) });
     alert('Complaint filed.');
@@ -323,11 +309,10 @@ async function submitComplaint(e) {
   }
 }
 
-/** Logout */
 function logout() {
   localStorage.clear();
   window.location.href = 'login.html';
 }
 
-// Initial load
+// Initial view
 loadUserView('dashboard');
