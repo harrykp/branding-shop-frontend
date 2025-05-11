@@ -2,7 +2,8 @@
 
 /**
  * Real-time pricing calculator for the Quote form.
- * Safely guards against running on other views (e.g., Complaints). 
+ * Hooks into the global fetchJSON helper to include auth headers.
+ * Does nothing on other views.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,8 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const unitPriceDisplay  = document.getElementById('unit-price-display');
   const totalPriceDisplay = document.getElementById('total-price-display');
 
-  // Only proceed if the Quote form is present
-  if (!productSelect || !quantityInput) {
+  // Only proceed if we're on the Quote form view
+  if (!productSelect || !quantityInput || !unitPriceDisplay || !totalPriceDisplay) {
     return;
   }
 
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   calculatePrice();
 
   async function calculatePrice() {
+    // Build calculator payload
     const payload = {
       product_id:    parseInt(productSelect.value, 10)    || null,
       quantity:      parseInt(quantityInput.value, 10)    || 0,
@@ -43,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
       shipping_cost: parseFloat(shippingCostInput.value)  || 0
     };
 
-    // If required fields are missing, clear displays
+    // If no valid product or quantity, reset displays
     if (!payload.product_id || payload.quantity < 1) {
       unitPriceDisplay.textContent  = '0.00';
       totalPriceDisplay.textContent = '0.00';
@@ -51,26 +53,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const res = await fetch(
-        'https://branding-shop-backend.onrender.com/api/pricing-rules/calc',
+      // Use the global fetchJSON to include headers and proper base URL
+      const { unitPrice, total } = await fetchJSON(
+        '/pricing-rules/calc',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }
       );
 
-      if (!res.ok) {
-        throw new Error(`Calculation failed: ${res.status} ${res.statusText}`);
-      }
-
-      const { unitPrice, total } = await res.json();
-
+      // Update the UI with returned values
       unitPriceDisplay.textContent  = unitPrice.toFixed(2);
       totalPriceDisplay.textContent = total.toFixed(2);
     } catch (err) {
       console.error('Pricing calculation error:', err);
-      // Optionally show a user-facing error message here
+      // Keep previous values or zeros, and optionally show an inline error
     }
   }
 });
