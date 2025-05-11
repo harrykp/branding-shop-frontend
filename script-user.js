@@ -89,6 +89,7 @@ async function newQuote() {
   app.innerHTML = `
     <h3>Request a New Quote</h3>
     <form id="form-quote">
+      <!-- Category dropdown -->
       <div class="mb-3">
         <label class="form-label">Category</label>
         <select id="category-select" class="form-select" required>
@@ -96,25 +97,39 @@ async function newQuote() {
           ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
         </select>
       </div>
+
+      <!-- Product dropdown (initially disabled) -->
       <div class="mb-3">
         <label class="form-label">Product</label>
         <select id="product-select" class="form-select" required disabled>
           <option value="">Select category first</option>
         </select>
       </div>
+
+      <!-- Quantity input -->
       <div class="mb-3">
         <label class="form-label">Quantity</label>
         <input type="number" id="quantity-input" class="form-control" min="1" value="1" required>
       </div>
+
+      <!-- Live pricing displays -->
       <div class="mb-3">
         <p>
           <strong>Unit Price:</strong> GHS <span id="unit-price-display">0.00</span><br>
           <strong>Total Price:</strong> GHS <span id="total-price-display">0.00</span>
         </p>
       </div>
+
       <button type="submit" class="btn btn-primary">Submit Quote</button>
     </form>
   `;
+
+  // … then the JS that wires:
+  // 1) categorySelect.change → fetchJSON(`/products?category_id=…`)
+  // 2) productSelect.change & quantityInput.input → calculatePrice()
+  // 3) form#form-quote.submit → submitQuote()
+}
+
 
   const categorySelect = document.getElementById('category-select');
   const productSelect = document.getElementById('product-select');
