@@ -1,8 +1,8 @@
 // frontend/script-admin.js
 
-console.log('🔥 script-admin.js – Admin Portal – Production Jobs View');
+console.log('🔥 script-admin.js – Admin Portal – Full CRUD + Production UI Enhancements');
 
-// Base API config
+// --- Base API Configuration ---
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
@@ -13,8 +13,8 @@ const headers = {
 };
 const app = document.getElementById('app-admin');
 
-// Inject Bootstrap modal for Job create/edit
-const modalHtml = `
+// --- Utility: Bootstrap Modal Injection for Jobs ---
+document.body.insertAdjacentHTML('beforeend', `
 <div class="modal fade" id="jobModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <form id="jobForm" class="modal-content">
@@ -60,18 +60,23 @@ const modalHtml = `
     </form>
   </div>
 </div>
-`;
-document.body.insertAdjacentHTML('beforeend', modalHtml);
+`);
 const jobModal = new bootstrap.Modal(document.getElementById('jobModal'));
 const jobForm  = document.getElementById('jobForm');
 
-// State and config
+// --- State & Config ---
 const PAGE_SIZES = [5, 10, 20, 50];
-const JOB_STATUSES = ['queued','in_progress','finished','cancelled'];
-const state = { production: null };
-function initState() {
-  if (!state.production) {
-    state.production = {
+const STATUS_OPTIONS = {
+  production: ['queued','in_progress','finished','cancelled'],
+  quotes: ['pending','approved','rejected','cancelled'],
+  orders: ['new','processing','shipped','delivered','cancelled'],
+  finance: ['pending','completed','failed','refunded'],
+  // add others as needed
+};
+const state = {};
+function initState(view) {
+  if (!state[view]) {
+    state[view] = {
       page: 1,
       pageSize: 10,
       search: '',
@@ -83,139 +88,182 @@ function initState() {
   }
 }
 
-// Column defs
+// --- Column Definitions ---
 const jobsColumns = [
-  { key:'id', label:'Job ID' },
-  { key:'order_id', label:'Order ID' },
-  { key:'type', label:'Type' },
-  { key:'qty', label:'Quantity' },
+  { key:'id',         label:'Job ID' },
+  { key:'order_id',   label:'Order ID' },
+  { key:'type',       label:'Type' },
+  { key:'qty',        label:'Quantity' },
   { key:'job_status', label:'Status' },
-  { key:'assigned_to', label:'Assigned To' },
+  { key:'assigned_to',label:'Assigned To' },
   { key:'start_date', label:'Start Date' },
-  { key:'due_date', label:'Due Date' },
-  { key:'finished_at', label:'Finished At' }
+  { key:'due_date',   label:'Due Date' },
+  { key:'finished_at',label:'Finished At' }
 ];
 
-// Generic fetch helper
-async function fetchJSON(path, opts={}){
-  const res = await fetch(API_BASE + path, { headers, ...opts });
-  const txt = await res.text();
-  if (!res.ok) throw new Error(`Error ${res.status}: ${txt}`);
-  return txt ? JSON.parse(txt) : [];
+// --- Resource Configuration ---
+const RESOURCES = {
+  users:            { endpoint:'/users', columns: [ /* id,name,email,... */ ] },
+  roles:            { endpoint:'/roles', columns: [ /* id,name */ ] },
+  products:         { endpoint:'/products', columns: [ /* id,name,price,... */ ] },
+  quotes:           { endpoint:'/quotes', columns: [ /* id,customer,product,... */ ] },
+  orders:           { endpoint:'/orders', columns: [ /* id,quote,total,... */ ] },
+  production:       { endpoint:'/jobs', columns: jobsColumns, statusFilter:'job_status' },
+  finance:          { endpoint:'/payments', columns: [ /* id,order,amount,... */ ] },
+  // add other resources as in admin nav
+};
+
+// --- Generic Fetch Helper ---
+async function fetchJSON(path, opts={}) {
+  try {
+    const res = await fetch(API_BASE + path, { headers, ...opts });
+    const txt = await res.text();
+    if (!res.ok) throw new Error(txt || res.statusText);
+    return txt ? JSON.parse(txt) : [];
+  } catch (err) {
+    console.error(`Fetch ${path} failed:`, err);
+    alert('Network error. Please try again later.');
+    return [];
+  }
 }
 
-// Nav click handling
+// --- Navigation Wiring ---
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
     const view = el.dataset.view;
-    if (view === 'production') loadProductionView();
-    else loadPlaceholderView(view);
+    loadAdminView(view);
   })
 );
 
-// Placeholder for non-production
-function loadPlaceholderView(view) {
-  app.innerHTML = `<h3>${view.charAt(0).toUpperCase()+view.slice(1)} — Under Construction</h3>`;
+// --- Main View Loader ---
+async function loadAdminView(view) {
+  initState(view);
+  app.innerHTML = `<h3>Loading ${view.charAt(0).toUpperCase()+view.slice(1)}…</h3>`;
+
+  const cfg = RESOURCES[view];
+  if (!cfg) {
+    app.innerHTML = `<h3>${view.charAt(0).toUpperCase()+view.slice(1)}</h3><p>Under construction…</p>`;
+    return;
+  }
+
+  const list = await fetchJSON(cfg.endpoint);
+  state[view]._lastRecords = Array.isArray(list) ? list : [];
+  renderList(view, state[view]._lastRecords, cfg.columns, cfg.statusFilter);
 }
 
-// Load production jobs
-async function loadProductionView(){
-  initState();
-  app.innerHTML = `<h3>Loading Production Jobs…</h3>`;
-  const jobs = await fetchJSON('/jobs');
-  state.production._lastRecords = Array.isArray(jobs)? jobs : [];
-  renderProduction();
-}
-
-// Render production table
-function renderProduction(){
-  const s = state.production;
-  let recs = Array.isArray(s._lastRecords)? s._lastRecords : [];
+// --- List Renderer (search, filter, sort, paginate) ---
+function renderList(view, records, columns, statusKey) {
+  const s = state[view];
+  let arr = records.slice();
 
   // search
   if (s.search) {
-    recs = recs.filter(j=> Object.values(j).some(v=> String(v).toLowerCase().includes(s.search.toLowerCase())));
+    arr = arr.filter(rec => Object.values(rec).some(v => String(v).toLowerCase().includes(s.search.toLowerCase())));
   }
-  // filter
-  if (s.filterStatus) recs = recs.filter(j=> j.job_status===s.filterStatus);
-
+  // status filter
+  if (statusKey && s.filterStatus) {
+    arr = arr.filter(rec => rec[statusKey] === s.filterStatus);
+  }
   // sort
   if (s.sortKey) {
-    recs.sort((a,b)=>{
+    arr.sort((a,b)=>{
       const va=a[s.sortKey], vb=b[s.sortKey];
       if (va==null) return 1;
       if (vb==null) return -1;
-      if (!isNaN(va) && !isNaN(vb)) return (va-vb)*(s.sortDir==='asc'?1:-1);
+      if (!isNaN(va)&&!isNaN(vb)) return (va-vb)*(s.sortDir==='asc'?1:-1);
       return String(va).localeCompare(vb)*(s.sortDir==='asc'?1:-1);
     });
   }
 
   // paginate
-  const total=recs.length;
-  const pages=Math.max(1,Math.ceil(total/s.pageSize));
-  s.page=Math.min(s.page,pages);
-  const start=(s.page-1)*s.pageSize;
-  const pageRecs=recs.slice(start,start+s.pageSize);
+  const total = arr.length;
+  const pages = Math.max(1, Math.ceil(total / s.pageSize));
+  s.page = Math.min(s.page, pages);
+  const start = (s.page-1)*s.pageSize;
+  const pageRecs = arr.slice(start, start+s.pageSize);
 
   // toolbar
-  let toolbar = `<div class="d-flex justify-content-between mb-3">`+
-    `<div class="input-group" style="width:350px">`+
-      `<span class="input-group-text">🔍</span>`+
-      `<input type="text" class="form-control" placeholder="Search…" value="${s.search}" oninput="onSearch(this.value)">`+
-      `<select class="form-select ms-2" style="width:160px" onchange="onFilter(this.value)">`+
-        `<option value="">All Statuses</option>`+
-        `${JOB_STATUSES.map(st=>`<option value="${st}" ${s.filterStatus===st?'selected':''}>${st.replace('_',' ')}</option>`).join('')}`+
-      `</select>`+
-    `</div>`+
-    `<button class="btn btn-success" onclick="newJob()">+ New Job</button>`+
+  let toolbar = `<div class="d-flex justify-content-between mb-3">` +
+    `<div class="input-group" style="width:350px">` +
+      `<span class="input-group-text">🔍</span>` +
+      `<input type="text" class="form-control" placeholder="Search…" value="${s.search}" oninput="onSearch('${view}',this.value)">`;
+
+  // status dropdown if applicable
+  if (statusKey) {
+    toolbar += `<select class="form-select ms-2" style="width:150px" onchange="onFilter('${view}',this.value)">` +
+      `<option value="">All Statuses</option>` +
+      STATUS_OPTIONS[view].map(opt=><`option value="${opt}" ${s.filterStatus===opt?'selected':''}>${opt.replace('_',' ')}</option>`).join('') +
+      `</select>`;
+  }
+
+  toolbar += `</div>` +
+    `<button class="btn btn-success" onclick="newResource('${view}')">+ New</button>` +
   `</div>`;
 
-  // header
-  const head = jobsColumns.map(c=>{
-    const arr=s.sortKey===c.key?(s.sortDir==='asc'?' ▲':' ▼'):'';
-    return `<th style="cursor:pointer" onclick="onSort('${c.key}')">${c.label}${arr}</th>`;
+  // table header
+  const header = columns.map(c=>{
+    const arrow = s.sortKey===c.key ? (s.sortDir==='asc'?' ▲':' ▼') : '';
+    return `<th style="cursor:pointer" onclick="onSort('${view}','${c.key}')">${c.label}${arrow}</th>`;
   }).join('');
 
   // rows
-  const rows=pageRecs.map(j=>{
-    const cells=jobsColumns.map(c=>`<td>${j[c.key]!=null?j[c.key]:''}</td>`).join('');
-    return `<tr>${cells}<td>`+
-      `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editJob(${j.id})">Edit</button>`+
-      `<button class="btn btn-sm btn-outline-danger" onclick="deleteJob(${j.id})">Delete</button>`+
+  const idKey = 'id';
+  const rows = pageRecs.map(rec=>{
+    const cells = columns.map(c=>`<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('');
+    return `<tr>${cells}<td>` +
+      `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('${view}',${rec[idKey]})">Edit</button>` +
+      `<button class="btn btn-sm btn-outline-danger" onclick="deleteResource('${view}',${rec[idKey]})">Delete</button>` +
       `</td></tr>`;
   }).join('');
 
-  // pager
-  const prev=s.page<=1?'disabled':'';
-  const next=s.page>=pages?'disabled':'';
-  const opts=PAGE_SIZES.map(sz=>`<option value="${sz}" ${sz===s.pageSize?'selected':''}>${sz}</option>`).join('');
-  const pager=`<div class="d-flex justify-content-between align-items-center mt-2">`+
-    `<div>`+
-      `<button class="btn btn-sm btn-outline-primary me-2" ${prev} onclick="onPage(${s.page-1})">Prev</button>`+
-      `<span>Page ${s.page} of ${pages}</span>`+
-      `<button class="btn btn-sm btn-outline-primary ms-2" ${next} onclick="onPage(${s.page+1})">Next</button>`+
-    `</div>`+
-    `<div class="d-flex align-items-center">`+
-      `<label class="me-2 mb-0">Page size:</label>`+
-      `<select class="form-select form-select-sm" style="width:70px" onchange="onPageSize(this.value)">${opts}</select>`+
-    `</div>`+
+  // pagination controls
+  const prev = s.page<=1?'disabled':'';
+  const next = s.page>=pages?'disabled':'';
+  const opts = PAGE_SIZES.map(sz=>`<option value="${sz}" ${sz===s.pageSize?'selected':''}>${sz}</option>`).join('');
+  const pager = `<div class="d-flex justify-content-between align-items-center mt-2">` +
+    `<div>` +
+      `<button class="btn btn-sm btn-outline-primary me-2" ${prev} onclick="onPage('${view}',${s.page-1})">Prev</button>` +
+      `<span>Page ${s.page} of ${pages}</span>` +
+      `<button class="btn btn-sm btn-outline-primary ms-2" ${next} onclick="onPage('${view}',${s.page+1})">Next</button>` +
+    `</div>` +
+    `<div class="d-flex align-items-center">` +
+      `<label class="me-2 mb-0">Page size:</label>` +
+      `<select class="form-select form-select-sm" style="width:70px" onchange="onPageSize('${view}',this.value)">${opts}</select>` +
+    `</div>` +
   `</div>`;
 
-  app.innerHTML=`<h3>Production Jobs</h3>${toolbar}`+
-               `<table class="table table-striped"><thead><tr>${head}<th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`+
+  app.innerHTML = `<h3>${view.charAt(0).toUpperCase()+view.slice(1)}</h3>${toolbar}` +
+               `<table class="table table-striped"><thead><tr>${header}<th>Actions</th></tr></thead><tbody>${rows}</tbody></table>` +
                pager;
 }
 
-// handlers
-function onSearch(v){state.production.search=v;state.production.page=1;renderProduction();}
-function onFilter(v){state.production.filterStatus=v;state.production.page=1;renderProduction();}
-function onSort(k){const s=state.production; s.sortKey===k? s.sortDir=s.sortDir==='asc'?'desc':'asc' : (s.sortKey=k,s.sortDir='asc'); renderProduction();}
-function onPage(p){state.production.page=p;renderProduction();}
-function onPageSize(sz){state.production.pageSize=Number(sz);state.production.page=1;renderProduction();}
+// --- Control Handlers ---
+function onSearch(view,val)       { state[view].search=val; state[view].page=1; renderList(view,state[view]._lastRecords, RESOURCES[view].columns, RESOURCES[view].statusFilter); }
+function onFilter(view,val)       { state[view].filterStatus=val; state[view].page=1; renderList(view,state[view]._lastRecords, RESOURCES[view].columns, RESOURCES[view].statusFilter); }
+function onSort(view,key)         { const s=state[view]; s.sortKey===key? s.sortDir=s.sortDir==='asc'?'desc':'asc' : (s.sortKey=key,s.sortDir='asc'); renderList(view,state[view]._lastRecords, RESOURCES[view].columns, RESOURCES[view].statusFilter); }
+function onPage(view,pg)          { state[view].page=pg; renderList(view,state[view]._lastRecords, RESOURCES[view].columns, RESOURCES[view].statusFilter); }
+function onPageSize(view,sz)      { state[view].pageSize=Number(sz); state[view].page=1; renderList(view,state[view]._lastRecords, RESOURCES[view].columns, RESOURCES[view].statusFilter); }
 
-// CRUD
-function newJob(){
+// --- CRUD: generic forms & jobs override ---
+function newResource(view) {
+  if (view==='production') return newJob();
+  // generic new-record form for other resources...
+  app.innerHTML = `<h3>New ${view.slice(0,-1)}</h3><p>Under construction…</p>`;
+}
+async function editResource(view,id) {
+  if (view==='production') return editJob(id);
+  // generic edit form for other resources...
+  app.innerHTML = `<h3>Edit ${view.slice(0,-1)} #${id}</h3><p>Under construction…</p>`;
+}
+async function deleteResource(view,id) {
+  if (!confirm('Delete this item?')) return;
+  await fetchJSON(`${RESOURCES[view].endpoint}/${id}`, { method:'DELETE' });
+  loadAdminView(view);
+}
+
+// --- CRUD for Jobs via Modal ---
+function newJob() {
   jobForm.reset();
   document.getElementById('jobModalLabel').textContent='New Job';
   jobForm.onsubmit=async e=>{
@@ -230,11 +278,11 @@ function newJob(){
     };
     await fetchJSON('/jobs',{method:'POST',body:JSON.stringify(payload)});
     jobModal.hide();
-    loadProductionView();
+    loadAdminView('production');
   };
   jobModal.show();
 }
-async function editJob(id){
+async function editJob(id) {
   const rec=await fetchJSON(`/jobs/${id}`);
   document.getElementById('jobModalLabel').textContent=`Edit Job #${id}`;
   document.getElementById('job-order-id').value=rec.order_id;
@@ -254,15 +302,11 @@ async function editJob(id){
     };
     await fetchJSON(`/jobs/${id}`,{method:'PATCH',body:JSON.stringify(payload)});
     jobModal.hide();
-    loadProductionView();
+    loadAdminView('production');
   };
   jobModal.show();
 }
-async function deleteJob(id){
-  if(!confirm('Delete this job?'))return;
-  await fetchJSON(`/jobs/${id}`,{method:'DELETE'});
-  loadProductionView();
-}
+async function deleteJob(id){ if(!confirm('Delete this job?'))return; await fetchJSON(`/jobs/${id}`,{method:'DELETE'}); loadAdminView('production'); }
 
-// Init
-loadProductionView();
+// --- Initialize App ---
+loadAdminView('users');
