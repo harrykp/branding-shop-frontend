@@ -89,78 +89,64 @@ async function newQuote() {
   app.innerHTML = `
     <h3>Request a New Quote</h3>
     <form id="form-quote">
-      <!-- Category dropdown -->
       <div class="mb-3">
         <label class="form-label">Category</label>
         <select id="category-select" class="form-select" required>
           <option value="">Choose category…</option>
-          ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+          ${categories.map(c => `
+            <option value="${c.id}">${c.name}</option>
+          `).join('')}
         </select>
       </div>
-
-      <!-- Product dropdown (initially disabled) -->
       <div class="mb-3">
         <label class="form-label">Product</label>
         <select id="product-select" class="form-select" required disabled>
           <option value="">Select category first</option>
         </select>
       </div>
-
-      <!-- Quantity input -->
       <div class="mb-3">
         <label class="form-label">Quantity</label>
         <input type="number" id="quantity-input" class="form-control" min="1" value="1" required>
       </div>
-
-      <!-- Live pricing displays -->
       <div class="mb-3">
         <p>
           <strong>Unit Price:</strong> GHS <span id="unit-price-display">0.00</span><br>
           <strong>Total Price:</strong> GHS <span id="total-price-display">0.00</span>
         </p>
       </div>
-
       <button type="submit" class="btn btn-primary">Submit Quote</button>
     </form>
   `;
 
-  // … then the JS that wires:
-  // 1) categorySelect.change → fetchJSON(`/products?category_id=…`)
-  // 2) productSelect.change & quantityInput.input → calculatePrice()
-  // 3) form#form-quote.submit → submitQuote()
-}
+  // now wire up the dropdowns & live price calc:
+  const catSel = document.getElementById('category-select');
+  const prodSel = document.getElementById('product-select');
+  const qtyInp = document.getElementById('quantity-input');
 
-
-  const categorySelect = document.getElementById('category-select');
-  const productSelect = document.getElementById('product-select');
-  const quantityInput = document.getElementById('quantity-input');
-
-  // Load products on category change
-  categorySelect.addEventListener('change', async e => {
-    const categoryId = e.target.value;
-    if (!categoryId) {
-      productSelect.innerHTML = `<option value="">Select category first</option>`;
-      productSelect.disabled = true;
+  catSel.addEventListener('change', async e => {
+    const cid = e.target.value;
+    if (!cid) {
+      prodSel.innerHTML = `<option value="">Select category first</option>`;
+      prodSel.disabled = true;
       calculatePrice();
       return;
     }
-    const products = await fetchJSON(`/products?category_id=${categoryId}`);
-    productSelect.innerHTML = `<option value="">Choose product…</option>` +
-      products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    productSelect.disabled = false;
+    const prods = await fetchJSON(`/products?category_id=${cid}`);
+    prodSel.innerHTML = `<option value="">Choose product…</option>` +
+                        prods.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    prodSel.disabled = false;
     calculatePrice();
   });
 
-  // Live pricing on product or quantity change
-  productSelect.addEventListener('change', calculatePrice);
-  quantityInput.addEventListener('input', calculatePrice);
+  prodSel.addEventListener('change', calculatePrice);
+  qtyInp.addEventListener('input', calculatePrice);
 
-  // Submit handler
   document.getElementById('form-quote').addEventListener('submit', submitQuote);
 
-  // Initial pricing
+  // do an initial calc so price boxes populate immediately
   calculatePrice();
 }
+
 
 /** Calculate and submit quote */
 async function submitQuote(e) {
