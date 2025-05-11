@@ -2,7 +2,7 @@
 console.log('🔥 script-admin.js – metadata-driven CRUD with search, pagination & sorting');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
-const token = localStorage.getItem('token');
+const token    = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
 
 const headers = {
@@ -198,20 +198,24 @@ const RESOURCES = {
       { key: 'salary',   label: 'Salary',  type: 'number' }
     ]
   },
-  finance:    { endpoint: '/payments',  columns: [
-      { key: 'id',        label: 'ID',       readonly: true },
-      { key: 'order_id',  label: 'Order ID', type: 'number' },
-      { key: 'amount',    label: 'Amount',   type: 'number' },
-      { key: 'status',    label: 'Status',   options: STATUS_OPTIONS.finance },
-      { key: 'paid_at',   label: 'Paid At' }
+  finance:    {
+    endpoint: '/payments',
+    columns: [
+      { key: 'id',          label: 'ID',       readonly: true },
+      { key: 'order_id',    label: 'Order ID', type: 'number' },
+      { key: 'amount',      label: 'Amount',   type: 'number' },
+      { key: 'status',      label: 'Status',   options: STATUS_OPTIONS.finance },
+      { key: 'paid_at',     label: 'Paid At' },
+      { key: 'job_id',      label: 'Job ID',   type: 'number' },
+      { key: 'job_status',  label: 'Job Status'}
     ]
   },
   reports:    { endpoint: '/daily-transactions', columns: [
-      { key: 'id',              label: 'ID',               readonly: true },
-      { key: 'date',            label: 'Date' },
-      { key: 'payments_received',label: 'Received',       type: 'number' },
-      { key: 'expenses_paid',   label: 'Expenses',        type: 'number' },
-      { key: 'end_of_day_cash', label: 'End Cash',        type: 'number' }
+      { key: 'id',               label: 'ID',               readonly: true },
+      { key: 'date',             label: 'Date' },
+      { key: 'payments_received',label: 'Received',        type: 'number' },
+      { key: 'expenses_paid',    label: 'Expenses',        type: 'number' },
+      { key: 'end_of_day_cash',  label: 'End Cash',        type: 'number' }
     ]
   }
 };
@@ -232,7 +236,7 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// --- main view loader (unwraps data.jobs when present) ---
+// --- main view loader (unwraps paginated jobs) ---
 async function loadAdminView(view) {
   initState(view);
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
@@ -242,7 +246,7 @@ async function loadAdminView(view) {
     return;
   }
   const data = await fetchJSON(cfg.endpoint);
-  // if response is plain array, use it; if it's { jobs: [...] }, unwrap
+  // support jobs pagination envelopes
   state[view]._lastRecords = Array.isArray(data)
     ? data
     : Array.isArray(data.jobs)
@@ -251,30 +255,51 @@ async function loadAdminView(view) {
   renderList(view);
 }
 
-// --- render table + toolbar (including production status filter) ---
+// --- render table + toolbar ---
 function renderList(resource) {
   const cfg = RESOURCES[resource];
   const cols = cfg.columns;
   const s    = state[resource];
+
+  // filter + search
   let arr = s._lastRecords.filter(rec =>
     !s.search ||
     Object.values(rec).some(v =>
       String(v).toLowerCase().includes(s.search.toLowerCase())
     )
   );
+  // status filter
+  if (cfg.statusKey) {
+    arr = arr.filter(rec => !s.filterStatus || rec[cfg.statusKey] === s.filterStatus);
+  }
+  // sort
+  if (s.sortKey) {
+    arr.sort((a,b) => {
+      const va=a[s.sortKey], vb=b[s.sortKey];
+      if (va==null) return 1;
+      if (vb==null) return -1;
+      if (!isNaN(va)&&!isNaN(vb)) return (va-vb)*(s.sortDir==='asc'?1:-1);
+      return String(va).localeCompare(vb)*(s.sortDir==='asc'?1:-1);
+    });
+  }
+  // paginate
+  const total = arr.length;
+  const pages = Math.max(1, Math.ceil(total/s.pageSize));
+  s.page = Math.min(s.page,pages);
+  const start = (s.page-1)*s.pageSize;
+  const pageData = arr.slice(start, start+s.pageSize);
 
-  // status filter dropdown for any resource with statusKey
-  let toolbar = `
+  // toolbar
+  let html = `
     <div class="d-flex justify-content-between mb-3">
       <input class="form-control" style="width:250px"
              placeholder="Search…" value="${s.search}"
              oninput="onSearch('${resource}',this.value)" />`;
   if (cfg.statusKey) {
-    // use STATUS_OPTIONS.jobs when filtering production jobs
-    const opts = cfg.statusKey === 'job_status'
+    const opts = cfg.statusKey==='job_status'
       ? STATUS_OPTIONS.jobs
-      : STATUS_OPTIONS[resource] || [];
-    toolbar += `
+      : STATUS_OPTIONS[resource]||[];
+    html += `
       <select class="form-select ms-2" style="width:150px"
               onchange="onFilter('${resource}',this.value)">
         <option value="">All Statuses</option>
@@ -282,35 +307,18 @@ function renderList(resource) {
           `<option value="${o}"${s.filterStatus===o?' selected':''}>${o.replace('_',' ')}</option>`
         ).join('')}
       </select>`;
-    arr = arr.filter(rec => !s.filterStatus || rec[cfg.statusKey] === s.filterStatus);
   }
-  toolbar += `
+  html += `
       <button class="btn btn-success" onclick="newResource('${resource}')">+ New</button>
     </div>`;
 
-  // sort
-  if (s.sortKey) {
-    arr.sort((a,b) => {
-      const va = a[s.sortKey], vb = b[s.sortKey];
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (!isNaN(va) && !isNaN(vb)) return (va - vb) * (s.sortDir==='asc'?1:-1);
-      return String(va).localeCompare(vb) * (s.sortDir==='asc'?1:-1);
-    });
-  }
-
-  // paginate
-  const total = arr.length;
-  const pages = Math.max(1, Math.ceil(total/s.pageSize));
-  s.page = Math.min(s.page, pages);
-  const start = (s.page-1)*s.pageSize;
-  const pageData = arr.slice(start, start+s.pageSize);
-
-  // build table
-  let html = toolbar + `
+  // table
+  html += `
     <table class="table table-striped">
       <thead><tr>
-        ${cols.map(c=>`<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`).join('')}
+        ${cols.map(c=>
+          `<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`
+        ).join('')}
         <th>Actions</th>
       </tr></thead>
       <tbody>
@@ -318,16 +326,26 @@ function renderList(resource) {
           const idVal = rec[cfg.idKey||'id'];
           return `
             <tr>
-              ${cols.map(c=>`<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`).join('')}
+              ${cols.map(c=>
+                `<td>${rec[c.key]!=null?rec[c.key]:''}</td>`
+              ).join('')}
               <td>
                 <button class="btn btn-sm btn-outline-secondary me-1"
                         onclick="editResource('${resource}',${idVal})">Edit</button>
                 <button class="btn btn-sm btn-outline-danger me-1"
                         onclick="deleteResource('${resource}',${idVal})">Delete</button>
-                ${resource==='deals'
-                  ? `<button class="btn btn-sm btn-outline-primary"
-                              onclick="pushDeal(${idVal})">Push to Prod</button>`
-                  : ''}
+                ${
+                  /* Finance view: if no job, show Create Job */
+                  resource==='finance'
+                    ? (rec.job_id
+                        ? `<span class="badge bg-success">Job ${rec.job_id}</span>`
+                        : `<button class="btn btn-sm btn-outline-primary"
+                                    onclick="createJobForPayment(${rec.order_id})">
+                             Create Job
+                           </button>`
+                      )
+                    : ''
+                }
               </td>
             </tr>`;
         }).join('')}
@@ -363,12 +381,8 @@ function onFilter(resource, status) {
 }
 function onSort(resource, key) {
   const s = state[resource];
-  if (s.sortKey === key) {
-    s.sortDir = s.sortDir === 'asc' ? 'desc' : 'asc';
-  } else {
-    s.sortKey = key;
-    s.sortDir = 'asc';
-  }
+  if (s.sortKey===key) s.sortDir = s.sortDir==='asc'?'desc':'asc';
+  else { s.sortKey=key; s.sortDir='asc'; }
   renderList(resource);
 }
 function changePage(resource, page) {
@@ -379,6 +393,20 @@ function changePageSize(resource, size) {
   state[resource].pageSize = Number(size);
   state[resource].page = 1;
   renderList(resource);
+}
+
+// --- manual Create Job for orphaned payments ---
+async function createJobForPayment(orderId) {
+  try {
+    const job = await fetchJSON('/api/jobs', {
+      method: 'POST',
+      body: JSON.stringify({ order_id: orderId, type: 'production', qty: 1 })
+    });
+    alert(`Created production job #${job.id}`);
+    loadAdminView('finance');
+  } catch (err) {
+    alert('Create job failed: ' + err.message);
+  }
 }
 
 // --- CRUD form renderer ---
@@ -417,8 +445,8 @@ function renderForm(resource, record={}) {
         payload[c.key] = v;
       }
     });
-    const url = cfg.endpoint + (isEdit ? `/${record.id}` : '');
-    const method = isEdit ? 'PATCH' : 'POST';
+    const url = cfg.endpoint + (isEdit?`/${record.id}`:'');
+    const method = isEdit?'PATCH':'POST';
     await fetchJSON(url, { method, body: JSON.stringify(payload) });
     loadAdminView(resource);
   };
@@ -437,7 +465,7 @@ async function deleteResource(resource, id) {
 }
 async function pushDeal(dealId) {
   if (!confirm(`Push deal #${dealId} to production?`)) return;
-  const job = await fetchJSON(`/jobs/push/${dealId}`, { method: 'POST' });
+  const job = await fetchJSON(`/api/jobs/push/${dealId}`, { method: 'POST' });
   alert(`Created production job #${job.id}`);
   loadAdminView('production');
 }
