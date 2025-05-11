@@ -23,6 +23,7 @@ function initState(resource) {
       sortKey: null,
       sortDir: 'asc',
       filterStatus: '',
+      groupBy: 'status',
       _lastRecords: []
     };
   }
@@ -30,16 +31,20 @@ function initState(resource) {
 
 // --- status options per resource ---
 const STATUS_OPTIONS = {
-  users: [], roles: [], products: [],
+  users: [],
+  roles: [],
+  products: [],
   quotes: ['pending','approved','rejected','cancelled'],
   orders: ['new','processing','shipped','delivered','cancelled'],
   jobs: ['queued','in_progress','finished','cancelled'],
-  suppliers: [], catalog: [],
+  suppliers: [],
+  catalog: [],
   'purchase-orders': ['pending','placed','received','cancelled'],
   purchaseOrders: ['pending','placed','received','cancelled'],
   leads: ['new','contacted','qualified','lost'],
   deals: ['qualified','won','lost'],
-  crm: [], hr: [],
+  crm: [],
+  hr: [],
   finance: ['pending','completed','failed','refunded'],
   reports: []
 };
@@ -167,15 +172,15 @@ const RESOURCES = {
       { key: 'deal_date',    label: 'Deal Date',   readonly: true }
     ]
   },
-  jobs:       { endpoint: '/jobs',           columns: jobsColumns },
-  production: { endpoint: '/jobs',           columns: jobsColumns, statusKey: 'job_status' },
-  suppliers:  { endpoint: '/suppliers',      columns: [
+  jobs:       { endpoint: '/jobs',      columns: jobsColumns },
+  production: { endpoint: '/jobs',      columns: jobsColumns, statusKey: 'job_status' },
+  suppliers:  { endpoint: '/suppliers', columns: [
       { key: 'id',      label: 'ID',   readonly: true },
       { key: 'name',    label: 'Name' },
       { key: 'website', label: 'Website' }
     ]
   },
-  catalog:    { endpoint: '/catalog',        columns: [
+  catalog:    { endpoint: '/catalog',   columns: [
       { key: 'id',          label: 'ID',        readonly: true },
       { key: 'supplier_id', label: 'Supplier',  type: 'number' },
       { key: 'sku',         label: 'SKU' },
@@ -183,22 +188,20 @@ const RESOURCES = {
       { key: 'cost',        label: 'Cost',      type: 'number' }
     ]
   },
-  'purchase-orders': {
-    endpoint: '/purchase-orders',
-    columns: [
+  'purchase-orders': { endpoint: '/purchase-orders', columns: [
       { key: 'id',          label: 'ID',       readonly: true },
       { key: 'supplier_id', label: 'Supplier', type: 'number' },
       { key: 'status',      label: 'Status',   options: STATUS_OPTIONS['purchase-orders'] }
     ]
   },
-  hr:         { endpoint: '/hr',             columns: [
+  hr:         { endpoint: '/hr',          columns: [
       { key: 'id',        label: 'ID',      readonly: true },
       { key: 'user_id',   label: 'User ID', type: 'number' },
       { key: 'position',  label: 'Position' },
       { key: 'salary',    label: 'Salary',  type: 'number' }
     ]
   },
-  finance:    { endpoint: '/payments',       columns: [
+  finance:    { endpoint: '/payments',    columns: [
       { key: 'id',             label: 'ID',       readonly: true },
       { key: 'order_id',       label: 'Order ID', type: 'number' },
       { key: 'amount',         label: 'Amount',   type: 'number' },
@@ -207,11 +210,11 @@ const RESOURCES = {
     ]
   },
   reports:    { endpoint: '/daily-transactions', columns: [
-      { key: 'id',               label: 'ID',               readonly: true },
+      { key: 'id',               label: 'ID',              readonly: true },
       { key: 'date',             label: 'Date' },
-      { key: 'payments_received',label: 'Received',        type: 'number' },
-      { key: 'expenses_paid',    label: 'Expenses',        type: 'number' },
-      { key: 'end_of_day_cash',  label: 'End Cash',        type: 'number' }
+      { key: 'payments_received',label: 'Received',       type: 'number' },
+      { key: 'expenses_paid',    label: 'Expenses',       type: 'number' },
+      { key: 'end_of_day_cash',  label: 'End Cash',       type: 'number' }
     ]
   }
 };
@@ -275,8 +278,9 @@ function renderList(resource) {
     // Group by status
     const groups = {};
     arr.forEach(rec => {
-      groups[rec.job_status] = groups[rec.job_status]||[];
-      groups[rec.job_status].push(rec);
+      const key = rec.job_status || 'Unspecified';
+      groups[key] = groups[key] || [];
+      groups[key].push(rec);
     });
     const colorMap = {
       queued:       'table-secondary',
@@ -295,10 +299,8 @@ function renderList(resource) {
           ${rows.map(rec=>`<tr>
             ${cols.map(c=>`<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('')}
             <td>
-              <button class="btn btn-sm btn-outline-secondary me-1"
-                      onclick="editResource('production',${rec.id})">Edit</button>
-              <button class="btn btn-sm btn-outline-danger"
-                      onclick="deleteResource('production',${rec.id})">Delete</button>
+              <button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('production',${rec.id})">Edit</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteResource('production',${rec.id})">Delete</button>
             </td>
           </tr>`).join('')}
         </tbody></table>`;
@@ -309,11 +311,9 @@ function renderList(resource) {
   }
 
   // --- Default list rendering ---
-  // Filter by statusKey if set
   if (cfg.statusKey && s.filterStatus) {
     arr = arr.filter(rec => rec[cfg.statusKey] === s.filterStatus);
   }
-  // Sort
   if (s.sortKey) {
     arr.sort((a,b) => {
       const va = a[s.sortKey], vb = b[s.sortKey];
@@ -323,7 +323,6 @@ function renderList(resource) {
       return String(va).localeCompare(vb)*(s.sortDir==='asc'?1:-1);
     });
   }
-  // Paginate
   const total = arr.length;
   const pages = Math.max(1, Math.ceil(total/s.pageSize));
   s.page = Math.min(s.page, pages);
@@ -334,9 +333,7 @@ function renderList(resource) {
   let html = `<div class="d-flex justify-content-between mb-3">
     <input class="form-control" style="width:250px" placeholder="Search…" value="${s.search}"
            oninput="onSearch('${resource}',this.value)">
-    ${cfg.statusKey?`
-      <select class="form-select ms-2" style="width:150px"
-              onchange="onFilter('${resource}',this.value)">
+      ${cfg.statusKey?`<select class="form-select ms-2" style="width:150px" onchange="onFilter('${resource}',this.value)">
         <option value="">All Statuses</option>
         ${STATUS_OPTIONS[resource].map(o=>
           `<option value="${o}"${s.filterStatus===o?' selected':''}>${o}</option>`
@@ -350,10 +347,10 @@ function renderList(resource) {
     ${cols.map(c=>`<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`).join('')}
     <th>Actions</th>
   </tr></thead><tbody>
-    ${pageData.map(rec=>{
-      const idVal = rec[cfg.idKey||'id'];
+    ${pageData.map(r=>{
+      const idVal = r[cfg.idKey||'id'];
       return `<tr>
-        ${cols.map(c=>`<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('')}
+        ${cols.map(c=>`<td>${r[c.key]!=null?r[c.key]:''}</td>`).join('')}
         <td>
           <button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('${resource}',${idVal})">Edit</button>
           <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteResource('${resource}',${idVal})">Delete</button>
@@ -365,13 +362,10 @@ function renderList(resource) {
 
   // Pagination
   html += `<div class="d-flex justify-content-between align-items-center mt-2">
-    <button class="btn btn-sm btn-outline-primary" ${s.page<=1?'disabled':''}
-            onclick="changePage('${resource}',${s.page-1})">Prev</button>
+    <button class="btn btn-sm btn-outline-primary" ${s.page<=1?'disabled':''} onclick="changePage('${resource}',${s.page-1})">Prev</button>
     <span>Page ${s.page} of ${pages}</span>
-    <button class="btn btn-sm btn-outline-primary" ${s.page>=pages?'disabled':''}
-            onclick="changePage('${resource}',${s.page+1})">Next</button>
-    <select class="form-select form-select-sm" style="width:70px"
-            onchange="changePageSize('${resource}',this.value)">
+    <button class="btn btn-sm btn-outline-primary" ${s.page>=pages?'disabled':''} onclick="changePage('${resource}',${s.page+1})">Next</button>
+    <select class="form-select form-select-sm" style="width:70px" onchange="changePageSize('${resource}',this.value)">
       ${PAGE_SIZES.map(sz=>`<option value="${sz}"${sz===s.pageSize?' selected':''}>${sz}</option>`).join('')}
     </select>
   </div>`;
@@ -380,31 +374,11 @@ function renderList(resource) {
 }
 
 // --- table controls ---
-function onSearch(resource,text){
-  state[resource].search=text;
-  state[resource].page=1;
-  renderList(resource);
-}
-function onFilter(resource,status){
-  state[resource].filterStatus=status;
-  state[resource].page=1;
-  renderList(resource);
-}
-function onSort(resource,key){
-  const s=state[resource];
-  if(s.sortKey===key) s.sortDir=s.sortDir==='asc'?'desc':'asc';
-  else { s.sortKey=key; s.sortDir='asc'; }
-  renderList(resource);
-}
-function changePage(resource,page){
-  state[resource].page=page;
-  renderList(resource);
-}
-function changePageSize(resource,size){
-  state[resource].pageSize=Number(size);
-  state[resource].page=1;
-  renderList(resource);
-}
+function onSearch(resource,text){ state[resource].search=text; state[resource].page=1; renderList(resource); }
+function onFilter(resource,status){ state[resource].filterStatus=status; state[resource].page=1; renderList(resource); }
+function onSort(resource,key){ const s=state[resource]; if(s.sortKey===key) s.sortDir=s.sortDir==='asc'?'desc':'asc'; else {s.sortKey=key; s.sortDir='asc';} renderList(resource); }
+function changePage(resource,page){ state[resource].page=page; renderList(resource); }
+function changePageSize(resource,size){ state[resource].pageSize=Number(size); state[resource].page=1; renderList(resource); }
 
 // --- CRUD form renderer ---
 function renderForm(resource,record={}){
@@ -427,7 +401,7 @@ function renderForm(resource,record={}){
     html+=`</div>`;
   });
   html+=`<button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
-         <button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button>
+           <button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button>
     </form>`;
   app.innerHTML=html;
   document.getElementById(`frm_${resource}`).onsubmit=async e=>{
@@ -446,28 +420,9 @@ function renderForm(resource,record={}){
     loadAdminView(resource);
   };
 }
-async function newResource(resource){ renderForm(resource); }
-async function editResource(resource,id){
-  const rec=await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`);
-  renderForm(resource,rec);
-}
-async function deleteResource(resource,id){
-  if(!confirm('Delete this item?'))return;
-  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`,{method:'DELETE'});
-  loadAdminView(resource);
-}
-
-// --- push deal into production ---
-async function pushDeal(dealId){
-  if(!confirm(`Push deal #${dealId} to production?`))return;
-  const job=await fetchJSON(`/jobs/push/${dealId}`,{method:'POST'});
-  alert(`Created production job #${job.id}`);
-  loadAdminView('production');
-}
-
-// --- logout & init ---
-function logout(){
-  localStorage.removeItem('token');
-  window.location.href='login.html';
-}
+async function newResource(r){ renderForm(r); }
+async function editResource(r,id){ const rec=await fetchJSON(`${RESOURCES[r].endpoint}/${id}`); renderForm(r,rec); }
+async function deleteResource(r,id){ if(!confirm('Delete this item?'))return; await fetchJSON(`${RESOURCES[r].endpoint}/${id}`,{method:'DELETE'}); loadAdminView(r); }
+async function pushDeal(dealId){ if(!confirm(`Push deal #${dealId} to production?`))return; const job=await fetchJSON(`/jobs/push/${dealId}`,{method:'POST'}); alert(`Created production job #${job.id}`); loadAdminView('production'); }
+function logout(){ localStorage.removeItem('token'); window.location.href='login.html'; }
 loadAdminView('users');
