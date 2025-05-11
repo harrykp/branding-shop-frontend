@@ -275,35 +275,39 @@ function renderList(resource) {
       <button class="btn btn-success" onclick="newResource('production')">+ New</button>
     </div>`;
 
-    // Group by status
+    // Group Data
     const groups = {};
     arr.forEach(rec => {
-      const key = rec.job_status || 'Unspecified';
+      let key;
+      switch(s.groupBy) {
+        case 'department': key = rec.department || 'Unspecified'; break;
+        case 'product_category': key = rec.product_category || 'Unspecified'; break;
+        case 'start_date': key = rec.start_date ? rec.start_date.split('T')[0] : 'Unspecified'; break;
+        default: key = rec.job_status || 'Unspecified';
+      }
       groups[key] = groups[key] || [];
       groups[key].push(rec);
     });
+
     const colorMap = {
-      queued:       'table-secondary',
+      queued: 'table-secondary',
       in_progress: 'table-warning',
-      finished:     'table-success',
-      cancelled:    'table-danger'
+      finished: 'table-success',
+      cancelled: 'table-danger'
     };
 
-    Object.keys(groups).forEach(status => {
-      const rows = groups[status];
-      html += `<h5 class="mt-4">${status.replace('_',' ').toUpperCase()}</h5>
-        <table class="table ${colorMap[status]||''}"><thead><tr>
-          ${cols.map(c=>`<th>${c.label}</th>`).join('')}
-          <th>Actions</th>
-        </tr></thead><tbody>
-          ${rows.map(rec=>`<tr>
-            ${cols.map(c=>`<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('')}
-            <td>
-              <button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('production',${rec.id})">Edit</button>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteResource('production',${rec.id})">Delete</button>
-            </td>
-          </tr>`).join('')}
-        </tbody></table>`;
+    Object.keys(groups).forEach(group => {
+      html += `<h5 class="mt-4">${group}</h5>` +
+        `<table class="table"><thead><tr>` +
+          cols.map(c => `<th>${c.label}</th>`).join('') +
+          `<th>Actions</th></tr></thead><tbody>` +
+        groups[group].map(rec => `<tr class="${colorMap[rec.job_status]||''}">` +
+          cols.map(c => `<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('') +
+          `<td>` +
+            `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('production',${rec.id})">Edit</button>` +
+            `<button class="btn btn-sm btn-outline-danger" onclick="deleteResource('production',${rec.id})">Delete</button>` +
+          `</td></tr>`).join('') +
+        `</tbody></table>`;
     });
 
     app.innerHTML = html;
