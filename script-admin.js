@@ -183,7 +183,9 @@ const RESOURCES = {
       { key: 'cost',        label: 'Cost',      type: 'number' }
     ]
   },
-  'purchase-orders': { endpoint: '/purchase-orders', columns: [
+  'purchase-orders': {
+    endpoint: '/purchase-orders',
+    columns: [
       { key: 'id',          label: 'ID',       readonly: true },
       { key: 'supplier_id', label: 'Supplier', type: 'number' },
       { key: 'status',      label: 'Status',   options: STATUS_OPTIONS['purchase-orders'] }
@@ -244,106 +246,62 @@ async function loadAdminView(view) {
   renderList(view);
 }
 
-// --- render table + toolbar, with grouping by Dept, Category, Start Date, Sales Rep ---
+// --- render table + toolbar (no grouping) ---
 function renderList(resource) {
   const cfg = RESOURCES[resource];
   const cols = cfg.columns;
   const s    = state[resource];
-  let arr = s._lastRecords
-    .filter(rec => !s.search ||
-      Object.values(rec).some(v => String(v).toLowerCase().includes(s.search.toLowerCase()))
-    );
 
-  if (resource === 'production') {
-    // toolbar
-    let html = `<div class="d-flex justify-content-between mb-3">
-      <input class="form-control" style="width:250px" placeholder="Search…" value="${s.search}"
-             oninput="onSearch('production',this.value)">
-      <select class="form-select ms-2" style="width:150px" onchange="onFilter('production',this.value)">
-        <option value="">All Statuses</option>
-        ${STATUS_OPTIONS.jobs.map(o=>
-          `<option value="${o}"${s.filterStatus===o?' selected':''}>${o.replace('_',' ')}</option>`
-        ).join('')}
-      </select>
-      <button class="btn btn-success" onclick="newResource('production')">+ New</button>
-    </div>`;
+  // filter by search
+  let arr = s._lastRecords.filter(rec =>
+    !s.search ||
+    Object.values(rec).some(v =>
+      String(v).toLowerCase().includes(s.search.toLowerCase())
+    )
+  );
 
-    // groupings
-    const groupFields = [
-      { key: 'department',      label: 'Department' },
-      { key: 'product_category',label: 'Product Category' },
-      { key: 'start_date',      label: 'Start Date' },
-      { key: 'sales_rep',       label: 'Sales Rep' }
-    ];
-    for (const g of groupFields) {
-      html += `<h5 class="mt-4">${g.label}</h5>`;
-      const groups = {};
-      arr.forEach(rec => {
-        const val = rec[g.key] || 'Unspecified';
-        if (!groups[val]) groups[val] = [];
-        groups[val].push(rec);
-      });
-      for (const group of Object.keys(groups)) {
-        html += `<h6>${group}</h6>
-          <table class="table table-striped"><thead><tr>
-            ${cols.map(c=>`<th>${c.label}</th>`).join('')}
-            <th>Actions</th>
-          </tr></thead><tbody>`;
-        groups[group].forEach(rec => {
-          const idVal = rec.id;
-          html += `<tr>${cols.map(c=>`<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('')}
-            <td>
-              <button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('production',${idVal})">Edit</button>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteResource('production',${idVal})">Delete</button>
-            </td>
-          </tr>`;
-        });
-        html += `</tbody></table>`;
-      }
-    }
-
-    app.innerHTML = html;
-    return;
-  }
-
-  // default rendering: filter, sort, paginate
+  // filter by status if defined
   if (cfg.statusKey && s.filterStatus) {
     arr = arr.filter(rec => rec[cfg.statusKey] === s.filterStatus);
   }
+
+  // sort
   if (s.sortKey) {
     arr.sort((a,b) => {
       const va = a[s.sortKey], vb = b[s.sortKey];
-      if (va==null) return 1;
-      if (vb==null) return -1;
-      if (!isNaN(va)&&!isNaN(vb)) return (va-vb)*(s.sortDir==='asc'?1:-1);
-      return String(va).localeCompare(vb)*(s.sortDir==='asc'?1:-1);
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (!isNaN(va) && !isNaN(vb)) return (va - vb) * (s.sortDir === 'asc' ? 1 : -1);
+      return String(va).localeCompare(vb) * (s.sortDir === 'asc' ? 1 : -1);
     });
   }
+
+  // paginate
   const total = arr.length;
-  const pages = Math.max(1, Math.ceil(total/s.pageSize));
+  const pages = Math.max(1, Math.ceil(total / s.pageSize));
   s.page = Math.min(s.page, pages);
-  const start = (s.page-1)*s.pageSize;
-  const pageData = arr.slice(start, start+s.pageSize);
+  const start = (s.page - 1) * s.pageSize;
+  const pageData = arr.slice(start, start + s.pageSize);
 
   // toolbar
   let html = `<div class="d-flex justify-content-between mb-3">
     <input class="form-control" style="width:250px" placeholder="Search…" value="${s.search}"
            oninput="onSearch('${resource}',this.value)">
-    ${cfg.statusKey?`<select class="form-select ms-2" style="width:150px" onchange="onFilter('${resource}',this.value)">
+    ${cfg.statusKey ? `<select class="form-select ms-2" style="width:150px" onchange="onFilter('${resource}',this.value)">
       <option value="">All Statuses</option>
-      ${STATUS_OPTIONS[resource].map(o=>`<option value="${o}"${s.filterStatus===o?' selected':''}>${o}</option>`).join('')}
-    </select>`:''}
+      ${STATUS_OPTIONS[resource].map(o => `<option value="${o}"${s.filterStatus===o?' selected':''}>${o}</option>`).join('')}
+    </select>` : ''}
     <button class="btn btn-success" onclick="newResource('${resource}')">+ New</button>
   </div>`;
 
   // table
   html += `<table class="table table-striped"><thead><tr>
-    ${cols.map(c=>`<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`).join('')}
+    ${cols.map(c => `<th style="cursor:pointer" onclick="onSort('${resource}','${c.key}')">${c.label}</th>`).join('')}
     <th>Actions</th>
   </tr></thead><tbody>`;
   pageData.forEach(rec => {
-    const idVal = rec[cfg.idKey||'id'];
-    html += `<tr>${cols.map(c=>`<td>${rec[c.key]!=null?rec[c.key]:''}</td>`).join('')}
+    const idVal = rec[cfg.idKey || 'id'];
+    html += `<tr>${cols.map(c => `<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`).join('')}
       <td>
         <button class="btn btn-sm btn-outline-secondary me-1" onclick="editResource('${resource}',${idVal})">Edit</button>
         <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteResource('${resource}',${idVal})">Delete</button>
@@ -353,13 +311,13 @@ function renderList(resource) {
   });
   html += `</tbody></table>`;
 
-  // pagination
+  // pagination controls
   html += `<div class="d-flex justify-content-between align-items-center mt-2">
     <button class="btn btn-sm btn-outline-primary" ${s.page<=1?'disabled':''} onclick="changePage('${resource}',${s.page-1})">Prev</button>
     <span>Page ${s.page} of ${pages}</span>
     <button class="btn btn-sm btn-outline-primary" ${s.page>=pages?'disabled':''} onclick="changePage('${resource}',${s.page+1})">Next</button>
     <select class="form-select form-select-sm" style="width:70px" onchange="changePageSize('${resource}',this.value)">
-      ${PAGE_SIZES.map(sz=>`<option value="${sz}"${sz===s.pageSize?' selected':''}>${sz}</option>`).join('')}
+      ${PAGE_SIZES.map(sz => `<option value="${sz}"${sz===s.pageSize?' selected':''}>${sz}</option>`).join('')}
     </select>
   </div>`;
 
@@ -378,75 +336,78 @@ function onFilter(resource,status){
   renderList(resource);
 }
 function onSort(resource,key){
-  const s=state[resource];
-  if(s.sortKey===key) s.sortDir=s.sortDir==='asc'?'desc':'asc';
-  else { s.sortKey=key; s.sortDir='asc'; }
+  const s = state[resource];
+  if (s.sortKey === key) s.sortDir = s.sortDir === 'asc' ? 'desc' : 'asc';
+  else { s.sortKey = key; s.sortDir = 'asc'; }
   renderList(resource);
 }
 function changePage(resource,page){
-  state[resource].page=page;
+  state[resource].page = page;
   renderList(resource);
 }
 function changePageSize(resource,size){
-  state[resource].pageSize=Number(size);
-  state[resource].page=1;
+  state[resource].pageSize = Number(size);
+  state[resource].page = 1;
   renderList(resource);
 }
 
 // --- CRUD form renderer ---
 function renderForm(resource,record={}){
-  const cfg=RESOURCES[resource];
-  if(cfg.idKey) record.id=record[cfg.idKey];
-  const isEdit=Boolean(record.id);
-  let html=`<h3>${isEdit?'Edit':'New'} ${resource}</h3><form id="frm_${resource}">`;
-  cfg.columns.forEach(c=>{
-    const val=record[c.key]!=null?record[c.key]:'';
-    html+=`<div class="mb-3">
+  const cfg = RESOURCES[resource];
+  if (cfg.idKey) record.id = record[cfg.idKey];
+  const isEdit = Boolean(record.id);
+  let html = `<h3>${isEdit?'Edit':'New'} ${resource}</h3><form id="frm_${resource}">`;
+  cfg.columns.forEach(c => {
+    const val = record[c.key] != null ? record[c.key] : '';
+    html += `<div class="mb-3">
       <label for="f_${c.key}" class="form-label">${c.label}</label>`;
-    if(c.options){
-      html+=`<select id="f_${c.key}" class="form-select"${c.readonly?' disabled':''}>`+
-        c.options.map(o=>`<option value="${o}"${o===val?' selected':''}>${o}</option>`).join('')+
+    if (c.options) {
+      html += `<select id="f_${c.key}" class="form-select"${c.readonly?' disabled':''}>` +
+        c.options.map(o => `<option value="${o}"${o===val?' selected':''}>${o}</option>`).join('') +
       `</select>`;
     } else {
-      html+=`<input id="f_${c.key}" class="form-control" type="${c.type||'text'}" value="${val}"${c.readonly?' readonly':' required'}>`;
+      html += `<input id="f_${c.key}" class="form-control" type="${c.type||'text'}" value="${val}"${c.readonly?' readonly':' required'}>`;
     }
-    html+=`</div>`;
+    html += `</div>`;
   });
-  html+=`<button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
-         <button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button>
+  html += `<button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
+           <button type="button" class="btn btn-secondary ms-2" onclick="loadAdminView('${resource}')">Cancel</button>
     </form>`;
-  app.innerHTML=html;
-  document.getElementById(`frm_${resource}`).onsubmit=async e=>{
+  app.innerHTML = html;
+
+  document.getElementById(`frm_${resource}`).onsubmit = async e => {
     e.preventDefault();
-    const payload={};
-    cfg.columns.forEach(c=>{
-      if(!c.readonly){
-        let v=document.getElementById(`f_${c.key}`).value;
-        if(c.type==='number') v=parseFloat(v);
-        payload[c.key]=v;
+    const payload = {};
+    cfg.columns.forEach(c => {
+      if (!c.readonly) {
+        let v = document.getElementById(`f_${c.key}`).value;
+        if (c.type==='number') v = parseFloat(v);
+        payload[c.key] = v;
       }
     });
-    const url=cfg.endpoint+(isEdit?`/${record.id}`:'');
-    const method=isEdit?'PATCH':'POST';
-    await fetchJSON(url,{method,body:JSON.stringify(payload)});
+    const url = cfg.endpoint + (isEdit ? `/${record.id}` : '');
+    const method = isEdit ? 'PATCH' : 'POST';
+    await fetchJSON(url, { method, body: JSON.stringify(payload) });
     loadAdminView(resource);
   };
 }
+
+// --- resource CRUD helpers ---
 async function newResource(resource){ renderForm(resource); }
 async function editResource(resource,id){
-  const rec=await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`);
-  renderForm(resource,rec);
+  const rec = await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`);
+  renderForm(resource, rec);
 }
 async function deleteResource(resource,id){
-  if(!confirm('Delete this item?')) return;
-  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`,{method:'DELETE'});
+  if (!confirm('Delete this item?')) return;
+  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method:'DELETE' });
   loadAdminView(resource);
 }
 
 // --- push deal into production ---
 async function pushDeal(dealId){
-  if(!confirm(`Push deal #${dealId} to production?`)) return;
-  const job=await fetchJSON(`/jobs/push/${dealId}`,{method:'POST'});
+  if (!confirm(`Push deal #${dealId} to production?`)) return;
+  const job = await fetchJSON(`/jobs/push/${dealId}`, { method:'POST' });
   alert(`Created production job #${job.id}`);
   loadAdminView('production');
 }
@@ -454,6 +415,6 @@ async function pushDeal(dealId){
 // --- logout & init ---
 function logout(){
   localStorage.removeItem('token');
-  window.location.href='login.html';
+  window.location.href = 'login.html';
 }
 loadAdminView('users');
