@@ -1,5 +1,6 @@
-// branding-shop-frontend/script-admin.js
-console.log('🔥 script-admin.js – metadata‐driven CRUD with search, pagination & sorting');
+// frontend/script-admin.js
+
+console.log('🔥 script-admin.js – metadata-driven CRUD with search, pagination & sorting');
 
 const API_BASE = 'https://branding-shop-backend.onrender.com/api';
 const token    = localStorage.getItem('token');
@@ -38,48 +39,37 @@ const STATUS_OPTIONS = {
   purchaseOrders: ['pending','placed','received','cancelled'],
   leads: ['new','contacted','qualified','lost'],
   deals: ['qualified','won','lost'],
-  crm: [], hr: [],
-  finance: ['pending','completed','failed','refunded'],
+  hr: [], finance: ['pending','completed','failed','refunded'],
   reports: []
 };
 
-// --- reusable column sets ---
-// (jobsColumns now includes all the extra fields you requested)
+// --- reusable column definitions ---
 const jobsColumns = [
   { key: 'id',            label: 'ID',           readonly: true },
   { key: 'deal_id',       label: 'Deal ID',      type: 'number' },
   { key: 'deal_value',    label: 'Deal Value',   type: 'number' },
-
   { key: 'customer_id',    label: 'Cust. ID',     type: 'number' },
   { key: 'customer_name',  label: 'Customer' },
   { key: 'customer_phone', label: 'Phone' },
-
   { key: 'order_id',       label: 'Order ID',     type: 'number' },
   { key: 'order_total',    label: 'Order Value',  type: 'number' },
   { key: 'payment_status', label: 'Pay Status' },
-
   { key: 'product_id',     label: 'Prod. ID',     type: 'number' },
   { key: 'product_name',   label: 'Product' },
   { key: 'product_code',   label: 'SKU' },
-
   { key: 'qty_ordered',    label: 'Qty Ordered',  type: 'number' },
   { key: 'qty_completed',  label: 'Qty Completed',type: 'number' },
   { key: 'pct_complete',   label: '% Complete',   type: 'number' },
-
   { key: 'start_date',     label: 'Start Date' },
   { key: 'completion_date',label: 'Completion Date' },
   { key: 'due_date',       label: 'Due Date' },
-
   { key: 'sales_rep',      label: 'Sales Rep' },
   { key: 'department',     label: 'Dept' },
-
   { key: 'completed_value',label: 'Paid',         type: 'number' },
   { key: 'balance_unpaid', label: 'Balance',      type: 'number' },
   { key: 'comments',       label: 'Comments' },
-
   { key: 'updated_by_name',label: 'Updated By' },
   { key: 'updated_at',     label: 'Updated At',   readonly: true },
-
   { key: 'job_status',     label: 'Status',       options: STATUS_OPTIONS.jobs }
 ];
 
@@ -102,7 +92,7 @@ const dailyTransactionsColumns = [
   { key: 'updated_at',       label: 'Updated At',      readonly: true }
 ];
 
-// --- define every resource, its API path, and fields to show/edit ---
+// --- resource configurations ---
 const RESOURCES = {
   users: {
     endpoint: '/users',
@@ -176,27 +166,26 @@ const RESOURCES = {
   },
   deals: {
     endpoint: '/deals',
-    // tell the UI that the primary key for deals is `deal_id`
     idKey: 'deal_id',
     columns: [
-      { key: 'deal_id',         label: 'Deal ID',          readonly: true },
-      { key: 'lead_id',         label: 'Lead ID',          type: 'number' },
+      { key: 'deal_id',         label: 'Deal ID',      readonly: true },
+      { key: 'lead_id',         label: 'Lead ID',      type: 'number' },
       { key: 'lead_name',       label: 'Lead Name' },
-      { key: 'sales_rep_id',    label: 'Rep ID',           type: 'number' },
+      { key: 'sales_rep_id',    label: 'Rep ID',       type: 'number' },
       { key: 'sales_rep',       label: 'Sales Rep' },
-      { key: 'product_id',      label: 'Product ID',       type: 'number' },
+      { key: 'product_id',      label: 'Product ID',   type: 'number' },
       { key: 'product',         label: 'Product Name' },
       { key: 'product_code',    label: 'SKU' },
-      { key: 'quote_id',        label: 'Quote ID',         type: 'number' },
-      { key: 'quote_qty',       label: 'Qty Quoted',       type: 'number' },
-      { key: 'quote_unit_price',label: 'Unit Price',       type: 'number' },
-      { key: 'quote_total',     label: 'Quote Total',      type: 'number', readonly: true },
-      { key: 'deal_value',      label: 'Deal Value',       type: 'number' },
-      { key: 'deal_status',     label: 'Status',           options: STATUS_OPTIONS.deals },
-      { key: 'customer_id',     label: 'Cust. ID',         type: 'number' },
+      { key: 'quote_id',        label: 'Quote ID',     type: 'number' },
+      { key: 'quote_qty',       label: 'Qty Quoted',   type: 'number' },
+      { key: 'quote_unit_price',label: 'Unit Price',   type: 'number' },
+      { key: 'quote_total',     label: 'Quote Total',  type: 'number', readonly: true },
+      { key: 'deal_value',      label: 'Deal Value',   type: 'number' },
+      { key: 'deal_status',     label: 'Status',       options: STATUS_OPTIONS.deals },
+      { key: 'customer_id',     label: 'Cust. ID',     type: 'number' },
       { key: 'customer_name',   label: 'Customer' },
       { key: 'customer_phone',  label: 'Phone' },
-      { key: 'deal_date',       label: 'Created At',       readonly: true }
+      { key: 'deal_date',       label: 'Created At',   readonly: true }
     ]
   },
   jobs: {
@@ -236,25 +225,24 @@ const RESOURCES = {
   leads: {
     endpoint: '/leads',
     columns: [
-      { key: 'id',          label: 'ID',      readonly: true },
-      { key: 'created_by',  label: 'Created By', type: 'number' },
-      { key: 'name',        label: 'Name' },
-      { key: 'email',       label: 'Email',   type: 'email' },
-      { key: 'phone',       label: 'Phone' },
-      { key: 'status',      label: 'Status',  options: STATUS_OPTIONS.leads },
-      { key: 'created_at',  label: 'Created At', readonly: true }
+      { key: 'id',         label: 'ID',         readonly: true },
+      { key: 'created_by', label: 'Created By', type: 'number' },
+      { key: 'name',       label: 'Name' },
+      { key: 'email',      label: 'Email',      type: 'email' },
+      { key: 'phone',      label: 'Phone' },
+      { key: 'status',     label: 'Status',     options: STATUS_OPTIONS.leads },
+      { key: 'created_at', label: 'Created At', readonly: true }
     ]
   },
-  crm: { /* stub until needed */ },
   hr: {
     endpoint: '/hr',
     columns: [
-      { key: 'id',        label: 'ID',     readonly: true },
-      { key: 'user_id',   label: 'User ID',type: 'number' },
+      { key: 'id',        label: 'ID',      readonly: true },
+      { key: 'user_id',   label: 'User ID', type: 'number' },
       { key: 'ssn',       label: 'SSN' },
       { key: 'hire_date', label: 'Hire Date' },
       { key: 'position',  label: 'Position' },
-      { key: 'salary',    label: 'Salary',   type: 'number' }
+      { key: 'salary',    label: 'Salary',  type: 'number' }
     ]
   },
   finance: {
@@ -276,7 +264,7 @@ const RESOURCES = {
   }
 };
 
-// --- generic fetch helper ---
+// Generic fetch helper
 async function fetchJSON(path, opts = {}) {
   const res = await fetch(API_BASE + path, { headers, ...opts });
   const txt = await res.text();
@@ -284,7 +272,7 @@ async function fetchJSON(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
-// --- wire menu clicks ---
+// Wire menu clicks
 document.querySelectorAll('[data-view]').forEach(el =>
   el.addEventListener('click', e => {
     e.preventDefault();
@@ -292,14 +280,13 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// --- main view loader ---
+// Load resource list
 async function loadAdminView(view) {
   initState(view);
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
   const cfg = RESOURCES[view];
   if (!cfg || !cfg.endpoint) {
-    app.innerHTML = `<h3>${view.charAt(0).toUpperCase() + view.slice(1)}</h3>
-                     <p>Under construction…</p>`;
+    app.innerHTML = `<h3>${view}</h3><p>Under construction…</p>`;
     return;
   }
   const list = await fetchJSON(cfg.endpoint);
@@ -307,40 +294,40 @@ async function loadAdminView(view) {
   renderList(view, list);
 }
 
-// --- render table + controls ---
+// Render list table + controls
 function renderList(resource, records) {
   const { columns, idKey } = RESOURCES[resource];
   const s = state[resource];
 
-  // 1) apply search
+  // Search
   let arr = records.filter(rec =>
-    s.search === '' ||
+    !s.search ||
     Object.values(rec).some(v =>
       String(v).toLowerCase().includes(s.search.toLowerCase())
     )
   );
 
-  // 2) apply sort
+  // Sort
   if (s.sortKey) {
-    arr = [...arr].sort((a,b) => {
+    arr = [...arr].sort((a, b) => {
       const va = a[s.sortKey], vb = b[s.sortKey];
       if (va == null) return 1;
       if (vb == null) return -1;
       if (!isNaN(va) && !isNaN(vb)) {
-        return (va - vb)*(s.sortDir==='asc'?1:-1);
+        return (va - vb) * (s.sortDir === 'asc' ? 1 : -1);
       }
-      return String(va).localeCompare(vb)*(s.sortDir==='asc'?1:-1);
+      return String(va).localeCompare(vb) * (s.sortDir === 'asc' ? 1 : -1);
     });
   }
 
-  // 3) paginate
+  // Paginate
   const total = arr.length;
   const totalPages = Math.max(1, Math.ceil(total / s.pageSize));
   s.page = Math.min(s.page, totalPages);
-  const start = (s.page-1)*s.pageSize;
+  const start = (s.page - 1) * s.pageSize;
   const pageRecs = arr.slice(start, start + s.pageSize);
 
-  // toolbar
+  // Toolbar
   const toolbar = `
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="input-group" style="width:250px">
@@ -349,76 +336,59 @@ function renderList(resource, records) {
                class="form-control"
                placeholder="Search…"
                value="${s.search}"
-               oninput="onSearch('${resource}',this.value)">
-        <button
-          class="btn btn-outline-secondary"
-          type="button"
-          title="Clear"
-          onclick="onSearch('${resource}','')"
-        >✖</button>
+               oninput="onSearch('${resource}', this.value)">
+        <button class="btn btn-outline-secondary" type="button" title="Clear"
+                onclick="onSearch('${resource}', '')">✖</button>
       </div>
       <button class="btn btn-success" onclick="newResource('${resource}')">
         + New
       </button>
     </div>`;
 
-  // header
+  // Table header
   const header = columns.map(c => {
-    const arrow = s.sortKey===c.key
-      ? (s.sortDir==='asc'?' ▲':' ▼')
-      : '';
+    const arrow = s.sortKey === c.key ? (s.sortDir === 'asc' ? ' ▲' : ' ▼') : '';
     return `<th style="cursor:pointer"
                 onclick="onSort('${resource}','${c.key}')">
               ${c.label}${arrow}
             </th>`;
   }).join('');
 
-  // rows
+  // Rows
   const idField = idKey || 'id';
   const rows = pageRecs.map(rec => {
     const recId = rec[idField];
     const cells = columns.map(c =>
-      `<td>${rec[c.key]!=null ? rec[c.key] : ''}</td>`
+      `<td>${rec[c.key] != null ? rec[c.key] : ''}</td>`
     ).join('');
     return `<tr>${cells}
       <td>
         <button class="btn btn-sm btn-outline-secondary me-1"
-                onclick="editResource('${resource}',${recId})">
-          Edit
-        </button>
+                onclick="editResource('${resource}',${recId})">Edit</button>
         <button class="btn btn-sm btn-outline-danger me-1"
-                onclick="deleteResource('${resource}',${recId})">
-          Delete
-        </button>
+                onclick="deleteResource('${resource}',${recId})">Delete</button>
         ${resource === 'deals'
           ? `<button class="btn btn-sm btn-outline-primary"
-                      onclick="pushDeal(${recId})">
-               Push to Prod
-             </button>`
-          : ''
-        }
+                      onclick="pushDeal(${recId})">Push to Prod</button>`
+          : ''}
       </td>
     </tr>`;
   }).join('');
 
-  // pagination
-  const prevD = s.page<=1?'disabled':'';
-  const nextD = s.page>=totalPages?'disabled':'';
+  // Pagination controls
+  const prevD = s.page <= 1 ? 'disabled' : '';
+  const nextD = s.page >= totalPages ? 'disabled' : '';
   const sizeOpts = PAGE_SIZES.map(sz =>
-    `<option value="${sz}" ${sz===s.pageSize?'selected':''}>${sz}</option>`
+    `<option value="${sz}" ${sz === s.pageSize ? 'selected' : ''}>${sz}</option>`
   ).join('');
   const pager = `
     <div class="d-flex justify-content-between align-items-center mt-2">
       <div>
         <button class="btn btn-sm btn-outline-primary me-2" ${prevD}
-                onclick="changePage('${resource}',${s.page-1})">
-          Prev
-        </button>
+                onclick="changePage('${resource}',${s.page-1})">Prev</button>
         <span>Page ${s.page} of ${totalPages}</span>
         <button class="btn btn-sm btn-outline-primary ms-2" ${nextD}
-                onclick="changePage('${resource}',${s.page+1})">
-          Next
-        </button>
+                onclick="changePage('${resource}',${s.page+1})">Next</button>
       </div>
       <div class="d-flex align-items-center">
         <label class="me-2 mb-0">Page size:</label>
@@ -439,37 +409,39 @@ function renderList(resource, records) {
   `;
 }
 
-// --- control handlers ---
+// Control handlers
 function onSearch(resource, text) { state[resource].search = text; state[resource].page = 1; renderList(resource, state[resource]._lastRecords); }
-function onSort(resource, key)   { const s=state[resource]; if(s.sortKey===key){s.sortDir=s.sortDir==='asc'?'desc':'asc'}else{s.sortKey=key;s.sortDir='asc'}; renderList(resource, state[resource]._lastRecords); }
-function changePage(resource, pg){ state[resource].page=pg; renderList(resource, state[resource]._lastRecords); }
-function changePageSize(resource,sz){ state[resource].pageSize=Number(sz); state[resource].page=1; renderList(resource, state[resource]._lastRecords); }
+function onSort(resource, key)   { const s = state[resource]; if (s.sortKey === key) { s.sortDir = s.sortDir==='asc'?'desc':'asc'; } else { s.sortKey=key; s.sortDir='asc'; } renderList(resource, state[resource]._lastRecords); }
+function changePage(resource, pg){ state[resource].page = pg; renderList(resource, state[resource]._lastRecords); }
+function changePageSize(resource, sz){ state[resource].pageSize = Number(sz); state[resource].page = 1; renderList(resource, state[resource]._lastRecords); }
 
-// --- form renderer & CRUD ---
-function renderForm(resource, record = {}) {
-  const { columns, endpoint } = RESOURCES[resource];
-  // for deals we need record.id for save, so copy deal_id → id
-  if (RESOURCES[resource].idKey) record.id = record[RESOURCES[resource].idKey];
-
+// Render form for new/edit
+function renderForm(resource, record={}) {
+  const { columns, endpoint, idKey } = RESOURCES[resource];
+  if (idKey && record[idKey] != null) record.id = record[idKey];
   const isEdit = Boolean(record.id);
-  const fields = columns.map(c => {
-    const val = record[c.key]!=null?record[c.key]:'';
+
+  const fieldsHtml = columns.map(c => {
+    const val = record[c.key] != null ? record[c.key] : '';
     if (c.options) {
-      return `<div class="mb-3"><label class="form-label">${c.label}</label>
+      return `<div class="mb-3">
+        <label class="form-label">${c.label}</label>
         <select id="f_${c.key}" class="form-select" ${c.readonly?'disabled':''}>
-          ${c.options.map(opt=>`<option value="${opt}" ${opt===val?'selected':''}>${opt}</option>`).join('')}
-        </select></div>`;
+          ${c.options.map(opt => `<option value="${opt}" ${opt===val?'selected':''}>${opt}</option>`).join('')}
+        </select>
+      </div>`;
     }
-    return `<div class="mb-3"><label class="form-label">${c.label}</label>
+    return `<div class="mb-3">
+      <label class="form-label">${c.label}</label>
       <input id="f_${c.key}" class="form-control" type="${c.type||'text'}"
-             value="${val}" ${c.readonly?'readonly':''} ${c.readonly?'':'required'} />
+             value="${val}" ${c.readonly?'readonly':''} ${c.readonly?'':'required'}>
     </div>`;
   }).join('');
 
   app.innerHTML = `
-    <h3>${isEdit?'Edit':'New'} ${resource.slice(0,-1)}</h3>
+    <h3>${isEdit?'Edit':'New'} ${resource.slice(0, -1)}</h3>
     <form id="frm_${resource}">
-      ${fields}
+      ${fieldsHtml}
       <button type="submit" class="btn btn-primary">${isEdit?'Save':'Create'}</button>
       <button type="button" class="btn btn-secondary ms-2"
               onclick="loadAdminView('${resource}')">Cancel</button>
@@ -504,16 +476,15 @@ async function editResource(resource, id) {
 }
 async function deleteResource(resource, id) {
   if (!confirm('Delete this item?')) return;
-  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method:'DELETE' });
+  await fetchJSON(`${RESOURCES[resource].endpoint}/${id}`, { method: 'DELETE' });
   loadAdminView(resource);
 }
 
-// ──────────────────────────────────────────────────────────────
-// Push a deal into production
+// Push deal to production
 async function pushDeal(dealId) {
   if (!confirm(`Push deal #${dealId} to production?`)) return;
   try {
-    const job = await fetchJSON(`/jobs/push/${dealId}`, { method:'POST' });
+    const job = await fetchJSON(`/jobs/push/${dealId}`, { method: 'POST' });
     alert(`Created production job #${job.id}`);
     loadAdminView('production');
   } catch (err) {
@@ -521,7 +492,7 @@ async function pushDeal(dealId) {
   }
 }
 
-// --- logout & initial load ---
+// Logout & initial load
 function logout() {
   localStorage.removeItem('token');
   window.location.href = 'login.html';
