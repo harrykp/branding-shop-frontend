@@ -257,8 +257,16 @@ async function loadAdminView(view) {
 function renderList(resource, records) {
   const { columns, statusKey } = RESOURCES[resource];
   const s = state[resource];
+  // ensure records is an array
+  const recs = Array.isArray(records) ? records : [];
 
   // 1) apply search
+  let arr = recs.filter(rec =>
+    s.search === '' ||
+    Object.values(rec).some(v =>
+      String(v).toLowerCase().includes(s.search.toLowerCase())
+    )
+  );
   let arr = records.filter(rec =>
     s.search === '' ||
     Object.values(rec).some(v =>
