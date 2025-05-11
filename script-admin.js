@@ -224,7 +224,8 @@ const RESOURCES = {
   reports: { endpoint: '/daily-transactions', columns: dailyTransactionsColumns }
 };
 
-// Generic fetch helper\async function fetchJSON(path, opts = {}) {
+// Generic fetch helper
+async function fetchJSON(path, opts = {}) {
   const res = await fetch(API_BASE + path, { headers, ...opts });
   const txt = await res.text();
   if (!res.ok) throw new Error(`Error ${res.status}: ${txt}`);
