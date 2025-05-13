@@ -397,7 +397,7 @@ function changePageSize(resource, size) {
 // --- manual Create Job for orphaned payments ---
 async function createJobForPayment(orderId) {
   try {
-    const job = await fetchJSON('/api/jobs', {
+    const job = await fetchJSON('/jobs', {
       method: 'POST',
       body: JSON.stringify({ order_id: orderId, type: 'production', qty: 1 })
     });
@@ -465,7 +465,7 @@ async function deleteResource(resource, id) {
 }
 async function pushDeal(dealId) {
   if (!confirm(`Push deal #${dealId} to production?`)) return;
-  const job = await fetchJSON('/api/jobs/push/'+dealId, { method: 'POST' });
+  const job = await fetchJSON('/jobs/push/'+dealId, { method: 'POST' });
   alert(`Created production job #${job.id}`);
   loadAdminView('production');
 }
