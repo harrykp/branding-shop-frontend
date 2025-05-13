@@ -207,7 +207,7 @@ const RESOURCES = {
       { key: 'status',      label: 'Status',   options: STATUS_OPTIONS.finance },
       { key: 'paid_at',     label: 'Paid At' },
       { key: 'job_id',      label: 'Job ID',   type: 'number' },
-      { key: 'job_status',  label: 'Job Status'}
+      { key: 'job_status',  label: 'Job Status' }
     ]
   },
   reports:    { endpoint: '/daily-transactions', columns: [
@@ -246,7 +246,6 @@ async function loadAdminView(view) {
     return;
   }
   const data = await fetchJSON(cfg.endpoint);
-  // support jobs pagination envelopes
   state[view]._lastRecords = Array.isArray(data)
     ? data
     : Array.isArray(data.jobs)
@@ -335,7 +334,7 @@ function renderList(resource) {
                 <button class="btn btn-sm btn-outline-danger me-1"
                         onclick="deleteResource('${resource}',${idVal})">Delete</button>
                 ${
-                  /* Finance view: if no job, show Create Job */
+                  // Finance view: show existing job or Create Job button
                   resource==='finance'
                     ? (rec.job_id
                         ? `<span class="badge bg-success">Job ${rec.job_id}</span>`
@@ -417,7 +416,7 @@ function renderForm(resource, record={}) {
   let html = `<h3>${isEdit?'Edit':'New'} ${resource}</h3>
               <form id="frm_${resource}">`;
   cfg.columns.forEach(c => {
-    const val = record[c.key] != null ? record[c.key] : '';
+    const val = record[c.key]!=null?record[c.key]: '';
     html += `<div class="mb-3">
                <label for="f_${c.key}" class="form-label">${c.label}</label>`;
     if (c.options) {
@@ -435,6 +434,7 @@ function renderForm(resource, record={}) {
                    onclick="loadAdminView('${resource}')">Cancel</button>
            </form>`;
   app.innerHTML = html;
+
   document.getElementById(`frm_${resource}`).onsubmit = async e => {
     e.preventDefault();
     const payload = {};
@@ -465,7 +465,7 @@ async function deleteResource(resource, id) {
 }
 async function pushDeal(dealId) {
   if (!confirm(`Push deal #${dealId} to production?`)) return;
-  const job = await fetchJSON(`/api/jobs/push/${dealId}`, { method: 'POST' });
+  const job = await fetchJSON('/api/jobs/push/'+dealId, { method: 'POST' });
   alert(`Created production job #${job.id}`);
   loadAdminView('production');
 }
@@ -475,4 +475,5 @@ function logout() {
   localStorage.removeItem('token');
   window.location.href = 'login.html';
 }
+
 loadAdminView('users');
