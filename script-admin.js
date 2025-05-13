@@ -207,7 +207,7 @@ const RESOURCES = {
       { key: 'status',      label: 'Status',   options: STATUS_OPTIONS.finance },
       { key: 'paid_at',     label: 'Paid At' },
       { key: 'job_id',      label: 'Job ID',   type: 'number' },
-      { key: 'job_status',  label: 'Job Status' }
+      { key: 'job_status',  label: 'Job Status'}
     ]
   },
   reports:    { endpoint: '/daily-transactions', columns: [
@@ -236,10 +236,13 @@ document.querySelectorAll('[data-view]').forEach(el =>
   })
 );
 
-// --- main view loader (unwraps paginated jobs) ---
+// --- main view loader (supports dashboard + resource views) ---
 async function loadAdminView(view) {
   initState(view);
   app.innerHTML = `<h3>Loading ${view}…</h3>`;
+  if (view === 'dashboard') {
+    return renderDashboard();
+  }
   const cfg = RESOURCES[view];
   if (!cfg || !cfg.endpoint) {
     app.innerHTML = `<h3>${view.charAt(0).toUpperCase()+view.slice(1)}</h3><p>Under construction…</p>`;
@@ -252,6 +255,84 @@ async function loadAdminView(view) {
       ? data.jobs
       : [];
   renderList(view);
+}
+
+// --- render the dashboard with four Chart.js charts ---
+async function renderDashboard() {
+  // fetch all data in parallel
+  const [deals, orders, jobs, payments] = await Promise.all([
+    fetchJSON('/deals'),
+    fetchJSON('/orders'),
+    fetchJSON('/jobs'),
+    fetchJSON('/payments'),
+  ]);
+
+  // prepare pipeline data
+  const pipelineCounts = { qualified:0, won:0, lost:0 };
+  deals.forEach(d => pipelineCounts[d.deal_status]++);
+
+  // prepare revenue over time (by order.placed_at)
+  const revenueMap = {};
+  orders.forEach(o => {
+    const date = o.placed_at.split('T')[0];
+    revenueMap[date] = (revenueMap[date]||0) + parseFloat(o.total);
+  });
+  const revenueDates = Object.keys(revenueMap).sort();
+  const revenueValues = revenueDates.map(d => revenueMap[d]);
+
+  // jobs by status
+  const jobCounts = { queued:0, in_progress:0, finished:0, cancelled:0 };
+  jobs.forEach(j => jobCounts[j.job_status]++);
+
+  // payments by gateway
+  const payCounts = {};
+  payments.forEach(p => payCounts[p.gateway] = (payCounts[p.gateway]||0) + 1);
+
+  // render HTML skeleton
+  app.innerHTML = `
+    <h3>Dashboard</h3>
+    <div class="row g-4">
+      <div class="col-md-6"><canvas id="chart-pipeline"></canvas></div>
+      <div class="col-md-6"><canvas id="chart-jobs"></canvas></div>
+      <div class="col-md-6"><canvas id="chart-revenue"></canvas></div>
+      <div class="col-md-6"><canvas id="chart-payments"></canvas></div>
+    </div>
+  `;
+
+  // instantiate charts
+  new Chart(document.getElementById('chart-pipeline').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(pipelineCounts).map(s => s.toUpperCase()),
+      datasets: [{ data: Object.values(pipelineCounts) }]
+    }
+  });
+
+  new Chart(document.getElementById('chart-jobs').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(jobCounts).map(s => s.replace('_',' ').toUpperCase()),
+      datasets: [{ label: 'Jobs', data: Object.values(jobCounts) }]
+    },
+    options: { scales: { y: { beginAtZero:true } } }
+  });
+
+  new Chart(document.getElementById('chart-revenue').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: revenueDates,
+      datasets: [{ label: 'Revenue', data: revenueValues, fill:false }]
+    },
+    options: { scales: { y: { beginAtZero:true } } }
+  });
+
+  new Chart(document.getElementById('chart-payments').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(payCounts),
+      datasets: [{ data: Object.values(payCounts) }]
+    }
+  });
 }
 
 // --- render table + toolbar ---
@@ -334,7 +415,7 @@ function renderList(resource) {
                 <button class="btn btn-sm btn-outline-danger me-1"
                         onclick="deleteResource('${resource}',${idVal})">Delete</button>
                 ${
-                  // Finance view: show existing job or Create Job button
+                  // Finance view: show job badge or Create Job
                   resource==='finance'
                     ? (rec.job_id
                         ? `<span class="badge bg-success">Job ${rec.job_id}</span>`
@@ -416,7 +497,7 @@ function renderForm(resource, record={}) {
   let html = `<h3>${isEdit?'Edit':'New'} ${resource}</h3>
               <form id="frm_${resource}">`;
   cfg.columns.forEach(c => {
-    const val = record[c.key]!=null?record[c.key]: '';
+    const val = record[c.key]!=null?record[c.key]:'';
     html += `<div class="mb-3">
                <label for="f_${c.key}" class="form-label">${c.label}</label>`;
     if (c.options) {
