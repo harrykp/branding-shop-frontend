@@ -109,6 +109,13 @@ async function removeItem(cartId) {
   }
 }
 
+async function loadCheckout() { /* GET /api/cart, render table + total */ }
+async function placeOrder() {
+  const resp = await fetchJSON('/api/checkout', { method: 'POST' });
+  window.location.href = `/thank-you.html?order=${resp.id}`;
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('products')) {
     loadProducts();
