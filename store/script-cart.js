@@ -1,5 +1,14 @@
 const API_BASE_URL = "https://branding-shop-backend.onrender.com/api";
 
+// Helper to decode JWT and extract payload
+function parseJwt(token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return null;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const cartItemsContainer = document.getElementById("cart-items");
   const cartActions = document.getElementById("cart-actions");
@@ -51,8 +60,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const token = localStorage.getItem("token");
+    const userData = parseJwt(token);
+
+    if (!userData || !userData.user_id) {
+      alert("You must be logged in to check out.");
+      return;
+    }
+
     const orderPayload = {
-      customer_id: 1, // Replace or retrieve actual user ID in production
+      customer_id: userData.user_id,
       items: cartItems.map(item => ({
         product_id: item.id,
         quantity: item.quantity
@@ -61,7 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fetch(`${API_BASE_URL}/orders`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify(orderPayload)
     })
       .then(response => {
