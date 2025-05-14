@@ -1,55 +1,43 @@
-// public/script-store.js
-const API_BASE = '/api';
-const token    = localStorage.getItem('token');
-if (!token) location.href = 'login.html';
+const API_BASE_URL = "https://branding-shop-backend.onrender.com/api";
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${token}`
-};
+document.addEventListener("DOMContentLoaded", () => {
+  fetch(`${API_BASE_URL}/products`)
+    .then(response => response.json())
+    .then(products => {
+      const productList = document.getElementById("product-list");
+      products.forEach(product => {
+        const productItem = document.createElement("div");
+        productItem.className = "product-item";
+        productItem.innerHTML = `
+          <h2>${product.name}</h2>
+          <p>${product.description}</p>
+          <p>Price: $${product.price}</p>
+          <button data-id="${product.id}">Add to Cart</button>
+        `;
+        productList.appendChild(productItem);
+      });
 
-async function fetchJSON(path, opts = {}) {
-  const res = await fetch(API_BASE + path, { headers, ...opts });
-  if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-  return res.json();
-}
+      // Add event listeners to "Add to Cart" buttons
+      document.querySelectorAll("button[data-id]").forEach(button => {
+        button.addEventListener("click", () => {
+          const productId = button.getAttribute("data-id");
+          const product = products.find(p => p.id == productId);
 
-// — PRODUCTS PAGE —
-async function loadProducts() {
-  try {
-    const prods = await fetchJSON('/products');
-    document.getElementById('products').innerHTML = prods.map(p => `
-      <div class="col-md-4">
-        <div class="card h-100">
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title">${p.name}</h5>
-            <p class="card-text text-truncate">${p.description}</p>
-            <div class="mt-auto">
-              <strong>GHS ${p.price.toFixed(2)}</strong>
-              <button class="btn btn-sm btn-primary float-end"
-                      onclick="addToCart(${p.id},1)">
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    alert('Failed to load products: ' + err.message);
-  }
-}
+          let cart = JSON.parse(localStorage.getItem("cart")) || [];
+          const existing = cart.find(item => item.id === product.id);
 
-async function addToCart(productId, qty) {
-  try {
-    await fetchJSON('/cart', {
-      method: 'POST',
-      body: JSON.stringify({ product_id: productId, quantity: qty })
+          if (existing) {
+            existing.quantity += 1;
+          } else {
+            cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 });
+          }
+
+          localStorage.setItem("cart", JSON.stringify(cart));
+          alert(`Added ${product.name} to cart.`);
+        });
+      });
+    })
+    .catch(error => {
+      console.error("Error fetching products:", error);
     });
-    alert('Added to cart!');
-  } catch (err) {
-    alert('Add to cart failed: ' + err.message);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', loadProducts);
+});
