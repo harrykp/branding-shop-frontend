@@ -1,4 +1,3 @@
-// Auto-logout after inactivity (15 minutes = 900000 ms)
 const INACTIVITY_LIMIT = 15 * 60 * 1000;
 
 function getToken() {
@@ -13,22 +12,26 @@ function parseJwt(token) {
   }
 }
 
-function checkAuth() {
+function checkAuth(requiredRole = null) {
   const token = getToken();
   const payload = token ? parseJwt(token) : null;
 
-  // Token missing or expired
   if (!token || !payload || (payload.exp && Date.now() > payload.exp * 1000)) {
     logout();
   }
 
-  // Inactivity check
   const lastActivity = localStorage.getItem("lastActivity");
   if (lastActivity && (Date.now() - lastActivity > INACTIVITY_LIMIT)) {
-    alert("You have been logged out due to inactivity.");
+    alert("You were logged out due to inactivity.");
     logout();
   } else {
     localStorage.setItem("lastActivity", Date.now());
+  }
+
+  // Role check
+  if (requiredRole && payload?.role !== requiredRole) {
+    alert("Unauthorized access.");
+    logout();
   }
 }
 
@@ -39,7 +42,7 @@ function logout() {
   window.location.href = "login.html";
 }
 
-// Hook into page activity
-window.addEventListener("load", checkAuth);
+// Update last activity on interaction
+window.addEventListener("load", () => checkAuth());
 window.addEventListener("mousemove", () => localStorage.setItem("lastActivity", Date.now()));
 window.addEventListener("keypress", () => localStorage.setItem("lastActivity", Date.now()));
