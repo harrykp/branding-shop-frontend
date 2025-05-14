@@ -1,11 +1,20 @@
+const API_BASE_URL = "https://branding-shop-backend.onrender.com/api";
+
 document.addEventListener("DOMContentLoaded", () => {
   const cartItemsContainer = document.getElementById("cart-items");
+  const cartActions = document.getElementById("cart-actions");
 
-  const cartItems = JSON.parse(localStorage.getItem("cart")) || [];
+  let cartItems = JSON.parse(localStorage.getItem("cart")) || [];
 
-  if (cartItems.length === 0) {
-    cartItemsContainer.innerHTML = "<p>Your cart is empty.</p>";
-  } else {
+  function renderCart() {
+    cartItemsContainer.innerHTML = "";
+    if (cartItems.length === 0) {
+      cartItemsContainer.innerHTML = "<p>Your cart is empty.</p>";
+      cartActions.style.display = "none";
+      return;
+    }
+
+    cartActions.style.display = "block";
     let total = 0;
 
     cartItems.forEach(item => {
@@ -27,4 +36,47 @@ document.addEventListener("DOMContentLoaded", () => {
     totalDiv.innerHTML = `<h3>Total: $${total.toFixed(2)}</h3>`;
     cartItemsContainer.appendChild(totalDiv);
   }
+
+  renderCart();
+
+  document.getElementById("clear-cart").addEventListener("click", () => {
+    localStorage.removeItem("cart");
+    cartItems = [];
+    renderCart();
+  });
+
+  document.getElementById("checkout").addEventListener("click", () => {
+    if (cartItems.length === 0) {
+      alert("Cart is empty.");
+      return;
+    }
+
+    const orderPayload = {
+      customer_id: 1, // Replace or retrieve actual user ID in production
+      items: cartItems.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity
+      }))
+    };
+
+    fetch(`${API_BASE_URL}/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(orderPayload)
+    })
+      .then(response => {
+        if (!response.ok) throw new Error("Order creation failed.");
+        return response.json();
+      })
+      .then(data => {
+        alert("Order placed successfully!");
+        localStorage.removeItem("cart");
+        cartItems = [];
+        renderCart();
+      })
+      .catch(error => {
+        console.error("Checkout error:", error);
+        alert("Failed to place order.");
+      });
+  });
 });
