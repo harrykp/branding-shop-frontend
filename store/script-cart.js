@@ -12,8 +12,17 @@ function parseJwt(token) {
 document.addEventListener("DOMContentLoaded", () => {
   const cartItemsContainer = document.getElementById("cart-items");
   const cartActions = document.getElementById("cart-actions");
+  const checkoutButton = document.getElementById("checkout");
 
   let cartItems = JSON.parse(localStorage.getItem("cart")) || [];
+
+  const token = localStorage.getItem("token");
+  const userData = parseJwt(token);
+
+  if (!userData || !userData.user_id) {
+    checkoutButton.disabled = true;
+    checkoutButton.innerText = "Login to Checkout";
+  }
 
   function renderCart() {
     cartItemsContainer.innerHTML = "";
@@ -54,17 +63,14 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCart();
   });
 
-  document.getElementById("checkout").addEventListener("click", () => {
-    if (cartItems.length === 0) {
-      alert("Cart is empty.");
+  checkoutButton.addEventListener("click", () => {
+    if (!userData || !userData.user_id) {
+      alert("Please log in to proceed with checkout.");
       return;
     }
 
-    const token = localStorage.getItem("token");
-    const userData = parseJwt(token);
-
-    if (!userData || !userData.user_id) {
-      alert("You must be logged in to check out.");
+    if (cartItems.length === 0) {
+      alert("Cart is empty.");
       return;
     }
 
@@ -89,10 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return response.json();
       })
       .then(data => {
-        alert("Order placed successfully!");
         localStorage.removeItem("cart");
-        cartItems = [];
-        renderCart();
+        window.location.href = "thankyou.html";
       })
       .catch(error => {
         console.error("Checkout error:", error);
