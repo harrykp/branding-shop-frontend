@@ -5,11 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shopping Cart</title>
   <link rel="stylesheet" href="../style.css" />
+  <style>
+    .cart-item, .cart-total {
+      border: 1px solid #ddd;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      margin-right: 0.5rem;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    @media (max-width: 600px) {
+      .cart-item, .cart-total {
+        font-size: 0.9rem;
+      }
+
+      button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
   <h1>Your Cart</h1>
   <div id="cart-items"></div>
 
+  <div id="cart-actions">
+    <button id="clear-cart">Clear Cart</button>
+    <button id="checkout">Checkout</button>
+  </div>
+
   <script src="script-cart.js"></script>
 </body>
 </html>
+
