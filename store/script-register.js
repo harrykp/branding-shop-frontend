@@ -7,11 +7,13 @@ document.getElementById("registerForm").addEventListener("submit", function (e) 
   const email = document.getElementById("email").value.trim();
   const phone = document.getElementById("phone").value.trim();
   const password = document.getElementById("password").value.trim();
+  const security_question = document.getElementById("security-question").value;
+  const security_answer = document.getElementById("security-answer").value;
 
   fetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, phone_number: phone, password })
+    body: JSON.stringify({ name, email, phone_number: phone, password, security_question, security_answer })
   })
     .then(res => res.json())
     .then(data => {
