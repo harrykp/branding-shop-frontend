@@ -1,30 +1,57 @@
+<!-- profile.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Update Profile</title>
-  <link rel="stylesheet" href="../style.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-  <div style="text-align:right; padding:1rem;">
-    <button onclick="logout()">Logout</button>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="products.html">Branding Shop</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="products.html">Products</a></li>
+          <li class="nav-item"><a class="nav-link" href="cart.html">Cart</a></li>
+          <li class="nav-item"><a class="nav-link active" href="profile.html">Profile</a></li>
+          <li class="nav-item"><a class="nav-link" href="history.html">Order History</a></li>
+          <li class="nav-item"><button class="btn btn-sm btn-outline-light ms-2" onclick="logout()">Logout</button></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div class="container py-4">
+    <h2>Update Password & Security Question</h2>
+    <form id="profile-form">
+      <div class="mb-3">
+        <label class="form-label">New Password</label>
+        <input type="password" id="new-password" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Security Question</label>
+        <select id="security-question" class="form-select" required>
+          <option value="">-- Select a question --</option>
+          <option>What is your favorite color?</option>
+          <option>What is your mother's maiden name?</option>
+          <option>What was your first pet's name?</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Answer</label>
+        <input type="text" id="security-answer" class="form-control" required />
+      </div>
+      <button class="btn btn-primary w-100" type="submit">Update Profile</button>
+    </form>
+    <p id="update-msg" class="text-center mt-3 text-success"></p>
   </div>
-  <h2>Update Password & Security Question</h2>
-  <form id="profile-form">
-    <input type="password" id="new-password" placeholder="New Password" required />
-    <select id="security-question" required>
-      <option value="">-- Select New Question --</option>
-      <option>What is your favorite color?</option>
-      <option>What is your mother's maiden name?</option>
-      <option>What was your first pet's name?</option>
-    </select>
-    <input type="text" id="security-answer" placeholder="New Answer" required />
-    <button type="submit">Update</button>
-  </form>
-  <p id="update-msg"></p>
-
   <script src="auth.js"></script>
   <script src="script-profile.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
