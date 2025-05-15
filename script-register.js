@@ -6,12 +6,13 @@ document.getElementById('registerForm').addEventListener('submit', async e => {
   const email = document.getElementById('email').value;
   const phone_number = document.getElementById('phone').value;
   const password = document.getElementById('password').value;
-
+  const security_question = document.getElementById("security-question").value;
+  const security_answer = document.getElementById("security-answer").value;
   try {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone_number, password })
+      body: JSON.stringify({ name, email, phone_number: phone, password, security_question, security_answer })
     });
     if (!res.ok) throw new Error('Registration failed');
     const { token, user } = await res.json();
