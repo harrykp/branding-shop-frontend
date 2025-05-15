@@ -551,6 +551,33 @@ async function pushDeal(dealId) {
   loadAdminView('production');
 }
 
+function resetUserPassword() {
+  const token = localStorage.getItem("token");
+  const email = document.getElementById("reset-user-email").value.trim();
+  const newPassword = document.getElementById("new-user-password").value;
+
+  if (!email || !newPassword) {
+    return alert("Please provide email and new password.");
+  }
+
+  fetch(`${API_BASE_URL}/admin/reset-password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ email, newPassword })
+  })
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("reset-status").innerText = data.message;
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("reset-status").innerText = "Error resetting password.";
+    });
+}
+
 // --- logout & init ---
 function logout() {
   localStorage.removeItem('token');
