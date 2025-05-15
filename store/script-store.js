@@ -1,10 +1,26 @@
 const API_BASE_URL = "https://branding-shop-backend.onrender.com/api";
+const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
 document.addEventListener("DOMContentLoaded", () => {
-  fetch(`${API_BASE_URL}/products`)
-    .then(response => response.json())
+  fetch(`${API_BASE_URL}/products`, {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then(products => {
+      if (!Array.isArray(products)) {
+        throw new Error("Invalid product response format.");
+      }
+
       const productList = document.getElementById("product-list");
+      productList.innerHTML = ""; // Clear any previous content
+
       products.forEach(product => {
         const productItem = document.createElement("div");
         productItem.className = "product-item";
@@ -29,7 +45,12 @@ document.addEventListener("DOMContentLoaded", () => {
           if (existing) {
             existing.quantity += 1;
           } else {
-            cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1 });
+            cart.push({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              quantity: 1
+            });
           }
 
           localStorage.setItem("cart", JSON.stringify(cart));
@@ -39,5 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .catch(error => {
       console.error("Error fetching products:", error);
+      const productList = document.getElementById("product-list");
+      productList.innerHTML = `<p style="color: red;">Failed to load products. Please login or check your connection.</p>`;
     });
 });
