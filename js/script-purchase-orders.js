@@ -1,84 +1,51 @@
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
-  fetchAndRender();
+  const tableBody = document.querySelector("#po-table tbody");
 
-  document.getElementById("search").addEventListener("input", function () {
-    filterTable(this.value);
-  });
-});
+  async function loadPOs() {
+    const res = await fetchWithAuth("/api/purchase-orders");
+    const pos = await res.json();
 
-function fetchAndRender(page = 1) {
-  fetch(`/api/purchase-orders?page=${page}`, {
-    headers: {
-      Authorization: "Bearer " + (localStorage.getItem("token") || sessionStorage.getItem("token"))
+    tableBody.innerHTML = "";
+    pos.forEach(po => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${po.supplier_name}</td>
+        <td>${po.item_name}</td>
+        <td>${po.quantity}</td>
+        <td>
+          <select class="form-select form-select-sm" onchange="updatePOStatus('${po.id}', this.value)">
+            <option ${po.status === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option ${po.status === 'Ordered' ? 'selected' : ''}>Ordered</option>
+            <option ${po.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+          </select>
+        </td>
+        <td>${po.created_at?.split('T')[0]}</td>
+        <td>
+          <button class="btn btn-sm btn-primary me-2" onclick="editPO('${po.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePO('${po.id}')">Delete</button>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  window.updatePOStatus = async (id, status) => {
+    await fetchWithAuth("/api/purchase-orders/" + id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+  };
+
+  window.editPO = (id) => alert("Edit PO: " + id);
+  window.deletePO = async (id) => {
+    if (confirm("Delete this PO?")) {
+      await fetchWithAuth("/api/purchase-orders/" + id, { method: "DELETE" });
+      loadPOs();
     }
-  })
-    .then(res => res.json())
-    .then(data => renderTable(data.items || []))
-    .catch(err => console.error("Error loading purchase-orders:", err));
-}
+  };
 
-function renderTable(items) {
-  const tbody = document.getElementById("po-table-body");
-  tbody.innerHTML = "";
-
-  items.forEach(item => {
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${item.name || item.title || item.email || item.category || item.code || '-'}</td>
-      <td>
-        <select class='form-select form-select-sm' onchange='updateStatus(this, "${item.id}")'>
-          <option value='pending' ${item.status === 'pending' ? 'selected' : ''}>pending</option>
-          <option value='approved' ${item.status === 'approved' ? 'selected' : ''}>approved</option>
-          <option value='rejected' ${item.status === 'rejected' ? 'selected' : ''}>rejected</option>
-        </select>
-      </td>
-      <td>
-        <button class='btn btn-sm btn-primary me-1' onclick='editItem("${item.id}")'>Edit</button>
-        <button class='btn btn-sm btn-danger' onclick='deleteItem("${item.id}")'>Delete</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-function updateStatus(select, id) {
-  const newStatus = select.value;
-  fetch(`/api/purchase-orders/` + id, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: "Bearer " + (localStorage.getItem("token") || sessionStorage.getItem("token"))
-    },
-    body: JSON.stringify({ status: newStatus })
-  })
-    .then(res => res.json())
-    .then(data => console.log("Status updated:", data))
-    .catch(err => console.error("Error updating status:", err));
-}
-
-function exportCSV() {
-  alert("Export to CSV not implemented yet.");
-}
-
-function openNewForm() {
-  alert("New entry form not implemented.");
-}
-
-function filterTable(query) {
-  query = query.toLowerCase();
-  const rows = document.querySelectorAll("#po-table-body tr");
-  rows.forEach(row => {
-    row.style.display = row.textContent.toLowerCase().includes(query) ? "" : "none";
-  });
-}
-
-function editItem(id) {
-  alert("Edit feature for ID " + id + " not yet implemented.");
-}
-
-function deleteItem(id) {
-  alert("Delete feature for ID " + id + " not yet implemented.");
-}
+  loadPOs();
+});

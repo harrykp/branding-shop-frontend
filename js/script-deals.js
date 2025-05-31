@@ -1,84 +1,50 @@
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
-  fetchAndRender();
+  const tableBody = document.querySelector("#deal-table tbody");
 
-  document.getElementById("search").addEventListener("input", function () {
-    filterTable(this.value);
-  });
-});
+  async function loadDeals() {
+    const res = await fetchWithAuth("/api/deals");
+    const deals = await res.json();
 
-function fetchAndRender(page = 1) {
-  fetch(`/api/deals?page=${page}`, {
-    headers: {
-      Authorization: "Bearer " + (localStorage.getItem("token") || sessionStorage.getItem("token"))
+    tableBody.innerHTML = "";
+    deals.forEach(d => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.customer_name}</td>
+        <td>${d.quote_id}</td>
+        <td>
+          <select class="form-select form-select-sm" onchange="updateDealStatus('${d.id}', this.value)">
+            <option ${d.status === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option ${d.status === 'Approved' ? 'selected' : ''}>Approved</option>
+            <option ${d.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+          </select>
+        </td>
+        <td>${d.sales_rep_name || ''}</td>
+        <td>
+          <button class="btn btn-sm btn-primary me-2" onclick="editDeal('${d.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteDeal('${d.id}')">Delete</button>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  window.updateDealStatus = async (id, status) => {
+    await fetchWithAuth("/api/deals/" + id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+  };
+
+  window.editDeal = (id) => alert("Edit deal: " + id);
+  window.deleteDeal = async (id) => {
+    if (confirm("Delete this deal?")) {
+      await fetchWithAuth("/api/deals/" + id, { method: "DELETE" });
+      loadDeals();
     }
-  })
-    .then(res => res.json())
-    .then(data => renderTable(data.items || []))
-    .catch(err => console.error("Error loading deals:", err));
-}
+  };
 
-function renderTable(items) {
-  const tbody = document.getElementById("deals-table-body");
-  tbody.innerHTML = "";
-
-  items.forEach(item => {
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${item.name || item.title || item.email || item.category || item.code || '-'}</td>
-      <td>
-        <select class='form-select form-select-sm' onchange='updateStatus(this, "${item.id}")'>
-          <option value='pending' ${item.status === 'pending' ? 'selected' : ''}>pending</option>
-          <option value='approved' ${item.status === 'approved' ? 'selected' : ''}>approved</option>
-          <option value='rejected' ${item.status === 'rejected' ? 'selected' : ''}>rejected</option>
-        </select>
-      </td>
-      <td>
-        <button class='btn btn-sm btn-primary me-1' onclick='editItem("${item.id}")'>Edit</button>
-        <button class='btn btn-sm btn-danger' onclick='deleteItem("${item.id}")'>Delete</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-function updateStatus(select, id) {
-  const newStatus = select.value;
-  fetch(`/api/deals/` + id, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: "Bearer " + (localStorage.getItem("token") || sessionStorage.getItem("token"))
-    },
-    body: JSON.stringify({ status: newStatus })
-  })
-    .then(res => res.json())
-    .then(data => console.log("Status updated:", data))
-    .catch(err => console.error("Error updating status:", err));
-}
-
-function exportCSV() {
-  alert("Export to CSV not implemented yet.");
-}
-
-function openNewForm() {
-  alert("New entry form not implemented.");
-}
-
-function filterTable(query) {
-  query = query.toLowerCase();
-  const rows = document.querySelectorAll("#deals-table-body tr");
-  rows.forEach(row => {
-    row.style.display = row.textContent.toLowerCase().includes(query) ? "" : "none";
-  });
-}
-
-function editItem(id) {
-  alert("Edit feature for ID " + id + " not yet implemented.");
-}
-
-function deleteItem(id) {
-  alert("Delete feature for ID " + id + " not yet implemented.");
-}
+  loadDeals();
+});
