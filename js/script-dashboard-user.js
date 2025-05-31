@@ -1,28 +1,34 @@
+const API_BASE = "https://branding-shop-backend.onrender.com";
 
 document.addEventListener("DOMContentLoaded", async () => {
-  requireLogin();
-  const summary = document.getElementById("dashboard-summary");
-
-  const endpoints = {
-    quotes: "/api/quotes",
-    orders: "/api/orders",
-    payments: "/api/payments"
-  };
-
-  const results = await Promise.all(Object.entries(endpoints).map(([key, url]) => 
-    fetchWithAuth(url).then(res => res.json()).catch(() => [])
-  ));
-
-  const cards = ["Quotes", "Orders", "Payments"].map((label, i) => `
-    <div class="col-md-4">
-      <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-          <h5 class="card-title">${label}</h5>
-          <p class="card-text">Count: ${results[i].length}</p>
-        </div>
-      </div>
-    </div>
-  `).join("");
-
-  summary.innerHTML = cards;
+  includeHTML();
+  await requireLogin();
+  loadDashboardStats();
 });
+
+async function loadDashboardStats() {
+  const user = getCurrentUser();
+  try {
+    const [ordersRes, jobsRes, paymentsRes] = await Promise.all([
+      fetchWithAuth(`${API_BASE}/api/orders`),
+      fetchWithAuth(`${API_BASE}/api/jobs`),
+      fetchWithAuth(`${API_BASE}/api/payments`)
+    ]);
+
+    const orders = await ordersRes.json();
+    const jobs = await jobsRes.json();
+    const payments = await paymentsRes.json();
+
+    const totalOrders = orders.filter(o => o.user_id === user.id).length;
+    const completedJobs = jobs.filter(j => j.user_id === user.id && j.status === 'Completed').length;
+    const totalPayments = payments
+      .filter(p => p.user_id === user.id)
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    document.getElementById("total-orders").textContent = totalOrders;
+    document.getElementById("completed-jobs").textContent = completedJobs;
+    document.getElementById("total-payments").textContent = `₵${totalPayments.toFixed(2)}`;
+  } catch (err) {
+    console.error("Dashboard error:", err);
+  }
+}
