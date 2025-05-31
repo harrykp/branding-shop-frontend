@@ -7,11 +7,13 @@ function getCurrentUser() {
   if (!token) return null;
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!payload.roles) payload.roles = []; // fallback fix
     return payload;
   } catch (e) {
     return null;
   }
 }
+
 
 function requireLogin() {
   const user = getCurrentUser();
