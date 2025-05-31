@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin – Deals</title>
+  <title>Admin – Orders</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -11,17 +11,17 @@
   <div w3-include-html="admin-nav.html"></div>
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>Deals</h2>
-      <button class="btn btn-success">+ New Deal</button>
+      <h2>Orders</h2>
+      <button class="btn btn-success">+ New Order</button>
     </div>
-    <table class="table table-bordered" id="deal-table">
-      <thead><tr><th>Customer</th><th>Quote</th><th>Status</th><th>Rep</th><th>Actions</th></tr></thead>
+    <table class="table table-bordered" id="order-table">
+      <thead><tr><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
   <script src="js/includes.js"></script>
   <script src="js/helpers.js"></script>
-  <script src="js/script-deals.js"></script>
+  <script src="js/script-orders.js"></script>
   <script>includeHTML();</script>
 </body>
 </html>

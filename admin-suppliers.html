@@ -1,64 +1,27 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Suppliers</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <title>Admin – Suppliers</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <script src="js/helpers.js"></script>
-  <script>requireAdmin();</script>
   <div w3-include-html="admin-nav.html"></div>
-  <script src="js/includes.js"></script>
-  <script>includeHTML();</script>
-
-  <div class="container py-4">
+  <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>Suppliers</h2>
-      <div>
-        <button class="btn btn-primary me-2" onclick="exportCSV()">Export CSV</button>
-        <button class="btn btn-success" onclick="openNewForm()">+ New</button>
-      </div>
+      <button class="btn btn-success">+ New Supplier</button>
     </div>
-
-    <input type="text" id="search" class="form-control mb-3" placeholder="Filter...">
-
-    <div class="table-responsive">
-      <table class="table table-striped table-bordered">
-        <thead>
-          <tr><th>Name</th><th>Email</th><th>Category</th><th>Status</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="supplier-table-body">
-          <tr>
-            <td>GlobalPrint</td><td>supplier@example.com</td><td>Ink</td>
-            <td>
-              <select class="form-select form-select-sm">
-                <option selected>pending</option>
-                <option>approved</option>
-                <option>rejected</option>
-              </select>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-primary me-1">Edit</button>
-              <button class="btn btn-sm btn-danger">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <nav>
-      <ul class="pagination justify-content-center" id="supplier-pagination">
-        <li class="page-item"><a class="page-link" href="#">1</a></li>
-        <li class="page-item"><a class="page-link" href="#">2</a></li>
-      </ul>
-    </nav>
+    <table class="table table-bordered" id="supplier-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Address</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
-
+  <script src="js/includes.js"></script>
+  <script src="js/helpers.js"></script>
   <script src="js/script-suppliers.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>includeHTML();</script>
 </body>
 </html>

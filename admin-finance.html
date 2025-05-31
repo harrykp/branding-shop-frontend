@@ -1,64 +1,27 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Finance Overview</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <title>Admin – Finance</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <script src="js/helpers.js"></script>
-  <script>requireAdmin();</script>
   <div w3-include-html="admin-nav.html"></div>
-  <script src="js/includes.js"></script>
-  <script>includeHTML();</script>
-
-  <div class="container py-4">
+  <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>Finance Overview</h2>
-      <div>
-        <button class="btn btn-primary me-2" onclick="exportCSV()">Export CSV</button>
-        <button class="btn btn-success" onclick="openNewForm()">+ New</button>
-      </div>
+      <h2>Finance & Payments</h2>
+      <button class="btn btn-success">+ New Payment</button>
     </div>
-
-    <input type="text" id="search" class="form-control mb-3" placeholder="Filter...">
-
-    <div class="table-responsive">
-      <table class="table table-striped table-bordered">
-        <thead>
-          <tr><th>Category</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="finance-table-body">
-          <tr>
-            <td>Office Supplies</td><td>$200</td><td>2025-06-01</td>
-            <td>
-              <select class="form-select form-select-sm">
-                <option selected>pending</option>
-                <option>approved</option>
-                <option>rejected</option>
-              </select>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-primary me-1">Edit</button>
-              <button class="btn btn-sm btn-danger">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <nav>
-      <ul class="pagination justify-content-center" id="finance-pagination">
-        <li class="page-item"><a class="page-link" href="#">1</a></li>
-        <li class="page-item"><a class="page-link" href="#">2</a></li>
-      </ul>
-    </nav>
+    <table class="table table-bordered" id="finance-table">
+      <thead><tr><th>Order ID</th><th>Amount</th><th>Payment Type</th><th>Gateway</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
-
+  <script src="js/includes.js"></script>
+  <script src="js/helpers.js"></script>
   <script src="js/script-finance.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>includeHTML();</script>
 </body>
 </html>
