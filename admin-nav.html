@@ -1,12 +1,12 @@
-<!-- admin-nav.html -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container-fluid">
-    <a class="navbar-brand" href="admin.html">Admin Dashboard</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <a class="navbar-brand" href="admin.html">Admin</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
+    <div class="collapse navbar-collapse" id="adminNavbar">
+      <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="admin.html">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="admin-users.html">Users</a></li>
         <li class="nav-item"><a class="nav-link" href="admin-roles.html">Roles</a></li>
@@ -21,12 +21,10 @@
         <li class="nav-item"><a class="nav-link" href="admin-deals.html">Deals</a></li>
         <li class="nav-item"><a class="nav-link" href="admin-hr.html">HR</a></li>
         <li class="nav-item"><a class="nav-link" href="admin-finance.html">Finance</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin-analytics.html">Reports</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin-reports.html">Reports</a></li>
         <li class="nav-item"><a class="nav-link" href="admin-pricing.html">Pricing Rules</a></li>
-        <li class="nav-item">
-          <button class="btn btn-sm btn-outline-light ms-3" onclick="logout()">Logout</button>
-        </li>
       </ul>
+      <button class="btn btn-outline-light" onclick="logout()">Logout</button>
     </div>
   </div>
 </nav>
