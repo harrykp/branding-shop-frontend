@@ -1,36 +1,35 @@
-function parseJwt(token) {
+// js/helpers.js
+
+// Redirect to login page if user is not authenticated
+function requireLogin() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '/login.html';
+  }
+}
+
+// Redirect to unauthorized page if user is not an admin
+function requireAdmin() {
+  const token = localStorage.getItem('token');
+  const user = getCurrentUser();
+  if (!token || !user || !user.roles || !user.roles.includes('admin')) {
+    window.location.href = '/unauthorized.html';
+  }
+}
+
+// Get current user from localStorage
+function getCurrentUser() {
   try {
-    return JSON.parse(atob(token.split('.')[1]));
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   } catch (e) {
-    console.error("Invalid token format");
     return null;
   }
 }
 
-function getStoredToken() {
-  return localStorage.getItem("token") || sessionStorage.getItem("token");
-}
-
-function requireLogin() {
-  const token = getStoredToken();
-  const payload = parseJwt(token);
-  if (!token || !payload || !payload.userId) {
-    alert("Please log in to access this page.");
-    window.location.href = "login.html";
-  }
-}
-
-function requireAdmin() {
-  const token = getStoredToken();
-  const payload = parseJwt(token);
-  if (!token || !payload || !payload.roles || !payload.roles.includes("admin")) {
-    alert("Admin access required");
-    window.location.href = "unauthorized.html";
-  }
-}
-
+// Logout function
 function logout() {
-  localStorage.removeItem("token");
-  sessionStorage.removeItem("token");
-  window.location.href = "login.html";
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.href = '/login.html';
 }
