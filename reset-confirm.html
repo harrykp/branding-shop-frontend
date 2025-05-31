@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Confirm Reset</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="style.css" rel="stylesheet" />
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center" style="height:100vh;">
+  <div class="card p-4" style="max-width: 400px; width: 100%;">
+    <h4 class="text-center mb-3">Enter Reset Code</h4>
+    <form id="resetConfirmForm">
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" id="email" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label for="code" class="form-label">Reset Code</label>
+        <input type="text" id="code" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label for="new-password" class="form-label">New Password</label>
+        <input type="password" id="new-password" class="form-control" required />
+      </div>
+      <button class="btn btn-success w-100" type="submit">Update Password</button>
+    </form>
+    <p class="text-center mt-2"><a href="login.html">Back to login</a></p>
+  </div>
+  <script src="js/script-reset-confirm.js"></script>
+</body>
+</html>
