@@ -1,44 +1,23 @@
-// branding-shop-frontend/pricing-calculator.js
 
-async function calculatePrice() {
-  const productSelect    = document.getElementById('product-select');
-  const quantityInput    = document.getElementById('quantity-input');
-  const unitPriceDisplay = document.getElementById('unit-price-display');
-  const totalPriceDisplay= document.getElementById('total-price-display');
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("quote-form");
+  const totalField = document.getElementById("quote-total");
 
-  if (!productSelect || !quantityInput) return;
-
-  const payload = {
-    product_id: parseInt(productSelect.value, 10) || null,
-    quantity:   parseInt(quantityInput.value, 10) || 0
-  };
-
-  if (!payload.product_id || payload.quantity < 1) {
-    unitPriceDisplay.textContent  = '0.00';
-    totalPriceDisplay.textContent = '0.00';
-    return;
+  async function calculateTotal() {
+    const formData = new FormData(form);
+    const payload = {
+      product_id: formData.get("product_id"),
+      quantity: parseInt(formData.get("quantity")),
+      print_type: formData.get("print_type")
+    };
+    const res = await fetch("/api/pricing-rules/calculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    totalField.textContent = `Total: GHS ${data.total}`;
   }
 
-  try {
-    const { unitPrice, total } = await fetchJSON(
-      '/pricing-rules/calc',
-      { method: 'POST', body: JSON.stringify(payload) }
-    );
-    unitPriceDisplay.textContent  = unitPrice.toFixed(2);
-    totalPriceDisplay.textContent = total.toFixed(2);
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-window.calculatePrice = calculatePrice;
-
-document.addEventListener('DOMContentLoaded', () => {
-  const prod = document.getElementById('product-select');
-  const qty  = document.getElementById('quantity-input');
-  if (prod && qty) {
-    prod.addEventListener('change', calculatePrice);
-    qty.addEventListener('input', calculatePrice);
-    calculatePrice();
-  }
+  form.addEventListener("change", calculateTotal);
 });
