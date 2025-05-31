@@ -1,24 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>User – Payments</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="style.css"/>
+  <title>Finance & Payments</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css" />
 </head>
 <body>
   <div w3-include-html="user-nav.html"></div>
-  <div class="container mt-4">
-    <h2>Payments</h2>
-    <table class="table table-bordered" id="finance-table">
-      <thead><tr><th>Order</th><th>Amount</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
-      <tbody></tbody>
-    </table>
+  <div class="container py-4">
+    <h2>Payments Received</h2>
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <input type="text" class="form-control" id="search-payments" placeholder="Search by customer or method..." oninput="loadPayments()" />
+      </div>
+      <div class="col-md-6">
+        <input type="date" class="form-control" id="payment-date" onchange="loadPayments()" />
+      </div>
+    </div>
+    <div id="pagination-payments" class="d-flex justify-content-center my-3"></div>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead><tr><th>Customer</th><th>Order</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
+        <tbody id="payments-body"></tbody>
+      </table>
+    </div>
   </div>
-  <script src="js/includes.js"></script>
-  <script src="js/helpers.js"></script>
-  <script src="js/script-finance-user.js"></script>
-  <script>includeHTML();</script>
+  <script src="../js/includes.js"></script>
+  <script src="../js/script-auth.js"></script>
+  <script src="../js/script-finance-user.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

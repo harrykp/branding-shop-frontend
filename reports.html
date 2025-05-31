@@ -1,26 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>User – Reports</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="style.css"/>
+  <title>Reports</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css" />
 </head>
 <body>
   <div w3-include-html="user-nav.html"></div>
-  <div class="container mt-4">
+  <div class="container py-4">
     <h2>Reports</h2>
-    <ul class="list-group">
-      <li class="list-group-item"><a href="/api/reports/sales" target="_blank">Sales Report</a></li>
-      <li class="list-group-item"><a href="/api/reports/taxes" target="_blank">Tax Report</a></li>
-      <li class="list-group-item"><a href="/api/reports/finance" target="_blank">Finance Report</a></li>
-      <li class="list-group-item"><a href="/api/reports/cashflow" target="_blank">Cashflow Report</a></li>
-      <li class="list-group-item"><a href="/api/reports/leave" target="_blank">Leave Report</a></li>
-    </ul>
+    <div class="row g-4">
+      <div class="col-md-6"><canvas id="salesChart"></canvas></div>
+      <div class="col-md-6"><canvas id="leaveChart"></canvas></div>
+    </div>
   </div>
-  <script src="js/includes.js"></script>
-  <script src="js/helpers.js"></script>
-  <script>includeHTML();</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../js/includes.js"></script>
+  <script src="../js/script-auth.js"></script>
+  <script src="../js/script-reports-user.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

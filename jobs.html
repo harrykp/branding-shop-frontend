@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Orders</title>
+  <title>Production Jobs</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="../style.css" />
 </head>
@@ -11,32 +11,32 @@
   <div w3-include-html="user-nav.html"></div>
 
   <div class="container py-4">
-    <h2>Your Orders</h2>
+    <h2>Production Jobs</h2>
     <div class="input-group mb-3">
-      <input type="text" id="search-orders" class="form-control" placeholder="Search by status or customer..." oninput="loadOrders()" />
+      <input type="text" id="search-jobs" class="form-control" placeholder="Search by status, product, or department..." oninput="loadJobs()" />
     </div>
-    <div id="pagination-orders" class="d-flex justify-content-center my-3"></div>
+    <div id="pagination-jobs" class="d-flex justify-content-center my-3"></div>
     <div class="table-responsive">
       <table class="table table-bordered table-striped">
         <thead>
           <tr>
-            <th>Order #</th>
-            <th>Customer</th>
-            <th>Items</th>
-            <th>Total</th>
+            <th>Job #</th>
+            <th>Order</th>
+            <th>Product</th>
+            <th>Qty</th>
             <th>Status</th>
-            <th>Placed</th>
-            <th>Actions</th>
+            <th>Dept</th>
+            <th>Created</th>
           </tr>
         </thead>
-        <tbody id="order-table-body"></tbody>
+        <tbody id="job-table-body"></tbody>
       </table>
     </div>
   </div>
 
   <script src="../js/includes.js"></script>
   <script src="../js/script-auth.js"></script>
-  <script src="../js/script-orders-user.js"></script>
+  <script src="../js/script-jobs-user.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
