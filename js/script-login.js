@@ -19,14 +19,12 @@ document.getElementById("loginForm").addEventListener("submit", async function (
       return;
     }
 
-    // Store JWT in storage
     if (remember) {
       localStorage.setItem("token", data.token);
     } else {
       sessionStorage.setItem("token", data.token);
     }
 
-    // Decode roles to redirect appropriately
     const payload = JSON.parse(atob(data.token.split(".")[1]));
     const roles = payload.roles || [];
 
