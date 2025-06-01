@@ -1,6 +1,6 @@
 
-if (typeof API_BASE === 'undefined') {
-  var API_BASE = "https://branding-shop-backend.onrender.com";
+if (typeof window.API_BASE === "undefined") {
+  window.API_BASE = "https://branding-shop-backend.onrender.com";
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
