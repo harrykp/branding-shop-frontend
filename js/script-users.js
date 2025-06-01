@@ -17,14 +17,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function loadUsers() {
   try {
     const res = await fetchWithAuth(`${API_BASE}/api/users`);
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || "Failed to fetch users");
+    }
+
     const data = await res.json();
     if (!Array.isArray(data)) throw new Error("Expected array of users");
+    
     allUsers = data;
     renderTable();
   } catch (err) {
     console.error("Failed to load users:", err);
+    document.getElementById("user-table").innerHTML = `
+      <tr><td colspan="4" class="text-danger">Error loading users: ${err.message}</td></tr>
+    `;
   }
 }
+
 
 function renderTable() {
   const tbody = document.getElementById("user-table");
