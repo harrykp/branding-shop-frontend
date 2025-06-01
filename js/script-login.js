@@ -26,11 +26,15 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const roles = payload.roles || [];
 
-    if (roles.includes("admin")) {
+    // Case-insensitive check for admin role
+    const isAdmin = roles.some(role => role.toLowerCase() === "admin");
+
+    if (isAdmin) {
       window.location.href = "admin.html";
     } else {
       window.location.href = "dashboard.html";
     }
+
   } catch (err) {
     console.error("Login error:", err);
     alert("Login failed. Please try again.");
