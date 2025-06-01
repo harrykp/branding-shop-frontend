@@ -1,117 +1,123 @@
+const API_BASE = "https://branding-shop-backend.onrender.com";
+let allUsers = [];
+let currentPage = 1;
+const USERS_PER_PAGE = 10;
+
 document.addEventListener("DOMContentLoaded", async () => {
+  await includeHTML();
   requireAdmin();
-  includeHTML().then(() => injectNavLinks());
+  await loadUsers();
 
-  const searchInput = document.getElementById("search-users");
-  const tableBody = document.querySelector("#user-table tbody");
+  document.getElementById("search-users").addEventListener("input", () => renderTable());
+  document.getElementById("export-users-csv").addEventListener("click", exportCSV);
+});
+
+async function loadUsers() {
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/users`);
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error("Expected array of users");
+    allUsers = data;
+    renderTable();
+  } catch (err) {
+    console.error("Failed to load users:", err);
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById("user-table");
+  const searchTerm = document.getElementById("search-users").value.toLowerCase();
+  const filtered = allUsers.filter(user =>
+    user.full_name.toLowerCase().includes(searchTerm) ||
+    user.email.toLowerCase().includes(searchTerm)
+  );
+
+  const start = (currentPage - 1) * USERS_PER_PAGE;
+  const paginated = filtered.slice(start, start + USERS_PER_PAGE);
+
+  tbody.innerHTML = "";
+  for (const user of paginated) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${user.full_name}</td>
+      <td>${user.email}</td>
+      <td>${(user.roles || []).join(", ")}</td>
+      <td>
+        <button class="btn btn-sm btn-primary me-1" onclick="openEditModal('${user.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  renderPagination(filtered.length);
+}
+
+function renderPagination(totalItems) {
   const pagination = document.getElementById("pagination-users");
-  const exportBtn = document.getElementById("export-users-csv");
-  const newUserBtn = document.getElementById("add-user-btn");
+  const totalPages = Math.ceil(totalItems / USERS_PER_PAGE);
+  pagination.innerHTML = "";
 
-  let currentPage = 1;
-  const pageSize = 10;
-  let allUsers = [];
-
-  async function loadUsers() {
-    try {
-      const res = await fetchWithAuth(`${API_BASE}/api/users`);
-      const data = await res.json();
-      allUsers = data.users || data;
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement("button");
+    btn.className = `btn btn-sm mx-1 ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'}`;
+    btn.innerText = i;
+    btn.onclick = () => {
+      currentPage = i;
       renderTable();
-    } catch (err) {
-      console.error("Failed to load users:", err);
-    }
+    };
+    pagination.appendChild(btn);
   }
+}
 
-  function renderTable() {
-    const filtered = allUsers.filter(u =>
-      u.full_name.toLowerCase().includes(searchInput.value.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchInput.value.toLowerCase())
-    );
+window.openEditModal = (id) => {
+  const user = allUsers.find(u => u.id == id);
+  if (!user) return alert("User not found");
+  document.getElementById("edit-user-id").value = user.id;
+  document.getElementById("edit-user-name").value = user.full_name;
+  document.getElementById("edit-user-email").value = user.email;
+  new bootstrap.Modal(document.getElementById("editUserModal")).show();
+};
 
-    const totalPages = Math.ceil(filtered.length / pageSize);
-    const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-    tableBody.innerHTML = "";
-    paginated.forEach(user => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${user.full_name}</td>
-        <td>${user.email}</td>
-        <td>${(user.roles || []).join(', ')}</td>
-        <td>
-          <button class="btn btn-sm btn-primary me-1" onclick="openEditModal('${user.id}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">Delete</button>
-        </td>
-      `;
-      tableBody.appendChild(tr);
-    });
-
-    // Pagination controls
-    pagination.innerHTML = "";
-    for (let i = 1; i <= totalPages; i++) {
-      const btn = document.createElement("button");
-      btn.className = `btn btn-sm btn-outline-primary mx-1 ${i === currentPage ? "active" : ""}`;
-      btn.textContent = i;
-      btn.onclick = () => {
-        currentPage = i;
-        renderTable();
-      };
-      pagination.appendChild(btn);
-    }
-  }
-
-  exportBtn.addEventListener("click", () => {
-    let csv = "Name,Email,Roles\n";
-    allUsers.forEach(u => {
-      csv += `"${u.full_name}","${u.email}","${(u.roles || []).join(', ')}"\n`;
-    });
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "users.csv";
-    link.click();
-  });
-
-  window.deleteUser = async (id) => {
-    if (!confirm("Delete this user?")) return;
+window.deleteUser = async (id) => {
+  if (!confirm("Are you sure you want to delete this user?")) return;
+  try {
     await fetchWithAuth(`${API_BASE}/api/users/${id}`, { method: "DELETE" });
-    loadUsers();
-  };
+    await loadUsers();
+  } catch (err) {
+    console.error("Delete failed:", err);
+  }
+};
 
-  window.openEditModal = (id) => {
-    const user = allUsers.find(u => u.id === id);
-    if (!user) return alert("User not found");
-    document.getElementById("edit-user-id").value = user.id;
-    document.getElementById("edit-full-name").value = user.full_name;
-    document.getElementById("edit-email").value = user.email;
-    const modal = new bootstrap.Modal(document.getElementById("editUserModal"));
-    modal.show();
-  };
+document.getElementById("edit-user-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("edit-user-id").value;
+  const full_name = document.getElementById("edit-user-name").value;
+  const email = document.getElementById("edit-user-email").value;
 
-  document.getElementById("edit-user-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const id = document.getElementById("edit-user-id").value;
-    const full_name = document.getElementById("edit-full-name").value;
-    const email = document.getElementById("edit-email").value;
+  try {
     await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ full_name, email })
     });
     bootstrap.Modal.getInstance(document.getElementById("editUserModal")).hide();
-    loadUsers();
-  });
-
-  searchInput.addEventListener("input", () => {
-    currentPage = 1;
-    renderTable();
-  });
-
-  newUserBtn.addEventListener("click", () => {
-    alert("New user modal not implemented yet");
-  });
-
-  loadUsers();
+    await loadUsers();
+  } catch (err) {
+    console.error("Update failed:", err);
+  }
 });
+
+function exportCSV() {
+  const csv = ["Full Name,Email,Roles"];
+  allUsers.forEach(user => {
+    csv.push(`"${user.full_name}","${user.email}","${(user.roles || []).join(" | ")}"`);
+  });
+  const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "users.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
