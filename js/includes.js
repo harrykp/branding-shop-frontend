@@ -1,23 +1,48 @@
+// js/includes.js
 async function includeHTML() {
   const elements = document.querySelectorAll("[w3-include-html]");
   for (const el of elements) {
     const file = el.getAttribute("w3-include-html");
     if (!file) continue;
+
     try {
       const res = await fetch(file);
-      const html = await res.text();
-      el.innerHTML = html;
+      const text = await res.text();
+      el.innerHTML = text;
       el.removeAttribute("w3-include-html");
-    } catch (err) {
-      el.innerHTML = "<div class='alert alert-danger'>Failed to load navbar.</div>";
+    } catch (e) {
+      el.innerHTML = "Navigation failed to load.";
     }
   }
+
   await injectNavLinks();
 }
 
 async function injectNavLinks() {
   const user = getCurrentUser();
   if (!user) return;
+
+  const isAdmin = user.roles.includes("admin");
+  const navId = isAdmin ? "admin-nav-links" : "user-nav-links";
+  const container = document.getElementById(navId);
+  if (!container) return;
+
+  const userLinks = {
+    "Dashboard": "dashboard.html",
+    "Customers": "customers.html",
+    "Products": "products.html",
+    "Quotes": "quotes.html",
+    "Orders": "orders.html",
+    "Production": "production.html",
+    "Suppliers": "suppliers.html",
+    "Catalog": "catalog.html",
+    "Purchase Orders": "purchase-orders.html",
+    "Leads": "leads.html",
+    "Deals": "deals.html",
+    "HR": "hr.html",
+    "Finance/Payments": "finance.html",
+    "Reports": "reports.html"
+  };
 
   const adminLinks = {
     "Dashboard": "admin.html",
@@ -38,28 +63,7 @@ async function injectNavLinks() {
     "Pricing Rules": "admin-pricing.html"
   };
 
-  const userLinks = {
-    "Dashboard": "dashboard.html",
-    "Customers": "customers.html",
-    "Products": "products.html",
-    "Quotes": "quotes.html",
-    "Orders": "orders.html",
-    "Production": "production.html",
-    "Suppliers": "suppliers.html",
-    "Catalog": "catalog.html",
-    "Purchase Orders": "purchase-orders.html",
-    "Leads": "leads.html",
-    "Deals": "deals.html",
-    "HR": "hr.html",
-    "Finance/Payments": "finance.html",
-    "Reports": "reports.html"
-  };
-
-  const isAdmin = user.roles.includes("admin");
-  const navId = isAdmin ? "admin-nav-links" : "user-nav-links";
-  const container = document.getElementById(navId);
   const links = isAdmin ? adminLinks : userLinks;
-
   for (const [label, href] of Object.entries(links)) {
     const li = document.createElement("li");
     li.className = "nav-item";
@@ -67,6 +71,7 @@ async function injectNavLinks() {
     container.appendChild(li);
   }
 
+  // Display current user's email
   const emailSpan = document.getElementById(isAdmin ? "admin-user-email" : "user-email");
   if (emailSpan) emailSpan.textContent = user.email || "";
 }
