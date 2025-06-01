@@ -1,34 +1,23 @@
-// js/includes.js
-
 async function includeHTML() {
   const elements = document.querySelectorAll("[w3-include-html]");
   for (const el of elements) {
     const file = el.getAttribute("w3-include-html");
     if (!file) continue;
-
     try {
       const res = await fetch(file);
-      const text = await res.text();
-      el.innerHTML = text;
+      const html = await res.text();
+      el.innerHTML = html;
       el.removeAttribute("w3-include-html");
-    } catch (e) {
-      el.innerHTML = "Failed to load navigation.";
+    } catch (err) {
+      el.innerHTML = "<div class='alert alert-danger'>Failed to load navbar.</div>";
     }
   }
-  await injectNavLinks(); // Inject dynamic nav items after loading
+  await injectNavLinks();
 }
 
 async function injectNavLinks() {
   const user = getCurrentUser();
   if (!user) return;
-
-  const isAdmin = user.roles.includes("admin");
-  const navId = isAdmin ? "admin-nav-links" : "user-nav-links";
-  const container = document.getElementById(navId);
-  if (!container) return;
-
-  // Clear existing nav links to avoid duplicates
-  container.innerHTML = "";
 
   const adminLinks = {
     "Dashboard": "admin.html",
@@ -66,6 +55,9 @@ async function injectNavLinks() {
     "Reports": "reports.html"
   };
 
+  const isAdmin = user.roles.includes("admin");
+  const navId = isAdmin ? "admin-nav-links" : "user-nav-links";
+  const container = document.getElementById(navId);
   const links = isAdmin ? adminLinks : userLinks;
 
   for (const [label, href] of Object.entries(links)) {
@@ -75,17 +67,6 @@ async function injectNavLinks() {
     container.appendChild(li);
   }
 
-  // Append current user and logout
-  const nav = container.closest(".navbar").querySelector(".navbar-nav");
-  if (nav) {
-    const info = document.createElement("li");
-    info.className = "nav-item";
-    info.innerHTML = `<span class="navbar-text text-light ms-3">${user.full_name || user.email}</span>`;
-    nav.appendChild(info);
-
-    const logoutLi = document.createElement("li");
-    logoutLi.className = "nav-item";
-    logoutLi.innerHTML = `<button class="btn btn-sm btn-outline-light ms-2" onclick="logout()">Logout</button>`;
-    nav.appendChild(logoutLi);
-  }
+  const emailSpan = document.getElementById(isAdmin ? "admin-user-email" : "user-email");
+  if (emailSpan) emailSpan.textContent = user.email || "";
 }
