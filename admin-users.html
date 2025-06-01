@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin - Manage Users</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="style.css" />
@@ -11,70 +11,63 @@
   <div w3-include-html="admin-nav.html"></div>
 
   <div class="container py-4">
-    <h2 class="mb-3">Manage Users</h2>
+    <h2>Manage Users</h2>
 
-    <!-- Actions -->
-    <div class="d-flex justify-content-between my-3">
-      <button id="add-user-btn" class="btn btn-success">+ New User</button>
-      <button id="export-users-csv" class="btn btn-outline-primary">Export CSV</button>
+    <div class="mb-3 row">
+      <div class="col-md-6">
+        <input type="text" id="search-users" class="form-control" placeholder="Search by name or email..." />
+      </div>
+      <div class="col-md-6 text-end">
+        <button class="btn btn-secondary" id="export-users-csv">Export CSV</button>
+      </div>
     </div>
 
-    <!-- Search -->
-    <div class="input-group mb-3">
-      <input type="text" id="search-users" class="form-control" placeholder="Search by name or email" />
-    </div>
-
-    <!-- Table -->
     <div class="table-responsive">
-      <table class="table table-bordered table-striped">
-        <thead>
+      <table class="table table-bordered" id="user-table">
+        <thead class="table-light">
           <tr>
             <th>Name</th>
             <th>Email</th>
-            <th>Phone</th>
             <th>Roles</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="user-table-body"></tbody>
       </table>
-
     </div>
 
-    <!-- Pagination -->
-    <div id="pagination-users" class="d-flex justify-content-center my-3"></div>
+    <nav>
+      <ul class="pagination justify-content-center" id="pagination-users"></ul>
+    </nav>
   </div>
 
-  <!-- Optional Modals -->
-   <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+  <!-- Edit Modal -->
+  <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-      <div class="modal-content">
-        <form id="edit-user-form">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <form class="modal-content" id="edit-user-form">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-user-id" />
+          <div class="mb-3">
+            <label for="edit-user-name" class="form-label">Full Name</label>
+            <input type="text" id="edit-user-name" class="form-control" required />
           </div>
-          <div class="modal-body">
-            <input type="hidden" id="edit-user-id" />
-            <div class="mb-3">
-              <label for="edit-user-name" class="form-label">Full Name</label>
-              <input type="text" id="edit-user-name" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="edit-user-email" class="form-label">Email</label>
-              <input type="email" id="edit-user-email" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="edit-user-roles" class="form-label">Roles (comma-separated)</label>
-              <input type="text" id="edit-user-roles" class="form-control" />
-            </div>
+          <div class="mb-3">
+            <label for="edit-user-email" class="form-label">Email</label>
+            <input type="email" id="edit-user-email" class="form-control" required />
           </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <div class="mb-3">
+            <label for="edit-user-roles" class="form-label">Roles (comma separated)</label>
+            <input type="text" id="edit-user-roles" class="form-control" />
           </div>
-        </form>
-      </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
     </div>
   </div>
 
