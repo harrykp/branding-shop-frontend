@@ -5,33 +5,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div w3-include-html="admin-nav.html"></div>
+
   <div class="container mt-4">
     <h2>Welcome, Admin</h2>
     <p>This is your dashboard overview.</p>
     <div class="row g-4">
-      <div class="col-md-4"><div class="card p-3"><h5>Total Users</h5><p id="user-count"></p></div></div>
-      <div class="col-md-4"><div class="card p-3"><h5>Total Orders</h5><p id="order-count"></p></div></div>
-      <div class="col-md-4"><div class="card p-3"><h5>Total Quotes</h5><p id="quote-count"></p></div></div>
+      <div class="col-md-4">
+        <div class="card p-3 border-primary">
+          <h5>Total Users</h5>
+          <p id="user-count" class="fs-4 text-primary">Loading...</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 border-success">
+          <h5>Total Orders</h5>
+          <p id="order-count" class="fs-4 text-success">Loading...</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 border-info">
+          <h5>Total Quotes</h5>
+          <p id="quote-count" class="fs-4 text-info">Loading...</p>
+        </div>
+      </div>
     </div>
   </div>
+
   <script src="js/includes.js"></script>
   <script src="js/helpers.js"></script>
   <script>
+    const API_BASE = "https://branding-shop-backend.onrender.com";
+
     includeHTML();
     requireAdmin();
+
     document.addEventListener("DOMContentLoaded", async () => {
-      const [u, o, q] = await Promise.all([
-        fetchWithAuth("/api/users/count"),
-        fetchWithAuth("/api/orders/count"),
-        fetchWithAuth("/api/quotes/count")
-      ]);
-      document.getElementById("user-count").innerText = (await u.json()).count;
-      document.getElementById("order-count").innerText = (await o.json()).count;
-      document.getElementById("quote-count").innerText = (await q.json()).count;
+      try {
+        const [usersRes, ordersRes, quotesRes] = await Promise.all([
+          fetchWithAuth(`${API_BASE}/api/users/count`),
+          fetchWithAuth(`${API_BASE}/api/orders/count`),
+          fetchWithAuth(`${API_BASE}/api/quotes/count`)
+        ]);
+
+        const users = await usersRes.json();
+        const orders = await ordersRes.json();
+        const quotes = await quotesRes.json();
+
+        document.getElementById("user-count").innerText = users.count || 0;
+        document.getElementById("order-count").innerText = orders.count || 0;
+        document.getElementById("quote-count").innerText = quotes.count || 0;
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+        document.getElementById("user-count").innerText = "Error";
+        document.getElementById("order-count").innerText = "Error";
+        document.getElementById("quote-count").innerText = "Error";
+      }
     });
   </script>
 </body>
