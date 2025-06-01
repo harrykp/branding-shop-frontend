@@ -1,5 +1,4 @@
 // js/script-users.js
-const API_BASE = "https://branding-shop-backend.onrender.com";
 let currentPage = 1;
 const limit = 10;
 
