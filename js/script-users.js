@@ -22,9 +22,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       .map(r => r.trim())
       .filter(Boolean);
 
-    await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
+    await fetchWithAuth(`/api/users/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ full_name: name, email, roles })
     });
 
@@ -32,12 +31,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadUsers();
   });
 
-  document.getElementById("btn-export-users")?.addEventListener("click", exportUsersToCSV);
+  document.getElementById("btn-export-users")?.addEventListener("click", () => {
+    const rows = allUsers.map(u => [
+      u.full_name,
+      u.email,
+      u.phone_number || "",
+      (u.roles || []).join("; ")
+    ]);
+    exportTableToCSV(["Name", "Email", "Phone", "Roles"], rows, "users.csv");
+  });
 });
 
 async function loadUsers() {
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/users`);
+    const res = await fetchWithAuth(`/api/users`);
     if (!res.ok) throw new Error("Server error while fetching users");
     const data = await res.json();
     if (!Array.isArray(data)) throw new Error("Expected array of users");
@@ -58,9 +65,6 @@ function renderUsersTable() {
     (u.email || "").toLowerCase().includes(search) ||
     (u.phone_number || "").toLowerCase().includes(search)
   );
-
-  const totalPages = Math.ceil(filtered.length / USERS_PER_PAGE);
-  if (currentPage > totalPages) currentPage = 1;
 
   const pageItems = filtered.slice((currentPage - 1) * USERS_PER_PAGE, currentPage * USERS_PER_PAGE);
 
@@ -97,18 +101,7 @@ window.openEditModal = (id) => {
 
 window.deleteUser = async (id) => {
   if (confirm("Delete this user?")) {
-    await fetchWithAuth(`${API_BASE}/api/users/${id}`, { method: "DELETE" });
+    await fetchWithAuth(`/api/users/${id}`, { method: "DELETE" });
     await loadUsers();
   }
 };
-
-function exportUsersToCSV() {
-  const headers = ["Full Name", "Email", "Phone", "Roles"];
-  const rows = allUsers.map(u => [
-    `"${u.full_name}"`,
-    `"${u.email}"`,
-    `"${u.phone_number || ''}"`,
-    `"${(u.roles || []).join("; ")}"`
-  ]);
-  exportTableToCSV("users.csv", [headers, ...rows]);
-}
