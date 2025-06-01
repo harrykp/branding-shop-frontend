@@ -44,7 +44,7 @@
   </div>
 
   <!-- Optional Modals -->
-  <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+   <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <form id="edit-user-form">
@@ -61,6 +61,10 @@
             <div class="mb-3">
               <label for="edit-user-email" class="form-label">Email</label>
               <input type="email" id="edit-user-email" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label for="edit-user-roles" class="form-label">Roles (comma-separated)</label>
+              <input type="text" id="edit-user-roles" class="form-control" />
             </div>
           </div>
           <div class="modal-footer">
