@@ -1,21 +1,13 @@
-<!-- admin-nav.html -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="admin.html">Admin</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <a class="navbar-brand" href="admin.html">Admin Panel</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavBar">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="admin.html">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin-users.html">Users</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin-roles.html">Roles</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin-products.html">Products</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin-quotes.html">Quotes</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin-orders.html">Orders</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin-analytics.html">Analytics</a></li>
-        <li class="nav-item"><button class="btn btn-sm btn-outline-light ms-2" onclick="logout()">Logout</button></li>
-      </ul>
+    <div class="collapse navbar-collapse" id="adminNavBar">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="admin-nav-links"></ul>
+      <span class="navbar-text me-3 text-white" id="admin-user-email"></span>
+      <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
     </div>
   </div>
 </nav>
