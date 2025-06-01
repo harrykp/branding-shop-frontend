@@ -1,6 +1,3 @@
-if (typeof window.API_BASE === "undefined") {
-  window.API_BASE = "https://branding-shop-backend.onrender.com";
-}
 let allUsers = [];
 let currentPage = 1;
 const USERS_PER_PAGE = 10;
@@ -12,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("search-users")?.addEventListener("input", () => {
     currentPage = 1;
-    renderTable();
+    renderUsersTable();
   });
 
   document.getElementById("edit-user-form")?.addEventListener("submit", async (e) => {
@@ -20,15 +17,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const id = document.getElementById("edit-user-id").value;
     const name = document.getElementById("edit-user-name").value.trim();
     const email = document.getElementById("edit-user-email").value.trim();
-    const roles = document.getElementById("edit-user-roles").value.split(",").map(r => r.trim()).filter(Boolean);
+    const roles = document.getElementById("edit-user-roles").value
+      .split(",")
+      .map(r => r.trim())
+      .filter(Boolean);
+
     await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, roles })
+      body: JSON.stringify({ full_name: name, email, roles })
     });
+
     bootstrap.Modal.getInstance(document.getElementById("editUserModal")).hide();
     await loadUsers();
   });
+
+  document.getElementById("btn-export-users")?.addEventListener("click", exportUsersToCSV);
 });
 
 async function loadUsers() {
@@ -38,19 +42,21 @@ async function loadUsers() {
     const data = await res.json();
     if (!Array.isArray(data)) throw new Error("Expected array of users");
     allUsers = data;
-    renderTable();
+    renderUsersTable();
   } catch (err) {
     console.error("Failed to load users:", err);
   }
 }
 
-function renderTable() {
+function renderUsersTable() {
   const tbody = document.querySelector("#user-table tbody");
   if (!tbody) return;
 
   const search = document.getElementById("search-users")?.value.toLowerCase() || "";
   const filtered = allUsers.filter(u =>
-    u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search)
+    (u.full_name || "").toLowerCase().includes(search) ||
+    (u.email || "").toLowerCase().includes(search) ||
+    (u.phone_number || "").toLowerCase().includes(search)
   );
 
   const totalPages = Math.ceil(filtered.length / USERS_PER_PAGE);
@@ -62,7 +68,7 @@ function renderTable() {
   for (const user of pageItems) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${user.name}</td>
+      <td>${user.full_name}</td>
       <td>${user.email}</td>
       <td>${user.phone_number || ''}</td>
       <td>${(user.roles || []).join(", ")}</td>
@@ -73,30 +79,17 @@ function renderTable() {
     tbody.appendChild(row);
   }
 
-  renderPagination(filtered.length);
+  renderPagination("pagination-users", filtered.length, USERS_PER_PAGE, currentPage, (page) => {
+    currentPage = page;
+    renderUsersTable();
+  });
 }
 
-function renderPagination(total) {
-  const pagination = document.getElementById("pagination-users");
-  if (!pagination) return;
-
-  const totalPages = Math.ceil(total / USERS_PER_PAGE);
-  pagination.innerHTML = "";
-
-  for (let i = 1; i <= totalPages; i++) {
-    const btn = document.createElement("button");
-    btn.className = `btn btn-sm ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'} mx-1`;
-    btn.textContent = i;
-    btn.onclick = () => { currentPage = i; renderTable(); };
-    pagination.appendChild(btn);
-  }
-}
-
-window.openEditModal = async (id) => {
+window.openEditModal = (id) => {
   const user = allUsers.find(u => u.id == id);
   if (!user) return;
   document.getElementById("edit-user-id").value = id;
-  document.getElementById("edit-user-name").value = user.name;
+  document.getElementById("edit-user-name").value = user.full_name;
   document.getElementById("edit-user-email").value = user.email;
   document.getElementById("edit-user-roles").value = (user.roles || []).join(", ");
   new bootstrap.Modal(document.getElementById("editUserModal")).show();
@@ -109,18 +102,13 @@ window.deleteUser = async (id) => {
   }
 };
 
-window.exportUsersToCSV = () => {
-  const headers = ["Name", "Email", "Phone", "Roles"];
+function exportUsersToCSV() {
+  const headers = ["Full Name", "Email", "Phone", "Roles"];
   const rows = allUsers.map(u => [
-    `"${u.name}"`,
+    `"${u.full_name}"`,
     `"${u.email}"`,
     `"${u.phone_number || ''}"`,
     `"${(u.roles || []).join("; ")}"`
   ]);
-  const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "users.csv";
-  a.click();
-};
+  exportTableToCSV("users.csv", [headers, ...rows]);
+}
