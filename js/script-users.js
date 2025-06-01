@@ -1,65 +1,52 @@
-if (typeof window.API_BASE === "undefined") {
-  window.API_BASE = "https://branding-shop-backend.onrender.com";
+
+if (typeof API_BASE === 'undefined') {
+  var API_BASE = "https://branding-shop-backend.onrender.com";
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await requireAdmin();
+  requireAdmin();
 
-  const searchInput = document.getElementById("search-users");
-  const tableBody = document.querySelector("#user-table tbody");
-  const pagination = document.getElementById("pagination-users");
-  const editModal = new bootstrap.Modal(document.getElementById("editUserModal"));
-  const editForm = document.getElementById("edit-user-form");
-
+  const USERS_PER_PAGE = 10;
   let allUsers = [];
   let currentPage = 1;
-  const USERS_PER_PAGE = 10;
 
-  // Load users with error handling
+  const tableBody = document.querySelector("#user-table tbody");
+  const paginationEl = document.getElementById("pagination-users");
+  const searchInput = document.getElementById("search-users");
+
   async function loadUsers() {
     try {
       const res = await fetchWithAuth(`${API_BASE}/api/users`);
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to fetch users");
-      }
-
-      const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("Expected array of users");
-
-      allUsers = data;
+      if (!res.ok) throw new Error("Server error while fetching users");
+      const users = await res.json();
+      if (!Array.isArray(users)) throw new Error("Expected array of users");
+      allUsers = users;
       renderTable();
     } catch (err) {
       console.error("Failed to load users:", err);
-      tableBody.innerHTML = `<tr><td colspan="4" class="text-danger">Error loading users: ${err.message}</td></tr>`;
     }
   }
 
   function renderTable() {
-    if (!tableBody) return;
-    const keyword = searchInput.value.trim().toLowerCase();
-    let filtered = allUsers.filter(user =>
-      user.full_name?.toLowerCase().includes(keyword) ||
-      user.email?.toLowerCase().includes(keyword)
+    const search = searchInput.value.toLowerCase();
+    const filtered = allUsers.filter(u =>
+      u.name.toLowerCase().includes(search) ||
+      u.email.toLowerCase().includes(search)
     );
-
-    const totalPages = Math.ceil(filtered.length / USERS_PER_PAGE);
-    if (currentPage > totalPages) currentPage = 1;
 
     const start = (currentPage - 1) * USERS_PER_PAGE;
     const paginated = filtered.slice(start, start + USERS_PER_PAGE);
 
     tableBody.innerHTML = "";
-
     paginated.forEach(user => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${sanitize(user.full_name)}</td>
-        <td>${sanitize(user.email)}</td>
+        <td>${user.name}</td>
+        <td>${user.email}</td>
         <td>${(user.roles || []).join(", ")}</td>
         <td>
-          <button class="btn btn-sm btn-primary me-2 edit-btn" data-id="${user.id}">Edit</button>
-          <button class="btn btn-sm btn-danger delete-btn" data-id="${user.id}">Delete</button>
+          <button class="btn btn-sm btn-primary" onclick="openEditModal('${user.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">Delete</button>
         </td>
       `;
       tableBody.appendChild(tr);
@@ -68,100 +55,77 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderPagination(filtered.length);
   }
 
-  function renderPagination(totalItems) {
-    if (!pagination) return;
-    const totalPages = Math.ceil(totalItems / USERS_PER_PAGE);
-    pagination.innerHTML = "";
-
-    for (let i = 1; i <= totalPages; i++) {
+  function renderPagination(total) {
+    const pages = Math.ceil(total / USERS_PER_PAGE);
+    paginationEl.innerHTML = "";
+    for (let i = 1; i <= pages; i++) {
       const btn = document.createElement("button");
-      btn.className = `btn btn-sm ${i === currentPage ? "btn-primary" : "btn-outline-primary"} me-1`;
+      btn.className = "btn btn-sm mx-1 " + (i === currentPage ? "btn-primary" : "btn-outline-secondary");
       btn.textContent = i;
       btn.onclick = () => {
         currentPage = i;
         renderTable();
       };
-      pagination.appendChild(btn);
+      paginationEl.appendChild(btn);
     }
   }
 
-  function sanitize(str) {
-    return str?.replace(/[<>"'&]/g, c => {
-      return ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' })[c];
-    }) || '';
-  }
-
-  // CSV Export
-  document.getElementById("export-users-csv").addEventListener("click", () => {
-    const rows = [["Name", "Email", "Roles"]];
-    allUsers.forEach(user => {
-      rows.push([user.full_name, user.email, (user.roles || []).join(", ")]);
-    });
-    const csv = rows.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "users.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  });
-
-  // Search
   searchInput.addEventListener("input", () => {
     currentPage = 1;
     renderTable();
   });
 
-  // Edit modal open
-  document.querySelector("#user-table").addEventListener("click", (e) => {
-    if (e.target.classList.contains("edit-btn")) {
-      const id = e.target.dataset.id;
-      const user = allUsers.find(u => u.id == id);
-      if (user) {
-        document.getElementById("edit-user-id").value = user.id;
-        document.getElementById("edit-user-name").value = user.full_name;
-        document.getElementById("edit-user-email").value = user.email;
-        document.getElementById("edit-user-roles").value = (user.roles || []).join(", ");
-        editModal.show();
-      }
-    }
+  window.openEditModal = (id) => {
+    const user = allUsers.find(u => u.id == id);
+    if (!user) return alert("User not found");
 
-    if (e.target.classList.contains("delete-btn")) {
-      const id = e.target.dataset.id;
-      if (confirm("Delete this user?")) {
-        fetchWithAuth(`${API_BASE}/api/users/${id}`, { method: "DELETE" })
-          .then(() => loadUsers())
-          .catch(err => alert("Delete failed: " + err.message));
-      }
-    }
-  });
+    document.getElementById("edit-user-id").value = user.id;
+    document.getElementById("edit-user-name").value = user.name;
+    document.getElementById("edit-user-email").value = user.email;
+    document.getElementById("edit-user-roles").value = (user.roles || []).join(", ");
+    new bootstrap.Modal(document.getElementById("editUserModal")).show();
+  };
 
-  // Submit edit
+  window.deleteUser = async (id) => {
+    if (confirm("Delete this user?")) {
+      await fetchWithAuth(`${API_BASE}/api/users/${id}`, { method: "DELETE" });
+      loadUsers();
+    }
+  };
+
+  const editForm = document.getElementById("edit-user-form");
   if (editForm) {
     editForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const id = document.getElementById("edit-user-id").value;
-      const name = document.getElementById("edit-user-name").value.trim();
-      const email = document.getElementById("edit-user-email").value.trim();
-      const roles = document.getElementById("edit-user-roles").value
-        .split(",")
-        .map(r => r.trim())
-        .filter(Boolean);
+      const name = document.getElementById("edit-user-name").value;
+      const email = document.getElementById("edit-user-email").value;
+      const roles = document.getElementById("edit-user-roles").value.split(",").map(r => r.trim()).filter(Boolean);
 
-      try {
-        const res = await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ full_name: name, email, roles })
-        });
-        if (!res.ok) throw new Error("Update failed");
-        editModal.hide();
-        loadUsers();
-      } catch (err) {
-        alert("Failed to update user: " + err.message);
-      }
+      await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, roles })
+      });
+      bootstrap.Modal.getInstance(document.getElementById("editUserModal")).hide();
+      loadUsers();
+    });
+  }
+
+  const exportBtn = document.getElementById("export-users-btn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      const rows = [
+        ["Name", "Email", "Roles"],
+        ...allUsers.map(u => [u.name, u.email, (u.roles || []).join(", ")])
+      ];
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", "users.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     });
   }
 
