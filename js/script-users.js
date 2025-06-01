@@ -1,3 +1,6 @@
+// Ensure API_BASE is defined only once
+window.API_BASE = window.API_BASE || "https://branding-shop-backend.onrender.com";
+
 let allUsers = [];
 let currentPage = 1;
 const USERS_PER_PAGE = 10;
@@ -7,7 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
   await loadUsers();
 
-  document.getElementById("search-users").addEventListener("input", () => renderTable());
+  document.getElementById("search-users").addEventListener("input", renderTable);
   document.getElementById("export-users-csv").addEventListener("click", exportCSV);
 });
 
@@ -75,6 +78,7 @@ window.openEditModal = (id) => {
   document.getElementById("edit-user-id").value = user.id;
   document.getElementById("edit-user-name").value = user.full_name;
   document.getElementById("edit-user-email").value = user.email;
+  document.getElementById("edit-user-roles").value = (user.roles || []).join(", ");
   new bootstrap.Modal(document.getElementById("editUserModal")).show();
 };
 
@@ -93,12 +97,13 @@ document.getElementById("edit-user-form").addEventListener("submit", async (e) =
   const id = document.getElementById("edit-user-id").value;
   const full_name = document.getElementById("edit-user-name").value;
   const email = document.getElementById("edit-user-email").value;
+  const roles = document.getElementById("edit-user-roles").value.split(",").map(r => r.trim());
 
   try {
     await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ full_name, email })
+      body: JSON.stringify({ full_name, email, roles })
     });
     bootstrap.Modal.getInstance(document.getElementById("editUserModal")).hide();
     await loadUsers();
