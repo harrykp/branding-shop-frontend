@@ -38,12 +38,10 @@
   <script src="js/helpers.js"></script>
   <script src="js/includes.js"></script>
   <script>
-    const API_BASE = "https://branding-shop-backend.onrender.com";
-
-    includeHTML();
-    requireAdmin();
-
     document.addEventListener("DOMContentLoaded", async () => {
+      includeHTML();
+      requireAdmin();
+
       try {
         const [usersRes, ordersRes, quotesRes] = await Promise.all([
           fetchWithAuth(`${API_BASE}/api/users/count`),
