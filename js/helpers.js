@@ -1,59 +1,53 @@
-function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    console.error("Invalid token format", e);
-    return null;
-  }
-}
+const API_BASE = "https://branding-shop-backend.onrender.com";
 
 function getStoredToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
 
-function getCurrentUser() {
-  const token = getStoredToken();
-  if (!token) return null;
+function parseJwt(token) {
   try {
-    const payload = parseJwt(token);
-    if (!payload.roles) payload.roles = []; // ensure roles is always an array
-    return payload;
-  } catch (e) {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
     return null;
   }
 }
 
+function getCurrentUser() {
+  const token = getStoredToken();
+  return token ? parseJwt(token) : null;
+}
+
 function requireLogin() {
   const token = getStoredToken();
-  const payload = parseJwt(token);
-  if (!token || !payload || !payload.userId) {
-    alert("Please log in to access this page.");
+  const user = parseJwt(token);
+  if (!token || !user || !user.userId) {
+    alert("Login required.");
     window.location.href = "login.html";
   }
 }
 
 function requireAdmin() {
   const token = getStoredToken();
-  const payload = parseJwt(token);
-  if (!token || !payload.roles || !payload.roles.includes("admin")) {
-    alert("Admin access required");
+  const user = parseJwt(token);
+  if (!token || !user || !user.roles || !user.roles.includes("admin")) {
+    alert("Admin access required.");
     window.location.href = "unauthorized.html";
   }
+}
+
+async function fetchWithAuth(url, options = {}) {
+  const token = getStoredToken();
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+    ...options.headers
+  };
+  return fetch(fullUrl, { ...options, headers });
 }
 
 function logout() {
   localStorage.removeItem("token");
   sessionStorage.removeItem("token");
   window.location.href = "login.html";
-}
-
-async function fetchWithAuth(url, options = {}) {
-  const token = getStoredToken();
-  if (!token) throw new Error("Missing token");
-  const headers = {
-    ...options.headers,
-    "Authorization": `Bearer ${token}`,
-    "Content-Type": "application/json"
-  };
-  return fetch(url, { ...options, headers });
 }
