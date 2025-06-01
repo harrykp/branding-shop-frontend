@@ -1,4 +1,3 @@
-const API_BASE = "https://branding-shop-backend.onrender.com";
 let allUsers = [];
 let currentPage = 1;
 const USERS_PER_PAGE = 10;
