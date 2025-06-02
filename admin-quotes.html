@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin - Quotes</title>
   <link rel="stylesheet" href="/css/styles.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
 </head>
 <body>
   <div w3-include-html="admin-nav.html"></div>
@@ -14,74 +14,64 @@
   <div class="container mt-4">
     <h2>Quotes</h2>
     <div class="d-flex justify-content-between mb-3">
-      <button id="new-quote-btn" class="btn btn-primary">+ New Quote</button>
-      <button onclick="exportTableToCSV('quotes.csv')" class="btn btn-secondary">Export CSV</button>
+      <div>
+        <button id="newQuoteBtn" class="btn btn-primary">+ New Quote</button>
+        <button class="btn btn-secondary" onclick="exportTableToCSV('quotes.csv')">Export CSV</button>
+      </div>
+      <input type="text" id="searchInput" class="form-control w-25" placeholder="Search..." />
     </div>
 
-    <div class="mb-3">
-      <input type="text" id="search-input" class="form-control" placeholder="Search quotes..." />
-    </div>
-
-    <div class="table-responsive">
-      <table class="table table-bordered table-striped">
-        <thead class="table-dark">
-          <tr>
-            <th style="display:none;">ID</th>
-            <th>Customer</th>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="quote-table-body">
-          <!-- Quotes will be rendered here -->
-        </tbody>
-      </table>
-    </div>
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th style="display: none;">ID</th>
+          <th>Customer</th>
+          <th>Product</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="quotes-table-body">
+        <!-- JS will populate -->
+      </tbody>
+    </table>
 
     <nav>
-      <ul class="pagination justify-content-center" id="pagination">
-        <!-- Pagination buttons here -->
-      </ul>
+      <ul id="pagination" class="pagination"></ul>
     </nav>
   </div>
 
-  <!-- Quote Modal -->
+  <!-- Modal -->
   <div class="modal fade" id="quoteModal" tabindex="-1" aria-labelledby="quoteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-      <form id="quote-form" class="modal-content">
+      <form id="quoteForm" class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="quoteModalLabel">New Quote</h5>
+          <h5 class="modal-title" id="quoteModalLabel">Quote</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <input type="hidden" id="quote-id" />
-
+          <input type="hidden" id="quoteId" />
           <div class="mb-3">
-            <label for="customer-id" class="form-label">Customer</label>
-            <select id="customer-id" class="form-select" required></select>
+            <label for="customerId" class="form-label">Customer</label>
+            <select id="customerId" class="form-select" required></select>
           </div>
-
           <div class="mb-3">
-            <label for="product-id" class="form-label">Product</label>
-            <select id="product-id" class="form-select" required></select>
+            <label for="productId" class="form-label">Product</label>
+            <select id="productId" class="form-select" required></select>
           </div>
-
           <div class="mb-3">
             <label for="quantity" class="form-label">Quantity</label>
             <input type="number" id="quantity" class="form-control" required />
           </div>
-
           <div class="mb-3">
             <label for="price" class="form-label">Price</label>
             <input type="number" id="price" class="form-control" required />
           </div>
-
           <div class="mb-3">
             <label for="status" class="form-label">Status</label>
-            <select id="status" class="form-select">
+            <select id="status" class="form-select" required>
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>
@@ -96,13 +86,9 @@
     </div>
   </div>
 
-  <script src="/js/helpers.js"></script>
   <script src="/js/includes.js"></script>
+  <script src="/js/helpers.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/script-quotes.js"></script>
-  <script>
-    requireAdmin();
-    includeHTML();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
