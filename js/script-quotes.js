@@ -107,5 +107,3 @@ window.deleteQuote = async (id) => {
     await loadQuotes();
   }
 };
-
-};
