@@ -38,19 +38,35 @@ async function loadQuotes(page = 1) {
 }
 
 async function populateDropdown(endpoint, selectId) {
-  const res = await fetch(`${API_BASE}/api/${endpoint}`, {
-    headers: { Authorization: `Bearer ${localStorage.token}` }
-  });
-  const result = await res.json();
-  const select = document.getElementById(selectId);
-  select.innerHTML = '<option value="">-- Select --</option>';
-  (result.data || result).forEach(item => {
-    const opt = document.createElement('option');
-    opt.value = item.id;
-    opt.textContent = item.name;
-    select.appendChild(opt);
-  });
+  try {
+    const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+      headers: { Authorization: `Bearer ${localStorage.token}` }
+    });
+    const result = await res.json();
+    console.log(`Dropdown fetch for '${endpoint}':`, result);
+
+    const select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">-- Select --</option>';
+
+    // Check result type
+    if (!Array.isArray(result.data) && !Array.isArray(result)) {
+      console.warn('Invalid data format for dropdown. Skipping render.');
+      return;
+    }
+
+    const data = Array.isArray(result.data) ? result.data : result;
+
+    data.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.name;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    console.error(`Failed to load dropdown for ${selectId}:`, error);
+  }
 }
+
 
 function editQuote(q) {
   document.getElementById('quoteId').value = q.id;
