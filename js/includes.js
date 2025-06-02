@@ -51,6 +51,7 @@ async function injectNavLinks() {
     "Products": "admin-products.html",
     "Quotes": "admin-quotes.html",
     "Orders": "admin-orders.html",
+    "Customers": "admin-customers.html",
     "Production": "admin-production.html",
     "Suppliers": "admin-suppliers.html",
     "Catalog": "admin-catalog.html",
