@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Customers</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="js/includes.js" defer></script>
+  <script src="js/helpers.js" defer></script>
+  <script src="js/script-customers.js" defer></script>
+</head>
+<body>
+  <div include-html="admin-nav.html"></div>
+  <main class="container mt-4">
+    <h2>Customer Management</h2>
+    <div class="d-flex justify-content-between mb-2">
+      <button class="btn btn-primary" id="newCustomerBtn">+ New Customer</button>
+      <button class="btn btn-secondary" id="exportCSVBtn">Export CSV</button>
+    </div>
+
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search customers..." />
+
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Company</th>
+          <th>Sales Rep</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="customer-table-body"></tbody>
+    </table>
+
+    <nav>
+      <ul class="pagination" id="pagination"></ul>
+    </nav>
+  </main>
+
+  <!-- Customer Modal -->
+  <div class="modal" tabindex="-1" id="customerModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="customerForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Customer</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="customerId" />
+            <div class="mb-3">
+              <label for="customerName" class="form-label">Name</label>
+              <input type="text" class="form-control" id="customerName" required />
+            </div>
+            <div class="mb-3">
+              <label for="customerEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="customerEmail" />
+            </div>
+            <div class="mb-3">
+              <label for="customerPhone" class="form-label">Phone</label>
+              <input type="text" class="form-control" id="customerPhone" />
+            </div>
+            <div class="mb-3">
+              <label for="customerCompany" class="form-label">Company</label>
+              <input type="text" class="form-control" id="customerCompany" />
+            </div>
+            <div class="mb-3">
+              <label for="salesRepSelect" class="form-label">Assigned Sales Rep</label>
+              <select id="salesRepSelect" class="form-select"></select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
