@@ -1,124 +1,121 @@
-const API_BASE = "https://branding-shop-backend.onrender.com";
+// /js/script-quotes.js
+const quotesTableBody = document.getElementById('quotes-table-body');
+const quoteForm = document.getElementById('quoteForm');
+const searchInput = document.getElementById('searchInput');
+const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
 
-document.addEventListener("DOMContentLoaded", async () => {
-  includeHTML();
-  await requireLogin();
-  loadQuotes(1);
-});
-
-async function loadQuotes() {
-  try {
-    const res = await fetchWithAuth(\`\${API_BASE}/api/quotes\`);
-    const quotes = await res.json();
-    const user = getCurrentUser();
-    const tbody = document.getElementById("quote-table-body");
-    tbody.innerHTML = "";
-
-    quotes.forEach(q => {
-      if (
-        user.roles.includes("admin") ||
-        user.roles.includes("sales") ||
-        q.user_id === user.id
-      ) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>#${q.id}</td>
-          <td>${q.customer_name || ""}</td>
-          <td>${q.items?.length || 0}</td>
-          <td>₵${q.total_amount.toFixed(2)}</td>
-          <td>${renderStatusDropdown(q)}</td>
-          <td>${new Date(q.created_at).toLocaleDateString()}</td>
-          <td>
-            ${q.user_id === user.id || user.roles.includes("admin") ? `<button class="btn btn-sm btn-primary" onclick="editQuote(${q.id})">Edit</button>` : ""}
-            ${q.user_id === user.id || user.roles.includes("admin") ? `<button class="btn btn-sm btn-danger" onclick="deleteQuote(${q.id})">Delete</button>` : ""}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      }
-    });
-  } catch (err) {
-    console.error("Error loading quotes:", err);
-  }
-}
-
-function renderStatusDropdown(quote) {
-  const user = getCurrentUser();
-  if (user.roles.includes("admin") || user.roles.includes("sales")) {
-    return `
-      <select onchange="updateStatus(${quote.id}, this.value)">
-        <option value="draft" ${quote.status === "draft" ? "selected" : ""}>Draft</option>
-        <option value="submitted" ${quote.status === "submitted" ? "selected" : ""}>Submitted</option>
-        <option value="approved" ${quote.status === "approved" ? "selected" : ""}>Approved</option>
-      </select>`;
-  }
-  return quote.status;
-}
-
-function openNewQuoteForm() {
-  // Show modal and load form
-  const modal = new bootstrap.Modal(document.getElementById("quoteModal"));
-  document.getElementById("quote-form").reset();
-  document.getElementById("quote-form-fields").innerHTML = "<p>Form to be implemented</p>";
-  modal.show();
-}
-
-function exportQuotes() {
-  alert("Export to CSV coming soon...");
-}
-
-
-let allQuotes = [];
-const PAGE_SIZE = 5;
+let currentPage = 1;
 
 async function loadQuotes(page = 1) {
+  currentPage = page;
+  const search = searchInput.value.trim();
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/quotes`);
-    allQuotes = await res.json();
-    const user = getCurrentUser();
-    const tbody = document.getElementById("quote-table-body");
-    const searchTerm = document.getElementById("search-input")?.value.toLowerCase() || "";
+    const res = await fetch(`${API_BASE}/api/quotes?page=${page}&limit=10&search=${encodeURIComponent(search)}`, {
+      headers: { Authorization: `Bearer ${localStorage.token}` }
+    });
+    const { data, total } = await res.json();
 
-    let filtered = allQuotes.filter(q =>
-      (user.roles.includes("admin") || user.roles.includes("sales") || q.user_id === user.id) &&
-      (q.customer_name?.toLowerCase().includes(searchTerm) || q.status?.toLowerCase().includes(searchTerm))
-    );
-
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-    const pageQuotes = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-    tbody.innerHTML = "";
-    pageQuotes.forEach(q => {
-      const tr = document.createElement("tr");
+    quotesTableBody.innerHTML = '';
+    data.forEach(q => {
+      const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>#${q.id}</td>
-        <td>${q.customer_name || ""}</td>
-        <td>${q.items?.length || 0}</td>
-        <td>₵${q.total_amount.toFixed(2)}</td>
-        <td>${renderStatusDropdown(q)}</td>
+        <td>${q.customer_name}</td>
+        <td>${q.sales_rep_name}</td>
+        <td>${q.status}</td>
+        <td>${q.total}</td>
         <td>${new Date(q.created_at).toLocaleDateString()}</td>
         <td>
-          ${q.user_id === user.id || user.roles.includes("admin") ? `<button class="btn btn-sm btn-primary" onclick="editQuote(${q.id})">Edit</button>` : ""}
-          ${q.user_id === user.id || user.roles.includes("admin") ? `<button class="btn btn-sm btn-danger" onclick="deleteQuote(${q.id})">Delete</button>` : ""}
-        </td>
-      `;
-      tbody.appendChild(tr);
+          <button class="btn btn-sm btn-primary" onclick='editQuote(${JSON.stringify(q)})'>Edit</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteQuote(${q.id})'>Delete</button>
+        </td>`;
+      quotesTableBody.appendChild(tr);
     });
 
-    renderPaginationControls(page, totalPages);
+    renderPagination(total, 10, page, loadQuotes);
   } catch (err) {
-    console.error("Error loading quotes:", err);
+    console.error('Failed to load quotes:', err);
   }
 }
 
-function renderPaginationControls(current, total) {
-  const pagination = document.getElementById("pagination");
-  pagination.innerHTML = "";
-  for (let i = 1; i <= total; i++) {
-    const btn = document.createElement("button");
-    btn.className = "btn btn-sm btn-outline-primary mx-1";
-    btn.textContent = i;
-    if (i === current) btn.classList.add("active");
-    btn.onclick = () => loadQuotes(i);
-    pagination.appendChild(btn);
+async function populateDropdown(endpoint, selectId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+      headers: { Authorization: `Bearer ${localStorage.token}` }
+    });
+    const result = await res.json();
+    console.log('Dropdown response:', result);
+
+    const select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">-- Select --</option>';
+
+    const data = Array.isArray(result.data) ? result.data : Array.isArray(result) ? result : [];
+
+    data.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.name;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    console.error(`Failed to load dropdown for ${selectId}:`, error);
   }
 }
+
+function editQuote(q) {
+  document.getElementById('quoteId').value = q.id;
+  document.getElementById('customerId').value = q.customer_id;
+  document.getElementById('salesRepId').value = q.sales_rep_id;
+  document.getElementById('status').value = q.status;
+  document.getElementById('total').value = q.total;
+  quoteModal.show();
+}
+
+async function deleteQuote(id) {
+  if (!confirm('Delete this quote?')) return;
+  try {
+    await fetch(`${API_BASE}/api/quotes/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${localStorage.token}` }
+    });
+    loadQuotes(currentPage);
+  } catch (err) {
+    console.error('Failed to delete quote:', err);
+  }
+}
+
+quoteForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('quoteId').value;
+  const payload = {
+    customer_id: document.getElementById('customerId').value,
+    sales_rep_id: document.getElementById('salesRepId').value,
+    status: document.getElementById('status').value,
+    total: document.getElementById('total').value
+  };
+  try {
+    const method = id ? 'PUT' : 'POST';
+    const url = `${API_BASE}/api/quotes${id ? '/' + id : ''}`;
+    await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    quoteModal.hide();
+    loadQuotes(currentPage);
+  } catch (err) {
+    console.error('Failed to save quote:', err);
+  }
+});
+
+searchInput.addEventListener('input', () => loadQuotes(1));
+
+window.addEventListener('DOMContentLoaded', async () => {
+  requireAdmin();
+  await includeHTML();
+  await populateDropdown('customers', 'customerId');
+  await populateDropdown('users?role=sales_rep', 'salesRepId');
+  loadQuotes();
+});
