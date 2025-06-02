@@ -46,15 +46,17 @@ async function populateDropdown(endpoint, selectId) {
     console.log(`Dropdown fetch for '${endpoint}':`, result);
 
     const select = document.getElementById(selectId);
-    select.innerHTML = '<option value="">-- Select --</option>';
+    select.innerHTML = '<option value=\"\">-- Select --</option>';
 
-    // Check result type
-    if (!Array.isArray(result.data) && !Array.isArray(result)) {
-      console.warn('Invalid data format for dropdown. Skipping render.');
-      return;
+    let data = [];
+
+    if (Array.isArray(result.customers)) {
+      data = result.customers;
+    } else if (Array.isArray(result.data)) {
+      data = result.data;
+    } else if (Array.isArray(result)) {
+      data = result;
     }
-
-    const data = Array.isArray(result.data) ? result.data : result;
 
     data.forEach(item => {
       const opt = document.createElement('option');
@@ -66,6 +68,7 @@ async function populateDropdown(endpoint, selectId) {
     console.error(`Failed to load dropdown for ${selectId}:`, error);
   }
 }
+
 
 
 function editQuote(q) {
