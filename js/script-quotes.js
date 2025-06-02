@@ -1,54 +1,34 @@
-// public/js/script-quotes.js
-document.addEventListener('DOMContentLoaded', async () => {
-  requireAdmin();
-  await includeHTML();
-  loadQuotes();
-
-  document.getElementById('newQuoteBtn').addEventListener('click', () => openQuoteModal());
-  document.getElementById('quoteForm').addEventListener('submit', saveQuote);
-  document.getElementById('searchInput').addEventListener('input', () => loadQuotes());
-});
+// /js/script-quotes.js
+const quotesTableBody = document.getElementById('quotes-table-body');
+const quoteForm = document.getElementById('quoteForm');
+const searchInput = document.getElementById('searchInput');
+const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
 
 let currentPage = 1;
-let currentSearch = '';
 
 async function loadQuotes(page = 1) {
   currentPage = page;
-  currentSearch = document.getElementById('searchInput').value.trim();
-
+  const search = searchInput.value.trim();
   try {
-    const res = await fetch(`${API_BASE}/api/quotes?page=${page}&limit=10&search=${encodeURIComponent(currentSearch)}`, {
+    const res = await fetch(`${API_BASE}/quotes?page=${page}&limit=10&search=${encodeURIComponent(search)}`, {
       headers: { Authorization: `Bearer ${localStorage.token}` }
     });
+    const { data, total } = await res.json();
 
-    const result = await res.json();
-    const data = Array.isArray(result.data) ? result.data : [];
-    const total = result.total || 0;
-
-    const tbody = document.getElementById('quotes-table-body');
-    tbody.innerHTML = '';
-
-    data.forEach(quote => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td style="display:none;">${quote.id}</td>
-        <td>${quote.customer_name}</td>
-        <td>${quote.product_name}</td>
-        <td>${quote.quantity}</td>
-        <td>${quote.price}</td>
+    quotesTableBody.innerHTML = '';
+    data.forEach(q => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${q.customer_name}</td>
+        <td>${q.sales_rep_name}</td>
+        <td>${q.status}</td>
+        <td>${q.total}</td>
+        <td>${new Date(q.created_at).toLocaleDateString()}</td>
         <td>
-          <select class="form-select form-select-sm" onchange="updateStatus(${quote.id}, this.value)">
-            <option ${quote.status === 'Pending' ? 'selected' : ''}>Pending</option>
-            <option ${quote.status === 'Approved' ? 'selected' : ''}>Approved</option>
-            <option ${quote.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-          </select>
-        </td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="openQuoteModal(${encodeURIComponent(JSON.stringify(quote))})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteQuote(${quote.id})">Delete</button>
-        </td>
-      `;
-      tbody.appendChild(row);
+          <button class="btn btn-sm btn-primary" onclick='editQuote(${JSON.stringify(q)})'>Edit</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteQuote(${q.id})'>Delete</button>
+        </td>`;
+      quotesTableBody.appendChild(tr);
     });
 
     renderPagination(total, 10, page, loadQuotes);
@@ -57,93 +37,34 @@ async function loadQuotes(page = 1) {
   }
 }
 
-function openQuoteModal(quote = null) {
-  const modal = new bootstrap.Modal(document.getElementById('quoteModal'));
-  document.getElementById('quoteForm').reset();
-  document.getElementById('quoteId').value = quote ? quote.id : '';
-  document.getElementById('customerId').value = quote?.customer_id || '';
-  document.getElementById('productId').value = quote?.product_id || '';
-  document.getElementById('quantity').value = quote?.quantity || '';
-  document.getElementById('price').value = quote?.price || '';
-  document.getElementById('status').value = quote?.status || 'Pending';
-  loadCustomers(quote?.customer_id);
-  loadProducts(quote?.product_id);
-  modal.show();
+async function populateDropdown(endpoint, selectId) {
+  const res = await fetch(`${API_BASE}/${endpoint}`, {
+    headers: { Authorization: `Bearer ${localStorage.token}` }
+  });
+  const result = await res.json();
+  const select = document.getElementById(selectId);
+  select.innerHTML = '<option value="">-- Select --</option>';
+  (result.data || result).forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item.id;
+    opt.textContent = item.name;
+    select.appendChild(opt);
+  });
 }
 
-async function loadCustomers(selectedId = '') {
-  try {
-    const res = await fetch(`${API_BASE}/api/users`, {
-      headers: { Authorization: `Bearer ${localStorage.token}` }
-    });
-    const users = await res.json();
-    const select = document.getElementById('customerId');
-    select.innerHTML = '';
-    users.forEach(u => {
-      const opt = document.createElement('option');
-      opt.value = u.id;
-      opt.textContent = u.name;
-      if (u.id == selectedId) opt.selected = true;
-      select.appendChild(opt);
-    });
-  } catch (err) {
-    console.error('Failed to load users:', err);
-  }
-}
-
-async function loadProducts(selectedId = '') {
-  try {
-    const res = await fetch(`${API_BASE}/api/products`, {
-      headers: { Authorization: `Bearer ${localStorage.token}` }
-    });
-    const products = await res.json();
-    const select = document.getElementById('productId');
-    select.innerHTML = '';
-    products.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
-      if (p.id == selectedId) opt.selected = true;
-      select.appendChild(opt);
-    });
-  } catch (err) {
-    console.error('Failed to load products:', err);
-  }
-}
-
-async function saveQuote(e) {
-  e.preventDefault();
-  const id = document.getElementById('quoteId').value;
-  const method = id ? 'PUT' : 'POST';
-  const url = id ? `${API_BASE}/api/quotes/${id}` : `${API_BASE}/api/quotes`;
-  const data = {
-    customer_id: document.getElementById('customerId').value,
-    product_id: document.getElementById('productId').value,
-    quantity: document.getElementById('quantity').value,
-    price: document.getElementById('price').value,
-    status: document.getElementById('status').value
-  };
-
-  try {
-    await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.token}`
-      },
-      body: JSON.stringify(data)
-    });
-    bootstrap.Modal.getInstance(document.getElementById('quoteModal')).hide();
-    loadQuotes(currentPage);
-  } catch (err) {
-    console.error('Failed to save quote:', err);
-  }
+function editQuote(q) {
+  document.getElementById('quoteId').value = q.id;
+  document.getElementById('customerId').value = q.customer_id;
+  document.getElementById('salesRepId').value = q.sales_rep_id;
+  document.getElementById('status').value = q.status;
+  document.getElementById('total').value = q.total;
+  quoteModal.show();
 }
 
 async function deleteQuote(id) {
   if (!confirm('Delete this quote?')) return;
   try {
-    await fetch(`${API_BASE}/api/quotes/${id}`, {
+    await fetch(`${API_BASE}/quotes/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${localStorage.token}` }
     });
@@ -153,17 +74,39 @@ async function deleteQuote(id) {
   }
 }
 
-async function updateStatus(id, status) {
+quoteForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('quoteId').value;
+  const payload = {
+    customer_id: document.getElementById('customerId').value,
+    sales_rep_id: document.getElementById('salesRepId').value,
+    status: document.getElementById('status').value,
+    total: document.getElementById('total').value
+  };
   try {
-    await fetch(`${API_BASE}/api/quotes/${id}`, {
-      method: 'PUT',
+    const method = id ? 'PUT' : 'POST';
+    const url = `${API_BASE}/quotes${id ? '/' + id : ''}`;
+    await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${localStorage.token}`
       },
-      body: JSON.stringify({ status })
+      body: JSON.stringify(payload)
     });
+    quoteModal.hide();
+    loadQuotes(currentPage);
   } catch (err) {
-    console.error('Failed to update status:', err);
+    console.error('Failed to save quote:', err);
   }
-}
+});
+
+searchInput.addEventListener('input', () => loadQuotes(1));
+
+window.addEventListener('DOMContentLoaded', async () => {
+  requireAdmin();
+  await includeHTML();
+  await populateDropdown('customers', 'customerId');
+  await populateDropdown('users?role=sales_rep', 'salesRepId');
+  loadQuotes();
+});
