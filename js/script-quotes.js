@@ -20,13 +20,11 @@ async function loadQuotes(page = 1) {
     const res = await fetch(`${API_BASE}/api/quotes?page=${page}&limit=10&search=${encodeURIComponent(currentSearch)}`, {
       headers: { Authorization: `Bearer ${localStorage.token}` }
     });
+
     const result = await res.json();
-    if (!Array.isArray(result.data)) {
-      console.error('Invalid data received:', result);
-      return;
-    }
-    const { data, total } = result;
-      
+    const data = Array.isArray(result.data) ? result.data : [];
+    const total = result.total || 0;
+
     const tbody = document.getElementById('quotes-table-body');
     tbody.innerHTML = '';
 
