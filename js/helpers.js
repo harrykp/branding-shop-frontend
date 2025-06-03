@@ -1,3 +1,5 @@
+// helpers.js
+
 // Prevent redeclaration of API_BASE
 if (typeof window.API_BASE === "undefined") {
   window.API_BASE = "https://branding-shop-backend.onrender.com";
@@ -56,8 +58,8 @@ function logout() {
   window.location.href = "login.html";
 }
 
-// Pagination Renderer
-function renderPagination(totalItems, containerId, onPageClick, perPage = 10, currentPage = 1) {
+// Pagination Renderer (fixed to support default container and args)
+function renderPagination(totalItems, perPage = 10, currentPage = 1, onPageClick, containerId = 'pagination') {
   const totalPages = Math.ceil(totalItems / perPage);
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -73,12 +75,13 @@ function renderPagination(totalItems, containerId, onPageClick, perPage = 10, cu
   }
 }
 
-// CSV Exporter
-function exportTableToCSV(tableId, filename = "export.csv") {
-  const rows = document.querySelectorAll(`#${tableId} tr`);
-  if (!rows.length) return;
+// CSV Exporter (auto-detect first table)
+function exportTableToCSV(filename = "export.csv") {
+  const table = document.querySelector("table");
+  if (!table) return;
 
-  const csv = Array.from(rows).map(row =>
+  const rows = Array.from(table.querySelectorAll("tr"));
+  const csv = rows.map(row =>
     Array.from(row.cells).map(cell => `"${cell.innerText.replace(/"/g, '""')}"`).join(",")
   ).join("\n");
 
