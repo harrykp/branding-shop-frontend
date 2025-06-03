@@ -1,11 +1,9 @@
-// helpers.js
+// /js/helpers.js
 
-// Prevent redeclaration of API_BASE
 if (typeof window.API_BASE === "undefined") {
   window.API_BASE = "https://branding-shop-backend.onrender.com";
 }
 
-// Token and Auth
 function getStoredToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
@@ -58,8 +56,7 @@ function logout() {
   window.location.href = "login.html";
 }
 
-// Pagination Renderer (fixed to support default container and args)
-function renderPagination(totalItems, perPage = 10, currentPage = 1, onPageClick, containerId = 'pagination') {
+function renderPagination(totalItems, containerId, onPageClick, perPage = 10, currentPage = 1) {
   const totalPages = Math.ceil(totalItems / perPage);
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -75,13 +72,11 @@ function renderPagination(totalItems, perPage = 10, currentPage = 1, onPageClick
   }
 }
 
-// CSV Exporter (auto-detect first table)
-function exportTableToCSV(filename = "export.csv") {
-  const table = document.querySelector("table");
-  if (!table) return;
+function exportTableToCSV(tableId, filename = "export.csv") {
+  const rows = document.querySelectorAll(`#${tableId} tr`);
+  if (!rows.length) return;
 
-  const rows = Array.from(table.querySelectorAll("tr"));
-  const csv = rows.map(row =>
+  const csv = Array.from(rows).map(row =>
     Array.from(row.cells).map(cell => `"${cell.innerText.replace(/"/g, '""')}"`).join(",")
   ).join("\n");
 
@@ -90,6 +85,22 @@ function exportTableToCSV(filename = "export.csv") {
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();
+}
+
+function printElementById(elementId) {
+  const content = document.getElementById(elementId);
+  if (!content) return;
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write('<html><head><title>Print</title>');
+  printWindow.document.write('<link rel="stylesheet" href="/style.css" />');
+  printWindow.document.write('</head><body >');
+  printWindow.document.write(content.outerHTML);
+  printWindow.document.write('</body></html>');
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
 }
 
 async function populateDropdown(endpoint, selectId) {
