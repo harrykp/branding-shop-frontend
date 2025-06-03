@@ -14,10 +14,8 @@ async function loadOrders(page = 1) {
   currentPage = page;
   const search = searchInput.value.trim();
   try {
-    const res = await fetch(`${API_BASE}/api/orders?page=${page}&limit=10&search=${encodeURIComponent(search)}`, {
-      headers: { Authorization: `Bearer ${localStorage.token}` }
-    });
-    const { orders, total } = await res.json();
+    const res = await fetchWithAuth(`/api/orders?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
+    const { data: orders, total } = await res.json();
 
     ordersTableBody.innerHTML = '';
     orders.forEach(o => {
@@ -35,40 +33,9 @@ async function loadOrders(page = 1) {
       ordersTableBody.appendChild(tr);
     });
 
-    renderPagination(total, 10, currentPage, loadOrders);
+    renderPagination(total, 'pagination', loadOrders, 10, currentPage);
   } catch (err) {
     console.error('Failed to load orders:', err);
-  }
-}
-
-async function populateDropdown(endpoint, selectId) {
-  try {
-    const res = await fetch(`${API_BASE}/api/${endpoint}`, {
-      headers: { Authorization: `Bearer ${localStorage.token}` }
-    });
-    const result = await res.json();
-    console.log(`Dropdown fetch for '${endpoint}':`, result);
-
-    const select = document.getElementById(selectId);
-    select.innerHTML = '<option value="">-- Select --</option>';
-
-    let data = [];
-    if (Array.isArray(result.customers)) {
-      data = result.customers;
-    } else if (Array.isArray(result.data)) {
-      data = result.data;
-    } else if (Array.isArray(result)) {
-      data = result;
-    }
-
-    data.forEach(item => {
-      const opt = document.createElement('option');
-      opt.value = item.id;
-      opt.textContent = item.name;
-      select.appendChild(opt);
-    });
-  } catch (error) {
-    console.error(`Failed to load dropdown for ${selectId}:`, error);
   }
 }
 
@@ -84,10 +51,7 @@ function editOrder(o) {
 async function deleteOrder(id) {
   if (!confirm('Delete this order?')) return;
   try {
-    await fetch(`${API_BASE}/api/orders/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.token}` }
-    });
+    await fetchWithAuth(`/api/orders/${id}`, { method: 'DELETE' });
     loadOrders(currentPage);
   } catch (err) {
     console.error('Failed to delete order:', err);
@@ -105,13 +69,9 @@ orderForm.addEventListener('submit', async (e) => {
   };
   try {
     const method = id ? 'PUT' : 'POST';
-    const url = `${API_BASE}/api/orders${id ? '/' + id : ''}`;
-    await fetch(url, {
+    const url = `/api/orders${id ? '/' + id : ''}`;
+    await fetchWithAuth(url, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.token}`
-      },
       body: JSON.stringify(payload)
     });
     orderModal.hide();
@@ -127,7 +87,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   requireAdmin();
   await includeHTML();
   orderModal = new bootstrap.Modal(document.getElementById('editOrderModal'));
-  await populateDropdown('customers', 'customerId');
-  await populateDropdown('users?role=sales_rep', 'salesRepId');
+  await populateSelect('customers', document.getElementById('customerId'));
+  await populateSelect('users?role=sales_rep', document.getElementById('salesRepId'));
   loadOrders();
 });
