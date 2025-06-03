@@ -91,3 +91,35 @@ function exportTableToCSV(filename = "export.csv") {
   link.download = filename;
   link.click();
 }
+
+async function populateDropdown(endpoint, selectId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+      headers: { Authorization: `Bearer ${getStoredToken()}` }
+    });
+    const result = await res.json();
+
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = '<option value="">-- Select --</option>';
+
+    let data = [];
+    if (Array.isArray(result.customers)) {
+      data = result.customers;
+    } else if (Array.isArray(result.data)) {
+      data = result.data;
+    } else if (Array.isArray(result)) {
+      data = result;
+    }
+
+    data.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.name;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    console.error(`Failed to load dropdown for ${selectId}:`, error);
+  }
+}
