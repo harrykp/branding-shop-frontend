@@ -1,27 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin – Orders</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Orders</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 </head>
 <body>
   <div w3-include-html="admin-nav.html"></div>
+
   <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>Orders</h2>
-      <button class="btn btn-success">+ New Order</button>
+    <h2>Order Management</h2>
+    <div class="d-flex justify-content-between mb-2">
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editOrderModal">+ New Order</button>
+      <button class="btn btn-secondary" onclick="exportTableToCSV('orders.csv')">Export CSV</button>
     </div>
-    <table class="table table-bordered" id="order-table">
-      <thead><tr><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody></tbody>
-    </table>
+    <input type="text" id="searchInput" class="form-control mb-2" placeholder="Search orders..." />
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Sales Rep</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="orders-table-body"></tbody>
+      </table>
+    </div>
+    <div id="pagination"></div>
   </div>
-  <script src="js/includes.js"></script>
-  <script src="js/helpers.js"></script>
-  <script src="js/script-orders.js"></script>
-  <script>includeHTML();</script>
+
+  <!-- Edit/Create Order Modal -->
+  <div class="modal fade" id="editOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="orderForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Order Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="orderId" />
+            <div class="mb-2">
+              <label for="customerId" class="form-label">Customer</label>
+              <select id="customerId" class="form-select" required></select>
+            </div>
+            <div class="mb-2">
+              <label for="salesRepId" class="form-label">Sales Rep</label>
+              <select id="salesRepId" class="form-select" required></select>
+            </div>
+            <div class="mb-2">
+              <label for="status" class="form-label">Status</label>
+              <select id="status" class="form-select" required>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label for="total" class="form-label">Total</label>
+              <input type="number" id="total" class="form-control" required />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="js/includes.js" defer></script>
+  <script src="js/helpers.js" defer></script>
+  <script src="js/script-orders.js" defer></script>
 </body>
 </html>
