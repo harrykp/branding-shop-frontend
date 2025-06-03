@@ -41,6 +41,37 @@ async function loadOrders(page = 1) {
   }
 }
 
+async function populateDropdown(endpoint, selectId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+      headers: { Authorization: `Bearer ${localStorage.token}` }
+    });
+    const result = await res.json();
+    console.log(`Dropdown fetch for '${endpoint}':`, result);
+
+    const select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">-- Select --</option>';
+
+    let data = [];
+    if (Array.isArray(result.customers)) {
+      data = result.customers;
+    } else if (Array.isArray(result.data)) {
+      data = result.data;
+    } else if (Array.isArray(result)) {
+      data = result;
+    }
+
+    data.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.name;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    console.error(`Failed to load dropdown for ${selectId}:`, error);
+  }
+}
+
 function editOrder(o) {
   document.getElementById('orderId').value = o.id;
   document.getElementById('customerId').value = o.customer_id;
