@@ -31,7 +31,11 @@ async function loadQuotes(page = 1) {
       quotesTableBody.appendChild(tr);
     });
 
-    renderPagination(total, 10, page, loadQuotes);
+    if (typeof renderPagination === 'function') {
+      renderPagination(total, 10, page, loadQuotes);
+    } else {
+      console.warn('renderPagination is not defined');
+    }
   } catch (err) {
     console.error('Failed to load quotes:', err);
   }
@@ -46,7 +50,7 @@ async function populateDropdown(endpoint, selectId) {
     console.log(`Dropdown fetch for '${endpoint}':`, result);
 
     const select = document.getElementById(selectId);
-    select.innerHTML = '<option value=\"\">-- Select --</option>';
+    select.innerHTML = '<option value="">-- Select --</option>';
 
     let data = [];
 
@@ -68,8 +72,6 @@ async function populateDropdown(endpoint, selectId) {
     console.error(`Failed to load dropdown for ${selectId}:`, error);
   }
 }
-
-
 
 function editQuote(q) {
   document.getElementById('quoteId').value = q.id;
