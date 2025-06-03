@@ -1,13 +1,69 @@
 // /js/script-quotes.js
-
-let quoteModal;
 const quotesTableBody = document.getElementById('quotes-table-body');
 const quoteForm = document.getElementById('quoteForm');
+const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
 const searchInput = document.getElementById('searchInput');
+
 let currentPage = 1;
 
-function exportQuotesToCSV() {
-  exportTableToCSV('quotes.csv');
+function openNewQuoteModal() {
+  document.getElementById('quoteId').value = '';
+  document.getElementById('quoteForm').reset();
+  document.getElementById('quoteItemsBody').innerHTML = '';
+  addQuoteItemRow();
+  quoteModal.show();
+}
+
+function addQuoteItemRow(item = {}) {
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><select class="form-select product-select"></select></td>
+    <td><input type="number" class="form-control qty" value="${item.qty || 1}" /></td>
+    <td><input type="number" class="form-control unit-price" value="${item.unit_price || 0}" /></td>
+    <td class="subtotal">0</td>
+    <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove(); calculateTotal();">X</button></td>
+  `;
+  document.getElementById('quoteItemsBody').appendChild(row);
+  populateProducts(row.querySelector('select'), item.product_id);
+  calculateTotal();
+
+  row.querySelectorAll('.qty, .unit-price').forEach(input => {
+    input.addEventListener('input', calculateTotal);
+  });
+}
+
+function calculateTotal() {
+  let total = 0;
+  document.querySelectorAll('#quoteItemsBody tr').forEach(row => {
+    const qty = parseFloat(row.querySelector('.qty').value) || 0;
+    const price = parseFloat(row.querySelector('.unit-price').value) || 0;
+    const subtotal = qty * price;
+    row.querySelector('.subtotal').textContent = subtotal.toFixed(2);
+    total += subtotal;
+  });
+  document.getElementById('total').value = total.toFixed(2);
+}
+
+async function populateProducts(selectElement, selectedId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/products`, {
+      headers: { Authorization: `Bearer ${localStorage.token}` }
+    });
+    const result = await res.json();
+
+    const data = Array.isArray(result.data) ? result.data : (Array.isArray(result.products) ? result.products : result);
+
+    selectElement.innerHTML = '<option value="">-- Select Product --</option>';
+    data.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      if (p.id === selectedId) opt.selected = true;
+      selectElement.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Failed to load products:', err);
+  }
 }
 
 async function loadQuotes(page = 1) {
@@ -35,102 +91,10 @@ async function loadQuotes(page = 1) {
       quotesTableBody.appendChild(tr);
     });
 
-    renderPagination(total, 10, currentPage, loadQuotes);
+    renderPagination(total, 'pagination', loadQuotes, 10, page);
   } catch (err) {
     console.error('Failed to load quotes:', err);
   }
-}
-
-async function populateDropdown(endpoint, selectId) {
-  try {
-    const res = await fetch(`${API_BASE}/api/${endpoint}`, {
-      headers: { Authorization: `Bearer ${localStorage.token}` }
-    });
-    const result = await res.json();
-    console.log(`Dropdown fetch for '${endpoint}':`, result);
-
-    const select = document.getElementById(selectId);
-    select.innerHTML = '<option value="">-- Select --</option>';
-
-    let data = [];
-
-    if (Array.isArray(result.customers)) {
-      data = result.customers;
-    } else if (Array.isArray(result.data)) {
-      data = result.data;
-    } else if (Array.isArray(result)) {
-      data = result;
-    }
-
-    data.forEach(item => {
-      const opt = document.createElement('option');
-      opt.value = item.id;
-      opt.textContent = item.name;
-      select.appendChild(opt);
-    });
-  } catch (error) {
-    console.error(`Failed to load dropdown for ${selectId}:`, error);
-  }
-}
-
-function addQuoteItemRow(item = {}) {
-  const container = document.getElementById('items-container');
-  const row = document.createElement('div');
-  row.className = 'row g-2 mb-2 item-row';
-  row.innerHTML = `
-    <div class="col-md-4">
-      <select class="form-select product-select">
-        <option value="">-- Select Product --</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <input type="number" class="form-control qty-input" value="${item.quantity || ''}" />
-    </div>
-    <div class="col-md-2">
-      <input type="number" class="form-control price-input" value="${item.unit_price || ''}" />
-    </div>
-    <div class="col-md-2 d-flex align-items-center">
-      <span class="item-subtotal">0.00</span>
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-sm btn-danger remove-item">✖</button>
-    </div>
-  `;
-  container.appendChild(row);
-  row.querySelector('.remove-item').onclick = () => row.remove();
-  row.querySelectorAll('.qty-input, .price-input').forEach(el => el.oninput = updateTotal);
-  populateProducts(row.querySelector('.product-select'), item.product_id);
-}
-
-async function populateProducts(selectElement, selectedId) {
-  try {
-    const res = await fetch(`${API_BASE}/api/products`, {
-      headers: { Authorization: `Bearer ${localStorage.token}` }
-    });
-    const result = await res.json();
-    result.data.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
-      if (selectedId && selectedId == p.id) opt.selected = true;
-      selectElement.appendChild(opt);
-    });
-  } catch (err) {
-    console.error('Failed to load products:', err);
-  }
-}
-
-function updateTotal() {
-  const rows = document.querySelectorAll('.item-row');
-  let total = 0;
-  rows.forEach(row => {
-    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
-    const price = parseFloat(row.querySelector('.price-input').value) || 0;
-    const subtotal = qty * price;
-    row.querySelector('.item-subtotal').textContent = subtotal.toFixed(2);
-    total += subtotal;
-  });
-  document.getElementById('quoteTotal').textContent = total.toFixed(2);
 }
 
 function editQuote(q) {
@@ -138,13 +102,9 @@ function editQuote(q) {
   document.getElementById('customerId').value = q.customer_id;
   document.getElementById('salesRepId').value = q.sales_rep_id;
   document.getElementById('status').value = q.status;
-
-  const container = document.getElementById('items-container');
-  container.innerHTML = '';
-  if (q.items && Array.isArray(q.items)) {
-    q.items.forEach(addQuoteItemRow);
-  }
-  updateTotal();
+  document.getElementById('quoteItemsBody').innerHTML = '';
+  q.items.forEach(addQuoteItemRow);
+  calculateTotal();
   quoteModal.show();
 }
 
@@ -164,20 +124,20 @@ async function deleteQuote(id) {
 quoteForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('quoteId').value;
-  const items = Array.from(document.querySelectorAll('.item-row')).map(row => ({
-    product_id: row.querySelector('.product-select').value,
-    quantity: parseFloat(row.querySelector('.qty-input').value) || 0,
-    unit_price: parseFloat(row.querySelector('.price-input').value) || 0
-  })).filter(item => item.product_id);
+  const items = Array.from(document.querySelectorAll('#quoteItemsBody tr')).map(row => ({
+    product_id: parseInt(row.querySelector('select').value),
+    qty: parseFloat(row.querySelector('.qty').value),
+    unit_price: parseFloat(row.querySelector('.unit-price').value)
+  }));
 
-  const total = items.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0);
   const payload = {
-    customer_id: document.getElementById('customerId').value,
-    sales_rep_id: document.getElementById('salesRepId').value,
+    customer_id: parseInt(document.getElementById('customerId').value),
+    sales_rep_id: parseInt(document.getElementById('salesRepId').value),
     status: document.getElementById('status').value,
-    total,
+    total: parseFloat(document.getElementById('total').value),
     items
   };
+
   try {
     const method = id ? 'PUT' : 'POST';
     const url = `${API_BASE}/api/quotes${id ? '/' + id : ''}`;
@@ -201,7 +161,6 @@ searchInput.addEventListener('input', () => loadQuotes(1));
 window.addEventListener('DOMContentLoaded', async () => {
   requireAdmin();
   await includeHTML();
-  quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
   await populateDropdown('customers', 'customerId');
   await populateDropdown('users?role=sales_rep', 'salesRepId');
   loadQuotes();
