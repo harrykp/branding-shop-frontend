@@ -94,7 +94,7 @@ function printElementById(elementId) {
   const printWindow = window.open('', '_blank');
   printWindow.document.write('<html><head><title>Print</title>');
   printWindow.document.write('<link rel="stylesheet" href="/style.css" />');
-  printWindow.document.write('</head><body >');
+  printWindow.document.write('</head><body>');
   printWindow.document.write(content.outerHTML);
   printWindow.document.write('</body></html>');
   printWindow.document.close();
@@ -103,34 +103,46 @@ function printElementById(elementId) {
   printWindow.close();
 }
 
-async function populateSelect(endpoint, selectElement) {
+async function populateSelect(endpoint, selectElOrId) {
   try {
+    const selectElement = typeof selectElOrId === 'string' ? document.getElementById(selectElOrId) : selectElOrId;
+    if (!selectElement) return;
+
     const res = await fetch(`${API_BASE}/api/${endpoint}`, {
       headers: { Authorization: `Bearer ${getStoredToken()}` }
     });
     const result = await res.json();
-    const select = (typeof selectElement === 'string') ? document.getElementById(selectElement) : selectElement;
-    if (!select) return;
 
-    select.innerHTML = '<option value="">-- Select --</option>';
-    let data = [];
+    selectElement.innerHTML = '<option value="">-- Select --</option>';
 
-    if (Array.isArray(result.customers)) {
-      data = result.customers;
-    } else if (Array.isArray(result.data)) {
-      data = result.data;
-    } else if (Array.isArray(result)) {
-      data = result;
-    }
+    let data = Array.isArray(result.data) ? result.data
+              : Array.isArray(result.customers) ? result.customers
+              : Array.isArray(result) ? result
+              : [];
 
     data.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.name;
       if (item.unit_price) opt.dataset.price = item.unit_price;
-      select.appendChild(opt);
+      selectElement.appendChild(opt);
     });
-  } catch (err) {
-    console.error(`Failed to populate ${endpoint} select:`, err);
+  } catch (error) {
+    console.error(`Failed to populate ${endpoint} select:`, error);
   }
+}
+
+function calculateItemTotal(row) {
+  const qty = parseFloat(row.querySelector('.item-qty')?.value || 0);
+  const price = parseFloat(row.querySelector('.item-price')?.value || 0);
+  row.querySelector('.item-subtotal').textContent = (qty * price).toFixed(2);
+  return qty * price;
+}
+
+function recalculateTotal(containerId, totalFieldId) {
+  const rows = document.querySelectorAll(`#${containerId} .item-row`);
+  let total = 0;
+  rows.forEach(row => total += calculateItemTotal(row));
+  const totalField = document.getElementById(totalFieldId);
+  if (totalField) totalField.value = total.toFixed(2);
 }
