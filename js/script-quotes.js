@@ -92,6 +92,7 @@ async function loadQuotes(page = 1) {
         <td>${q.total}</td>
         <td>${new Date(q.created_at).toLocaleDateString()}</td>
         <td>
+          <button class="btn btn-sm btn-info" onclick='viewQuote(${JSON.stringify(q)})'>View</button>
           <button class="btn btn-sm btn-primary" onclick='editQuote(${JSON.stringify(q)})'>Edit</button>
           <button class="btn btn-sm btn-danger" onclick='deleteQuote(${q.id})'>Delete</button>
         </td>`;
@@ -113,6 +114,61 @@ function editQuote(q) {
   q.items.forEach(addQuoteItemRow);
   calculateTotal();
   quoteModal.show();
+}
+
+function viewQuote(q) {
+  const viewHtml = `
+    <div id="quote-view">
+      <h4>Quote #${q.id}</h4>
+      <p><strong>Customer:</strong> ${q.customer_name}</p>
+      <p><strong>Sales Rep:</strong> ${q.sales_rep_name}</p>
+      <p><strong>Status:</strong> ${q.status}</p>
+      <hr />
+      <table class="table table-sm">
+        <thead>
+          <tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr>
+        </thead>
+        <tbody>
+          ${q.items.map(i => `
+            <tr>
+              <td>${i.product_name}</td>
+              <td>${i.qty}</td>
+              <td>${i.unit_price}</td>
+              <td>${(i.qty * i.unit_price).toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <p class="text-end"><strong>Total:</strong> ${q.total}</p>
+      <div class="text-end">
+        <button class="btn btn-outline-secondary btn-sm" onclick="printElementById('quote-view')">Print</button>
+      </div>
+    </div>`;
+  const viewContainer = document.createElement('div');
+  viewContainer.innerHTML = viewHtml;
+  const wrapper = document.createElement('div');
+  wrapper.classList.add('modal-body');
+  wrapper.appendChild(viewContainer);
+
+  const shell = document.createElement('div');
+  shell.classList.add('modal', 'fade');
+  shell.tabIndex = -1;
+  shell.innerHTML = `
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Quote Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body"></div>
+      </div>
+    </div>
+  `;
+  shell.querySelector('.modal-body').appendChild(wrapper);
+  document.body.appendChild(shell);
+  const bsModal = new bootstrap.Modal(shell);
+  bsModal.show();
+  shell.addEventListener('hidden.bs.modal', () => shell.remove());
 }
 
 async function deleteQuote(id) {
