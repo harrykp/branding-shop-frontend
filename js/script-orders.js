@@ -1,52 +1,102 @@
+// /js/script-orders.js
 
-document.addEventListener("DOMContentLoaded", async () => {
-  requireAdmin();
-  const tableBody = document.querySelector("#order-table tbody");
+let orderModal;
+const ordersTableBody = document.getElementById('orders-table-body');
+const orderForm = document.getElementById('orderForm');
+const searchInput = document.getElementById('searchInput');
+let currentPage = 1;
 
-  async function loadOrders() {
-    const res = await fetchWithAuth("/api/orders");
-    const orders = await res.json();
+function exportOrdersToCSV() {
+  exportTableToCSV('orders.csv');
+}
 
-    tableBody.innerHTML = "";
-    orders.forEach(order => {
-      const tr = document.createElement("tr");
+async function loadOrders(page = 1) {
+  currentPage = page;
+  const search = searchInput.value.trim();
+  try {
+    const res = await fetch(`${API_BASE}/api/orders?page=${page}&limit=10&search=${encodeURIComponent(search)}`, {
+      headers: { Authorization: `Bearer ${localStorage.token}` }
+    });
+    const { orders, total } = await res.json();
+
+    ordersTableBody.innerHTML = '';
+    orders.forEach(o => {
+      const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${order.order_number || 'N/A'}</td>
-        <td>${order.customer_name || 'N/A'}</td>
-        <td>${order.created_at?.split('T')[0]}</td>
+        <td>${o.customer_name}</td>
+        <td>${o.sales_rep_name}</td>
+        <td>${o.status}</td>
+        <td>${o.total}</td>
+        <td>${new Date(o.created_at).toLocaleDateString()}</td>
         <td>
-          <select onchange="updateStatus('${order.id}', this.value)">
-            <option ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
-            <option ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
-            <option ${order.status === 'Completed' ? 'selected' : ''}>Completed</option>
-          </select>
-        </td>
-        <td>${order.total}</td>
-        <td>
-          <button class="btn btn-sm btn-primary me-2" onclick="editOrder('${order.id}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteOrder('${order.id}')">Delete</button>
-        </td>
-      `;
-      tableBody.appendChild(tr);
+          <button class="btn btn-sm btn-primary" onclick='editOrder(${JSON.stringify(o)})'>Edit</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteOrder(${o.id})'>Delete</button>
+        </td>`;
+      ordersTableBody.appendChild(tr);
     });
+
+    renderPagination(total, 10, currentPage, loadOrders);
+  } catch (err) {
+    console.error('Failed to load orders:', err);
   }
+}
 
-  window.updateStatus = async (id, status) => {
-    await fetchWithAuth("/api/orders/" + id, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
+function editOrder(o) {
+  document.getElementById('orderId').value = o.id;
+  document.getElementById('customerId').value = o.customer_id;
+  document.getElementById('salesRepId').value = o.sales_rep_id;
+  document.getElementById('status').value = o.status;
+  document.getElementById('total').value = o.total;
+  orderModal.show();
+}
+
+async function deleteOrder(id) {
+  if (!confirm('Delete this order?')) return;
+  try {
+    await fetch(`${API_BASE}/api/orders/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${localStorage.token}` }
     });
-    loadOrders();
-  };
+    loadOrders(currentPage);
+  } catch (err) {
+    console.error('Failed to delete order:', err);
+  }
+}
 
-  window.editOrder = (id) => alert("Edit order: " + id);
-  window.deleteOrder = async (id) => {
-    if (confirm("Delete this order?")) {
-      await fetchWithAuth("/api/orders/" + id, { method: "DELETE" });
-      loadOrders();
-    }
+orderForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('orderId').value;
+  const payload = {
+    customer_id: document.getElementById('customerId').value,
+    sales_rep_id: document.getElementById('salesRepId').value,
+    status: document.getElementById('status').value,
+    total: document.getElementById('total').value
   };
+  try {
+    const method = id ? 'PUT' : 'POST';
+    const url = `${API_BASE}/api/orders${id ? '/' + id : ''}`;
+    await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    orderModal.hide();
+    loadOrders(currentPage);
+  } catch (err) {
+    console.error('Failed to save order:', err);
+  }
+});
 
+searchInput.addEventListener('input', () => loadOrders(1));
+
+window.addEventListener('DOMContentLoaded', async () => {
+  requireAdmin();
+  await includeHTML();
+  orderModal = new bootstrap.Modal(document.getElementById('editOrderModal'));
+  await populateDropdown('customers', 'customerId');
+  await populateDropdown('users?role=sales_rep', 'salesRepId');
   loadOrders();
 });
