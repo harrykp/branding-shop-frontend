@@ -146,3 +146,61 @@ function recalculateTotal(containerId, totalFieldId) {
   const totalField = document.getElementById(totalFieldId);
   if (totalField) totalField.value = total.toFixed(2);
 }
+
+function addItemRow(containerId, products, onRemoveCallback) {
+  const container = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.className = 'row g-2 align-items-center item-row mb-2';
+
+  row.innerHTML = `
+    <div class="col-md-4">
+      <select class="form-select item-product" required>
+        <option value="">-- Select Product --</option>
+        ${products.map(p => `<option value="${p.id}" data-price="${p.unit_price}">${p.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <input type="number" class="form-control item-qty" placeholder="Qty" value="1" required />
+    </div>
+    <div class="col-md-2">
+      <input type="number" class="form-control item-price" placeholder="Price" required />
+    </div>
+    <div class="col-md-2">
+      <span class="item-subtotal">0.00</span>
+    </div>
+    <div class="col-md-2">
+      <button type="button" class="btn btn-danger btn-sm remove-item">Remove</button>
+    </div>
+  `;
+
+  container.appendChild(row);
+  setupRowListeners(row, onRemoveCallback);
+}
+
+function setupRowListeners(row, onRemoveCallback) {
+  const select = row.querySelector('.item-product');
+  const qty = row.querySelector('.item-qty');
+  const price = row.querySelector('.item-price');
+  const remove = row.querySelector('.remove-item');
+
+  if (select && price) {
+    select.addEventListener('change', () => {
+      const selected = select.options[select.selectedIndex];
+      price.value = selected.dataset.price || 0;
+      calculateItemTotal(row);
+      if (onRemoveCallback) onRemoveCallback();
+    });
+  }
+  if (qty) qty.addEventListener('input', () => {
+    calculateItemTotal(row);
+    if (onRemoveCallback) onRemoveCallback();
+  });
+  if (price) price.addEventListener('input', () => {
+    calculateItemTotal(row);
+    if (onRemoveCallback) onRemoveCallback();
+  });
+  if (remove) remove.addEventListener('click', () => {
+    row.remove();
+    if (onRemoveCallback) onRemoveCallback();
+  });
+}
