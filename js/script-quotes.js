@@ -1,4 +1,4 @@
-// /js/script-quotes.js
+// /js/script-quotes.js (Frozen Working Version)
 
 let quoteModal, viewQuoteModal;
 const quotesTableBody = document.getElementById('quotes-table-body');
@@ -6,8 +6,60 @@ const quoteForm = document.getElementById('quoteForm');
 const searchInput = document.getElementById('searchInput');
 let currentPage = 1;
 
-function exportQuotesToCSV() {
-  exportTableToCSV('quotes-table');
+function openQuoteModal() {
+  document.getElementById('quoteId').value = '';
+  document.getElementById('status').value = 'pending';
+  document.getElementById('quote-items-body').innerHTML = '';
+  document.getElementById('quote-total').innerText = '0.00';
+  addQuoteItemRow();
+  quoteModal.show();
+}
+
+function addQuoteItemRow(item = {}) {
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><select class="form-select product-select"></select></td>
+    <td><input type="number" class="form-control qty-input" value="${item.qty || 1}" /></td>
+    <td><input type="number" class="form-control price-input" value="${item.unit_price || 0}" /></td>
+    <td class="subtotal-cell">0.00</td>
+    <td><button class="btn btn-sm btn-danger" onclick="this.closest('tr').remove(); calculateQuoteTotal();">Remove</button></td>
+  `;
+  document.getElementById('quote-items-body').appendChild(row);
+  populateProductSelect(row.querySelector('.product-select'), item.product_id);
+  row.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', calculateQuoteTotal);
+  });
+  calculateQuoteTotal();
+}
+
+async function populateProductSelect(select, selectedId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/products`, {
+      headers: { Authorization: `Bearer ${getStoredToken()}` }
+    });
+    const data = await res.json();
+    data.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      if (p.id === selectedId) opt.selected = true;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Failed to load products:', err);
+  }
+}
+
+function calculateQuoteTotal() {
+  let total = 0;
+  document.querySelectorAll('#quote-items-body tr').forEach(row => {
+    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const subtotal = qty * price;
+    row.querySelector('.subtotal-cell').innerText = subtotal.toFixed(2);
+    total += subtotal;
+  });
+  document.getElementById('quote-total').innerText = total.toFixed(2);
 }
 
 async function loadQuotes(page = 1) {
@@ -17,10 +69,9 @@ async function loadQuotes(page = 1) {
     const res = await fetch(`${API_BASE}/api/quotes?page=${page}&limit=10&search=${encodeURIComponent(search)}`, {
       headers: { Authorization: `Bearer ${getStoredToken()}` }
     });
-    const { quotes, total } = await res.json();
-
+    const { data, total } = await res.json();
     quotesTableBody.innerHTML = '';
-    quotes.forEach(q => {
+    data.forEach(q => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${q.customer_name}</td>
@@ -35,61 +86,44 @@ async function loadQuotes(page = 1) {
         </td>`;
       quotesTableBody.appendChild(tr);
     });
-
-    renderPagination(total, 'pagination', loadQuotes, 10, page);
+    renderPagination(total, 'pagination', loadQuotes);
   } catch (err) {
     console.error('Failed to load quotes:', err);
   }
 }
 
-function addQuoteItemRow(item = {}) {
-  const tbody = document.getElementById('quote-items-body');
-  const tr = document.createElement('tr');
-
-  tr.innerHTML = `
-    <td>
-      <select class="form-select" onchange="updateUnitPrice(this)">
-        <option value="">-- Select --</option>
-      </select>
-    </td>
-    <td><input type="number" class="form-control qty" value="${item.qty || 1}" onchange="recalculateRow(this)"></td>
-    <td><input type="number" class="form-control unit-price" value="${item.unit_price || 0}" readonly></td>
-    <td><input type="number" class="form-control subtotal" value="${item.subtotal || 0}" readonly></td>
-    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeQuoteItemRow(this)">X</button></td>
-  `;
-
-  tbody.appendChild(tr);
-  populateSelect('products', tr.querySelector('select'));
-  recalculateTotal();
-}
-
-function updateUnitPrice(select) {
-  const selected = select.options[select.selectedIndex];
-  const price = selected.dataset.price || 0;
-  const row = select.closest('tr');
-  row.querySelector('.unit-price').value = price;
-  recalculateRow(row);
-}
-
-function recalculateRow(input) {
-  const row = input.closest('tr');
-  const qty = parseFloat(row.querySelector('.qty').value) || 0;
-  const unitPrice = parseFloat(row.querySelector('.unit-price').value) || 0;
-  row.querySelector('.subtotal').value = qty * unitPrice;
-  recalculateTotal();
-}
-
-function recalculateTotal() {
-  let total = 0;
-  document.querySelectorAll('#quote-items-body .subtotal').forEach(input => {
-    total += parseFloat(input.value) || 0;
-  });
-  document.getElementById('total').value = total.toFixed(2);
-}
-
-function removeQuoteItemRow(button) {
-  button.closest('tr').remove();
-  recalculateTotal();
+async function viewQuote(id) {
+  try {
+    const res = await fetch(`${API_BASE}/api/quotes/${id}`, {
+      headers: { Authorization: `Bearer ${getStoredToken()}` }
+    });
+    const q = await res.json();
+    const container = document.getElementById('quote-view-content');
+    let html = `
+      <p><strong>Customer:</strong> ${q.customer_name}</p>
+      <p><strong>Sales Rep:</strong> ${q.sales_rep_name}</p>
+      <p><strong>Status:</strong> ${q.status}</p>
+      <hr/>
+      <table class="table table-sm">
+        <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr></thead>
+        <tbody>
+          ${q.items.map(item => `
+            <tr>
+              <td>${item.product_name}</td>
+              <td>${item.qty}</td>
+              <td>${item.unit_price}</td>
+              <td>${item.subtotal}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <p class="text-end"><strong>Total: GH¢ ${q.total}</strong></p>
+    `;
+    container.innerHTML = html;
+    viewQuoteModal.show();
+  } catch (err) {
+    console.error('Failed to fetch quote details:', err);
+  }
 }
 
 function editQuote(q) {
@@ -97,15 +131,9 @@ function editQuote(q) {
   document.getElementById('customerId').value = q.customer_id;
   document.getElementById('salesRepId').value = q.sales_rep_id;
   document.getElementById('status').value = q.status;
-
-  // Load quote items
   document.getElementById('quote-items-body').innerHTML = '';
-  if (q.items && Array.isArray(q.items)) {
-    q.items.forEach(addQuoteItemRow);
-  } else {
-    addQuoteItemRow();
-  }
-
+  q.items.forEach(addQuoteItemRow);
+  calculateQuoteTotal();
   quoteModal.show();
 }
 
@@ -129,23 +157,12 @@ quoteForm.addEventListener('submit', async (e) => {
     customer_id: document.getElementById('customerId').value,
     sales_rep_id: document.getElementById('salesRepId').value,
     status: document.getElementById('status').value,
-    total: document.getElementById('total').value,
-    items: []
+    items: Array.from(document.querySelectorAll('#quote-items-body tr')).map(row => ({
+      product_id: row.querySelector('.product-select').value,
+      qty: row.querySelector('.qty-input').value,
+      unit_price: row.querySelector('.price-input').value
+    }))
   };
-
-  document.querySelectorAll('#quote-items-body tr').forEach(row => {
-    const select = row.querySelector('select');
-    const qty = row.querySelector('.qty').value;
-    const unitPrice = row.querySelector('.unit-price').value;
-    if (select.value) {
-      payload.items.push({
-        product_id: select.value,
-        qty,
-        unit_price: unitPrice
-      });
-    }
-  });
-
   try {
     const method = id ? 'PUT' : 'POST';
     const url = `${API_BASE}/api/quotes${id ? '/' + id : ''}`;
@@ -163,44 +180,6 @@ quoteForm.addEventListener('submit', async (e) => {
     console.error('Failed to save quote:', err);
   }
 });
-
-async function viewQuote(id) {
-  try {
-    const res = await fetch(`${API_BASE}/api/quotes/${id}`, {
-      headers: { Authorization: `Bearer ${getStoredToken()}` }
-    });
-    const q = await res.json();
-
-    const container = document.getElementById('viewQuoteContent');
-    let html = `
-      <p><strong>Customer:</strong> ${q.customer_name}</p>
-      <p><strong>Sales Rep:</strong> ${q.sales_rep_name}</p>
-      <p><strong>Status:</strong> ${q.status}</p>
-      <p><strong>Date:</strong> ${new Date(q.created_at).toLocaleString()}</p>
-      <h6>Items</h6>
-      <table class="table table-sm table-bordered">
-        <thead>
-          <tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr>
-        </thead>
-        <tbody>
-          ${q.items.map(item => `
-            <tr>
-              <td>${item.product_name}</td>
-              <td>${item.qty}</td>
-              <td>${item.unit_price}</td>
-              <td>${item.subtotal}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-      <p class="text-end fw-bold">Total: ${q.total}</p>
-    `;
-
-    container.innerHTML = html;
-    viewQuoteModal.show();
-  } catch (err) {
-    console.error('Failed to load quote:', err);
-  }
-}
 
 searchInput.addEventListener('input', () => loadQuotes(1));
 
