@@ -50,8 +50,15 @@ async function populateProducts(selectElement, selectedId) {
       headers: { Authorization: `Bearer ${localStorage.token}` }
     });
     const result = await res.json();
+    console.log('Product API response:', result);
 
-    const data = Array.isArray(result.data) ? result.data : (Array.isArray(result.products) ? result.products : result);
+    const data = Array.isArray(result.data)
+      ? result.data
+      : Array.isArray(result.products)
+      ? result.products
+      : Array.isArray(result)
+      ? result
+      : [];
 
     selectElement.innerHTML = '<option value="">-- Select Product --</option>';
     data.forEach(p => {
