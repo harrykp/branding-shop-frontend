@@ -4,6 +4,7 @@ if (typeof window.API_BASE === "undefined") {
   window.API_BASE = "https://branding-shop-backend.onrender.com";
 }
 
+// Token and User Helpers
 function getStoredToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
@@ -56,6 +57,7 @@ function logout() {
   window.location.href = "login.html";
 }
 
+// Pagination Renderer
 function renderPagination(totalItems, containerId, onPageClick, perPage = 10, currentPage = 1) {
   const totalPages = Math.ceil(totalItems / perPage);
   const container = document.getElementById(containerId);
@@ -72,6 +74,7 @@ function renderPagination(totalItems, containerId, onPageClick, perPage = 10, cu
   }
 }
 
+// Export table to CSV
 function exportTableToCSV(tableId, filename = "export.csv") {
   const rows = document.querySelectorAll(`#${tableId} tr`);
   if (!rows.length) return;
@@ -87,6 +90,7 @@ function exportTableToCSV(tableId, filename = "export.csv") {
   link.click();
 }
 
+// Print utility
 function printElementById(elementId) {
   const content = document.getElementById(elementId);
   if (!content) return;
@@ -103,17 +107,11 @@ function printElementById(elementId) {
   printWindow.close();
 }
 
-async function populateDropdown(endpoint, selectId) {
+// ✅ NEW UNIVERSAL DROPDOWN POPULATOR
+async function populateSelect(endpoint, selectElement, defaultLabel = '-- Select --') {
   try {
-    const res = await fetch(`${API_BASE}/api/${endpoint}`, {
-      headers: { Authorization: `Bearer ${getStoredToken()}` }
-    });
+    const res = await fetchWithAuth(`/api/${endpoint}`);
     const result = await res.json();
-
-    const select = document.getElementById(selectId);
-    if (!select) return;
-
-    select.innerHTML = '<option value="">-- Select --</option>';
 
     let data = [];
     if (Array.isArray(result.customers)) {
@@ -124,13 +122,14 @@ async function populateDropdown(endpoint, selectId) {
       data = result;
     }
 
+    selectElement.innerHTML = `<option value="">${defaultLabel}</option>`;
     data.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
       opt.textContent = item.name;
-      select.appendChild(opt);
+      selectElement.appendChild(opt);
     });
   } catch (error) {
-    console.error(`Failed to load dropdown for ${selectId}:`, error);
+    console.error(`Failed to populate ${endpoint} select:`, error);
   }
 }
