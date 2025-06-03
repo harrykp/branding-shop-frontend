@@ -1,13 +1,14 @@
 // /js/script-orders.js
 
 let orderModal;
+let viewOrderModal;
 const ordersTableBody = document.getElementById('orders-table-body');
 const orderForm = document.getElementById('orderForm');
 const searchInput = document.getElementById('searchInput');
 let currentPage = 1;
 
 function exportOrdersToCSV() {
-  exportTableToCSV('orders.csv');
+  exportTableToCSV('orders-table', 'orders.csv');
 }
 
 async function loadOrders(page = 1) {
@@ -27,6 +28,7 @@ async function loadOrders(page = 1) {
         <td>${o.total}</td>
         <td>${new Date(o.created_at).toLocaleDateString()}</td>
         <td>
+          <button class="btn btn-sm btn-info" onclick='viewOrder(${JSON.stringify(o)})'>View</button>
           <button class="btn btn-sm btn-primary" onclick='editOrder(${JSON.stringify(o)})'>Edit</button>
           <button class="btn btn-sm btn-danger" onclick='deleteOrder(${o.id})'>Delete</button>
         </td>`;
@@ -37,6 +39,23 @@ async function loadOrders(page = 1) {
   } catch (err) {
     console.error('Failed to load orders:', err);
   }
+}
+
+function viewOrder(order) {
+  const container = document.getElementById('viewOrderContent');
+  container.innerHTML = `
+    <h5>Customer: ${order.customer_name}</h5>
+    <p><strong>Sales Rep:</strong> ${order.sales_rep_name}</p>
+    <p><strong>Status:</strong> ${order.status}</p>
+    <p><strong>Total:</strong> ${order.total}</p>
+    <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+    <hr>
+    <h6>Items:</h6>
+    <ul>
+      ${(order.items || []).map(item => `<li>${item.product_name} - Qty: ${item.qty} @ ${item.unit_price} = ${item.subtotal}</li>`).join('') || '<li>No items found.</li>'}
+    </ul>
+  `;
+  viewOrderModal.show();
 }
 
 function editOrder(o) {
@@ -87,6 +106,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   requireAdmin();
   await includeHTML();
   orderModal = new bootstrap.Modal(document.getElementById('editOrderModal'));
+  viewOrderModal = new bootstrap.Modal(document.getElementById('viewOrderModal'));
   await populateSelect('customers', document.getElementById('customerId'));
   await populateSelect('users?role=sales_rep', document.getElementById('salesRepId'));
   loadOrders();
