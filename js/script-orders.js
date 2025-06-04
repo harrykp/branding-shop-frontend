@@ -1,4 +1,4 @@
-// /js/script-orders.js
+// js/script-orders.js
 
 let orderModal;
 const ordersTableBody = document.getElementById('orders-table-body');
@@ -16,12 +16,10 @@ async function loadOrders(page = 1) {
   try {
     const res = await fetchWithAuth(`/api/orders?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
-
     if (!Array.isArray(data)) {
       console.error("Expected array for orders but got:", data);
       return;
     }
-
     ordersTableBody.innerHTML = '';
     data.forEach(o => {
       const tr = document.createElement('tr');
@@ -45,7 +43,6 @@ async function loadOrders(page = 1) {
         </td>`;
       ordersTableBody.appendChild(tr);
     });
-
     renderPagination(total, 'pagination', loadOrders);
   } catch (err) {
     console.error('Failed to load orders:', err);
@@ -65,31 +62,29 @@ async function updateOrderStatus(id, status) {
 }
 
 window.viewOrder = function(o) {
-  document.getElementById('viewOrderCustomer').textContent = o.customer_name || '';
-  document.getElementById('viewOrderRep').textContent = o.sales_rep_name || '';
-  document.getElementById('viewOrderStatus').textContent = o.status || '';
-  document.getElementById('viewOrderTotal').textContent = o.total || '';
+  document.getElementById('viewOrderCustomer').textContent = o.customer_name;
+  document.getElementById('viewOrderRep').textContent = o.sales_rep_name;
+  document.getElementById('viewOrderStatus').textContent = o.status;
+  document.getElementById('viewOrderTotal').textContent = o.total;
   document.getElementById('viewOrderDate').textContent = new Date(o.created_at).toLocaleString();
 
-  const viewItems = document.getElementById('viewOrderItems');
-  viewItems.innerHTML = '';
+  const tbody = document.getElementById('viewOrderItems');
+  tbody.innerHTML = '';
   if (Array.isArray(o.items) && o.items.length > 0) {
     o.items.forEach(item => {
       const row = document.createElement('tr');
+      const subtotal = parseFloat(item.quantity) * parseFloat(item.unit_price);
       row.innerHTML = `
-        <td>${item.product_name || ''}</td>
+        <td>${item.product_name}</td>
         <td>${item.quantity}</td>
         <td>${item.unit_price}</td>
-        <td>${(item.quantity * item.unit_price).toFixed(2)}</td>
+        <td>${subtotal.toFixed(2)}</td>
       `;
-      viewItems.appendChild(row);
+      tbody.appendChild(row);
     });
   } else {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td colspan="4">No items found.</td>`;
-    viewItems.appendChild(row);
+    tbody.innerHTML = `<tr><td colspan="4">No items found.</td></tr>`;
   }
-
   new bootstrap.Modal(document.getElementById('viewOrderModal')).show();
 }
 
@@ -99,54 +94,35 @@ window.editOrder = function(o) {
   document.getElementById('orderSalesRepId').value = o.sales_rep_id;
   document.getElementById('orderStatus').value = o.status;
   document.getElementById('orderTotal').value = o.total;
-
   const tbody = document.getElementById('orderItems');
   tbody.innerHTML = '';
-  if (o.items && Array.isArray(o.items)) {
+  if (Array.isArray(o.items)) {
     o.items.forEach(item => addOrderItemRow(item.product_id, item.quantity, item.unit_price));
   }
-
   orderModal.show();
 }
 
-function addOrderItemRow(productId = '', quantity = 1, price = 0) {
+function addOrderItemRow(productId = '', quantity = 1, unit_price = 0) {
   const tbody = document.getElementById('orderItems');
   const row = document.createElement('tr');
-  row.classList.add('item-row');
+  row.className = 'item-row';
   row.innerHTML = `
     <td><select class="form-select item-product"></select></td>
     <td><input type="number" class="form-control item-qty" value="${quantity}" min="1"></td>
-    <td><input type="number" class="form-control item-price" value="${price}" min="0"></td>
+    <td><input type="number" class="form-control item-price" value="${unit_price}" min="0"></td>
     <td class="item-subtotal">0.00</td>
     <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove(); recalculateTotal('orderItems', 'orderTotal')">&times;</button></td>
   `;
   tbody.appendChild(row);
   populateSelect('products', row.querySelector('select'));
-  setupRowListeners(row);
   if (productId) row.querySelector('select').value = productId;
+  setupRowListeners(row);
   recalculateTotal('orderItems', 'orderTotal');
 }
 
 function setupRowListeners(row) {
   row.querySelector('.item-qty').addEventListener('input', () => recalculateTotal('orderItems', 'orderTotal'));
   row.querySelector('.item-price').addEventListener('input', () => recalculateTotal('orderItems', 'orderTotal'));
-  row.querySelector('.item-product').addEventListener('change', (e) => {
-    const selected = e.target.selectedOptions[0];
-    if (selected?.dataset.price) {
-      row.querySelector('.item-price').value = selected.dataset.price;
-    }
-    recalculateTotal('orderItems', 'orderTotal');
-  });
-}
-
-async function deleteOrder(id) {
-  if (!confirm('Delete this order?')) return;
-  try {
-    await fetchWithAuth(`/api/orders/${id}`, { method: 'DELETE' });
-    loadOrders(currentPage);
-  } catch (err) {
-    console.error('Failed to delete order:', err);
-  }
 }
 
 orderForm.addEventListener('submit', async (e) => {
@@ -166,10 +142,8 @@ orderForm.addEventListener('submit', async (e) => {
     items
   };
 
-  console.log("Submitting order payload:", payload);
-
   if (!items.length) {
-    alert("You must add at least one item to the order.");
+    alert("Please add at least one item.");
     return;
   }
 
@@ -186,6 +160,16 @@ orderForm.addEventListener('submit', async (e) => {
     console.error('Failed to save order:', err);
   }
 });
+
+window.deleteOrder = async function(id) {
+  if (!confirm('Delete this order?')) return;
+  try {
+    await fetchWithAuth(`/api/orders/${id}`, { method: 'DELETE' });
+    loadOrders(currentPage);
+  } catch (err) {
+    console.error('Failed to delete order:', err);
+  }
+}
 
 window.addEventListener('DOMContentLoaded', async () => {
   requireAdmin();
