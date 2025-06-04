@@ -128,11 +128,12 @@ function setupRowListeners(row) {
 orderForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('orderId').value;
-  const items = Array.from(document.querySelectorAll('#orderItems .item-row')).map(row => ({
-    product_id: row.querySelector('select').value,
-    quantity: row.querySelector('.item-qty').value,
-    unit_price: row.querySelector('.item-price').value
-  }));
+  const itemRows = Array.from(document.querySelectorAll('#orderItems .item-row'));
+  const items = itemRows.map(row => ({
+    product_id: row.querySelector('select')?.value,
+    quantity: parseInt(row.querySelector('.item-qty')?.value) || 0,
+    unit_price: parseFloat(row.querySelector('.item-price')?.value) || 0
+  })).filter(item => item.product_id && item.quantity > 0);
 
   const payload = {
     customer_id: document.getElementById('orderCustomerId').value,
@@ -141,6 +142,8 @@ orderForm.addEventListener('submit', async (e) => {
     total: document.getElementById('orderTotal').value,
     items
   };
+
+  console.log("Submitting order payload:", payload);
 
   if (!items.length) {
     alert("Please add at least one item.");
