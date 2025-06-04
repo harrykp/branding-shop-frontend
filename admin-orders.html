@@ -14,11 +14,11 @@
     <h2>Order Management</h2>
     <div class="d-flex justify-content-between mb-2">
       <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderModal">+ New Order</button>
-      <button class="btn btn-secondary" onclick="exportTableToCSV('orders-table', 'orders.csv')">Export CSV</button>
+      <button class="btn btn-secondary" onclick="exportOrdersToCSV()">Export CSV</button>
     </div>
     <input type="text" id="searchInput" class="form-control mb-2" placeholder="Search orders..." />
     <div class="table-responsive">
-      <table class="table table-bordered">
+      <table class="table table-bordered" id="ordersTable">
         <thead>
           <tr>
             <th>Customer</th>
@@ -35,68 +35,99 @@
     <div id="pagination"></div>
   </div>
 
-  <!-- Modal: Create/Edit Order -->
+  <!-- View Order Modal -->
+  <div class="modal fade" id="viewOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Order Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>Customer:</strong> <span id="viewOrderCustomer"></span></p>
+          <p><strong>Sales Rep:</strong> <span id="viewOrderRep"></span></p>
+          <p><strong>Status:</strong> <span id="viewOrderStatus"></span></p>
+          <p><strong>Total:</strong> GHS <span id="viewOrderTotal"></span></p>
+          <p><strong>Date:</strong> <span id="viewOrderDate"></span></p>
+          <hr />
+          <h6>Items</h6>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody id="viewOrderItems"></tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" onclick="printElementById('viewOrderModal')">Print</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Order Modal -->
   <div class="modal fade" id="orderModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <form id="orderForm">
           <div class="modal-header">
-            <h5 class="modal-title">Order</h5>
+            <h5 class="modal-title">Edit/Create Order</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <input type="hidden" id="orderId">
+            <input type="hidden" id="orderId" />
             <div class="row">
-              <div class="col-md-6 mb-2">
-                <label for="customerId" class="form-label">Customer</label>
-                <select id="customerId" class="form-select" required></select>
+              <div class="col-md-6 mb-3">
+                <label for="orderCustomerId" class="form-label">Customer</label>
+                <select id="orderCustomerId" class="form-select" required></select>
               </div>
-              <div class="col-md-6 mb-2">
-                <label for="salesRepId" class="form-label">Sales Rep</label>
-                <select id="salesRepId" class="form-select" required></select>
+              <div class="col-md-6 mb-3">
+                <label for="orderSalesRepId" class="form-label">Sales Rep</label>
+                <select id="orderSalesRepId" class="form-select" required></select>
               </div>
-              <div class="col-md-6 mb-2">
-                <label for="status" class="form-label">Status</label>
-                <select id="status" class="form-select" required>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="orderStatus" class="form-label">Status</label>
+                <select id="orderStatus" class="form-select" required>
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
-              <div class="col-md-6 mb-2">
-                <label for="total" class="form-label">Total</label>
-                <input type="number" id="total" class="form-control" readonly>
+              <div class="col-md-6 mb-3">
+                <label for="orderTotal" class="form-label">Total</label>
+                <input type="number" id="orderTotal" class="form-control" readonly />
               </div>
             </div>
-
             <hr />
-            <h6>Items</h6>
-            <div id="order-items-container"></div>
-            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addOrderItemRow()">+ Add Item</button>
+            <h6>Order Items</h6>
+            <table class="table table-bordered table-sm">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="orderItems"></tbody>
+            </table>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOrderItemRow()">+ Add Item</button>
           </div>
           <div class="modal-footer">
             <button type="submit" class="btn btn-success">Save</button>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           </div>
         </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: View Order -->
-  <div class="modal fade" id="viewOrderModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">View Order</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body" id="view-order-content"></div>
-        <div class="modal-footer">
-          <button class="btn btn-outline-secondary" onclick="printElementById('view-order-content')">Print</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
       </div>
     </div>
   </div>
