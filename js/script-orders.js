@@ -73,7 +73,7 @@ window.viewOrder = function(o) {
 
   const viewItems = document.getElementById('viewOrderItems');
   viewItems.innerHTML = '';
-  if (Array.isArray(o.items)) {
+  if (Array.isArray(o.items) && o.items.length > 0) {
     o.items.forEach(item => {
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -152,17 +152,26 @@ async function deleteOrder(id) {
 orderForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('orderId').value;
+  const items = Array.from(document.querySelectorAll('#orderItems .item-row')).map(row => ({
+    product_id: row.querySelector('select').value,
+    qty: row.querySelector('.item-qty').value,
+    unit_price: row.querySelector('.item-price').value
+  }));
+
   const payload = {
     customer_id: document.getElementById('orderCustomerId').value,
     sales_rep_id: document.getElementById('orderSalesRepId').value,
     status: document.getElementById('orderStatus').value,
     total: document.getElementById('orderTotal').value,
-    items: Array.from(document.querySelectorAll('#orderItems .item-row')).map(row => ({
-      product_id: row.querySelector('select').value,
-      qty: row.querySelector('.item-qty').value,
-      unit_price: row.querySelector('.item-price').value
-    }))
+    items
   };
+
+  console.log("Submitting order payload:", payload);
+
+  if (!items.length) {
+    alert("You must add at least one item to the order.");
+    return;
+  }
 
   try {
     const method = id ? 'PUT' : 'POST';
