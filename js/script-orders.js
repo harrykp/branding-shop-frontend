@@ -78,9 +78,9 @@ window.viewOrder = function(o) {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${item.product_name || ''}</td>
-        <td>${item.qty}</td>
+        <td>${item.quantity}</td>
         <td>${item.unit_price}</td>
-        <td>${item.subtotal}</td>
+        <td>${(item.quantity * item.unit_price).toFixed(2)}</td>
       `;
       viewItems.appendChild(row);
     });
@@ -103,19 +103,19 @@ window.editOrder = function(o) {
   const tbody = document.getElementById('orderItems');
   tbody.innerHTML = '';
   if (o.items && Array.isArray(o.items)) {
-    o.items.forEach(item => addOrderItemRow(item.product_id, item.qty, item.unit_price));
+    o.items.forEach(item => addOrderItemRow(item.product_id, item.quantity, item.unit_price));
   }
 
   orderModal.show();
 }
 
-function addOrderItemRow(productId = '', qty = 1, price = 0) {
+function addOrderItemRow(productId = '', quantity = 1, price = 0) {
   const tbody = document.getElementById('orderItems');
   const row = document.createElement('tr');
   row.classList.add('item-row');
   row.innerHTML = `
     <td><select class="form-select item-product"></select></td>
-    <td><input type="number" class="form-control item-qty" value="${qty}" min="1"></td>
+    <td><input type="number" class="form-control item-qty" value="${quantity}" min="1"></td>
     <td><input type="number" class="form-control item-price" value="${price}" min="0"></td>
     <td class="item-subtotal">0.00</td>
     <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove(); recalculateTotal('orderItems', 'orderTotal')">&times;</button></td>
@@ -154,7 +154,7 @@ orderForm.addEventListener('submit', async (e) => {
   const id = document.getElementById('orderId').value;
   const items = Array.from(document.querySelectorAll('#orderItems .item-row')).map(row => ({
     product_id: row.querySelector('select').value,
-    qty: row.querySelector('.item-qty').value,
+    quantity: row.querySelector('.item-qty').value,
     unit_price: row.querySelector('.item-price').value
   }));
 
