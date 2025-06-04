@@ -15,7 +15,9 @@ async function loadOrders(page = 1) {
   const search = searchInput.value.trim();
   try {
     const res = await fetchWithAuth(`/api/orders?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
-    const { data, total } = await res.json();
+    const result = await res.json();
+    const data = result.data || result.orders || result; // safeguard fallback
+    const total = result.total || 0;
 
     if (!Array.isArray(data)) {
       console.error("Expected array for orders but got:", data);
