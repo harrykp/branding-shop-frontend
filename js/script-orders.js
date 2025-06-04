@@ -61,32 +61,42 @@ async function updateOrderStatus(id, status) {
   }
 }
 
-window.viewOrder = function(o) {
-  document.getElementById('viewOrderCustomer').textContent = o.customer_name;
-  document.getElementById('viewOrderRep').textContent = o.sales_rep_name;
-  document.getElementById('viewOrderStatus').textContent = o.status;
-  document.getElementById('viewOrderTotal').textContent = o.total;
-  document.getElementById('viewOrderDate').textContent = new Date(o.created_at).toLocaleString();
+window.viewOrder = async function(o) {
+  try {
+    const res = await fetchWithAuth(`/api/orders/${o.id}`);
+    const full = await res.json();
 
-  const tbody = document.getElementById('viewOrderItems');
-  tbody.innerHTML = '';
-  if (Array.isArray(o.items) && o.items.length > 0) {
-    o.items.forEach(item => {
-      const row = document.createElement('tr');
-      const subtotal = parseFloat(item.quantity) * parseFloat(item.unit_price);
-      row.innerHTML = `
-        <td>${item.product_name}</td>
-        <td>${item.quantity}</td>
-        <td>${item.unit_price}</td>
-        <td>${subtotal.toFixed(2)}</td>
-      `;
-      tbody.appendChild(row);
-    });
-  } else {
-    tbody.innerHTML = `<tr><td colspan="4">No items found.</td></tr>`;
+    document.getElementById('viewOrderCustomer').textContent = full.customer_name;
+    document.getElementById('viewOrderRep').textContent = full.sales_rep_name;
+    document.getElementById('viewOrderStatus').textContent = full.status;
+    document.getElementById('viewOrderTotal').textContent = full.total;
+    document.getElementById('viewOrderDate').textContent = new Date(full.created_at).toLocaleString();
+
+    const tbody = document.getElementById('viewOrderItems');
+    tbody.innerHTML = '';
+
+    if (Array.isArray(full.items) && full.items.length > 0) {
+      full.items.forEach(item => {
+        const subtotal = parseFloat(item.quantity) * parseFloat(item.unit_price);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.product_name}</td>
+          <td>${item.quantity}</td>
+          <td>${item.unit_price}</td>
+          <td>${subtotal.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4">No items found.</td></tr>';
+    }
+
+    new bootstrap.Modal(document.getElementById('viewOrderModal')).show();
+  } catch (err) {
+    console.error('Failed to load order details:', err);
   }
-  new bootstrap.Modal(document.getElementById('viewOrderModal')).show();
 }
+
 
 window.editOrder = function(o) {
   document.getElementById('orderId').value = o.id;
