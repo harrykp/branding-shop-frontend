@@ -16,43 +16,51 @@ async function loadOrders(page = 1) {
   try {
     const res = await fetchWithAuth(`/api/orders?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const result = await res.json();
-    const data = result.data || result.orders || result; // safeguard fallback
-    const total = result.total || 0;
 
-    if (!Array.isArray(data)) {
-      console.error("Expected array for orders but got:", data);
+    // Determine the structure of the response
+    let data = [];
+    let total = 0;
+
+    if (Array.isArray(result)) {
+      // The response is an array of orders
+      data = result;
+      total = result.length;
+    } else if (Array.isArray(result.data)) {
+      // The response has a 'data' property containing the orders
+      data = result.data;
+      total = result.total || data.length;
+    } else if (Array.isArray(result.orders)) {
+      // The response has an 'orders' property containing the orders
+      data = result.orders;
+      total = result.total || data.length;
+    } else {
+      console.error("Unexpected response structure:", result);
       return;
     }
 
     ordersTableBody.innerHTML = '';
-    data.forEach(o => {
+    data.forEach(order => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${o.customer_name}</td>
-        <td>${o.sales_rep_name}</td>
+        <td>${order.customer_name}</td>
+        <td>${order.sales_rep_name}</td>
+        <td>${order.status}</td>
+        <td>${order.total}</td>
+        <td>${new Date(order.created_at).toLocaleDateString()}</td>
         <td>
-          <select class="form-select form-select-sm" onchange="updateOrderStatus(${o.id}, this.value)">
-            <option ${o.status === 'pending' ? 'selected' : ''}>pending</option>
-            <option ${o.status === 'approved' ? 'selected' : ''}>approved</option>
-            <option ${o.status === 'completed' ? 'selected' : ''}>completed</option>
-            <option ${o.status === 'cancelled' ? 'selected' : ''}>cancelled</option>
-          </select>
-        </td>
-        <td>${o.total}</td>
-        <td>${new Date(o.created_at).toLocaleDateString()}</td>
-        <td>
-          <button class="btn btn-sm btn-info" onclick='viewOrder(${JSON.stringify(o)})'>View</button>
-          <button class="btn btn-sm btn-primary" onclick='editOrder(${JSON.stringify(o)})'>Edit</button>
-          <button class="btn btn-sm btn-danger" onclick='deleteOrder(${o.id})'>Delete</button>
+          <button class="btn btn-sm btn-info" onclick='viewOrder(${JSON.stringify(order)})'>View</button>
+          <button class="btn btn-sm btn-primary" onclick='editOrder(${JSON.stringify(order)})'>Edit</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteOrder(${order.id})'>Delete</button>
         </td>`;
       ordersTableBody.appendChild(tr);
     });
 
-    renderPagination(total, 'pagination', loadOrders);
+    renderPagination(total, 'pagination', loadOrders, 10, page);
   } catch (err) {
     console.error('Failed to load orders:', err);
   }
 }
+
 
 async function updateOrderStatus(id, status) {
   try {
