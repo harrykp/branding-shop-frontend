@@ -83,6 +83,7 @@ function viewOrder(o) {
 
   const viewItems = document.getElementById('viewOrderItems');
   viewItems.innerHTML = '';
+  
   if (o.items && Array.isArray(o.items)) {
     o.items.forEach(item => {
       const row = document.createElement('tr');
@@ -90,11 +91,12 @@ function viewOrder(o) {
         <td>${item.product_name}</td>
         <td>${item.qty}</td>
         <td>${item.unit_price}</td>
-        <td>${item.subtotal}</td>
+        <td>${(item.qty * item.unit_price).toFixed(2)}</td>
       `;
       viewItems.appendChild(row);
     });
   }
+
 
   new bootstrap.Modal(document.getElementById('viewOrderModal')).show();
 }
