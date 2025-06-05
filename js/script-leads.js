@@ -3,8 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
   populateSelect("customers", "customer_id");
   populateSelect("users", "sales_rep_id");
   populateSelect("industries", "industry_id");
-  populateSelect("referral-sources", "referral_source_id");
-  populateSelect("categories", "lead_interests");
+  populateSelect('leadReferral', 'referralSources');
+  populateSelect('leadInterests', 'product-categories', true);
 });
 
 let currentPage = 1;
