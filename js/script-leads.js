@@ -1,137 +1,158 @@
+// ✅ Fixed script-leads.js
+
 document.addEventListener("DOMContentLoaded", () => {
   fetchLeads();
-  populateSelect("customers", "customer_id");
-  populateSelect("users", "sales_rep_id");
-  populateSelect("industries", "industry_id");
-  populateSelect('leadReferral', 'referralSources');
-  populateSelect('leadInterests', 'product-categories', true);
+  populateSelect("leadIndustry", "industries");
+  populateSelect("leadReferral", "referralSources");
+  populateSelect("leadInterests", "product-categories", true);
+
+  document.getElementById("leadForm").addEventListener("submit", handleFormSubmit);
+  document.getElementById("searchInput").addEventListener("input", handleSearch);
 });
 
+let leads = [];
 let currentPage = 1;
-const limit = 10;
+let rowsPerPage = 10;
 
-async function fetchLeads(page = 1) {
-  currentPage = page;
-  const search = document.getElementById("lead-search").value;
-
+async function fetchLeads(query = '') {
   try {
-    const res = await fetchWithAuth(`/api/leads?search=${encodeURIComponent(search)}&page=${page}&limit=${limit}`);
+    const res = await fetchWithAuth(`/api/leads?search=${encodeURIComponent(query)}&page=${currentPage}&limit=${rowsPerPage}`);
     const data = await res.json();
-    const tbody = document.getElementById("lead-table-body");
-    tbody.innerHTML = "";
+    leads = Array.isArray(data.results) ? data.results : [];
+    renderLeads(leads);
 
-    data.results.forEach(lead => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${lead.name}</td>
-        <td>${lead.email || ""}</td>
-        <td>${lead.phone || ""}</td>
-        <td>${lead.industry_name || ""}</td>
-        <td>${lead.referral_source_name || ""}</td>
-        <td>${lead.priority || ""}</td>
-        <td>${lead.status || ""}</td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="editLead(${lead.id})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteLead(${lead.id})">Delete</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    renderPagination(data.total, "pagination-container", fetchLeads, limit, currentPage);
+    if (data.total) {
+      renderPagination(data.total, "pagination", (page) => {
+        currentPage = page;
+        fetchLeads(query);
+      }, rowsPerPage, currentPage);
+    }
   } catch (err) {
     console.error("Failed to load leads:", err);
   }
 }
 
-function openNewLeadModal() {
-  document.getElementById("lead-form").reset();
-  document.getElementById("lead-id").value = "";
-  document.getElementById("lead_interests").value = [];
+function renderLeads(leads) {
+  const tbody = document.getElementById("leads-table-body");
+  tbody.innerHTML = "";
+  leads.forEach((lead) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${lead.name}</td>
+      <td>${lead.email || ''}</td>
+      <td>${lead.phone || ''}</td>
+      <td>${lead.industry_name || ''}</td>
+      <td>${lead.referral_source_name || ''}</td>
+      <td>${lead.status}</td>
+      <td>
+        <button class="btn btn-sm btn-info" onclick="viewLead(${lead.id})">View</button>
+        <button class="btn btn-sm btn-warning" onclick="editLead(${lead.id})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteLead(${lead.id})">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
 }
 
-async function saveLead(e) {
-  e.preventDefault();
-  const id = document.getElementById("lead-id").value;
+function handleSearch(e) {
+  fetchLeads(e.target.value);
+}
 
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById("leadId").value;
   const payload = {
-    name: document.getElementById("name").value,
-    email: document.getElementById("email").value,
-    phone: document.getElementById("phone").value,
-    website_url: document.getElementById("website_url").value,
-    industry_id: document.getElementById("industry_id").value,
-    referral_source_id: document.getElementById("referral_source_id").value,
-    priority: document.getElementById("priority").value,
-    status: document.getElementById("status").value,
-    customer_id: document.getElementById("customer_id").value || null,
-    sales_rep_id: document.getElementById("sales_rep_id").value || null,
-    notes: document.getElementById("notes").value,
-    last_contacted_at: document.getElementById("last_contacted_at").value || null,
-    next_follow_up_at: document.getElementById("next_follow_up_at").value || null,
-    lead_interests: Array.from(document.getElementById("lead_interests").selectedOptions).map(o => o.value)
+    name: document.getElementById("leadName").value,
+    email: document.getElementById("leadEmail").value,
+    phone: document.getElementById("leadPhone").value,
+    website_url: document.getElementById("leadWebsite").value,
+    industry_id: document.getElementById("leadIndustry").value || null,
+    referral_source_id: document.getElementById("leadReferral").value || null,
+    lead_interests: Array.from(document.getElementById("leadInterests").selectedOptions).map(o => o.value),
+    notes: document.getElementById("leadNotes").value,
+    status: document.getElementById("leadStatus").value,
+    priority: document.getElementById("leadPriority").value,
+    next_follow_up_at: document.getElementById("leadNextFollowUp").value || null,
+    last_contacted_at: document.getElementById("leadLastContacted").value || null
   };
 
   try {
     const method = id ? "PUT" : "POST";
-    const url = id ? `/api/leads/${id}` : "/api/leads";
-
+    const url = id ? `/api/leads/${id}` : `/api/leads`;
     const res = await fetchWithAuth(url, {
       method,
       body: JSON.stringify(payload)
     });
 
-    if (res.ok) {
-      bootstrap.Modal.getOrCreateInstance(document.getElementById("leadModal")).hide();
-      fetchLeads(currentPage);
-    } else {
-      const error = await res.json();
-      alert(error.message || "Save failed");
-    }
+    if (!res.ok) throw new Error("Save failed");
+
+    document.getElementById("leadForm").reset();
+    bootstrap.Modal.getInstance(document.getElementById("editLeadModal")).hide();
+    fetchLeads();
   } catch (err) {
-    console.error("Save failed:", err);
+    console.error("Save error:", err);
   }
 }
 
-async function editLead(id) {
+window.editLead = async function(id) {
   try {
     const res = await fetchWithAuth(`/api/leads/${id}`);
-    const lead = await res.json();
+    const data = await res.json();
+    document.getElementById("leadId").value = data.id;
+    document.getElementById("leadName").value = data.name || '';
+    document.getElementById("leadEmail").value = data.email || '';
+    document.getElementById("leadPhone").value = data.phone || '';
+    document.getElementById("leadWebsite").value = data.website_url || '';
+    document.getElementById("leadIndustry").value = data.industry_id || '';
+    document.getElementById("leadReferral").value = data.referral_source_id || '';
+    document.getElementById("leadNotes").value = data.notes || '';
+    document.getElementById("leadStatus").value = data.status || 'new';
+    document.getElementById("leadPriority").value = data.priority || 'medium';
+    document.getElementById("leadNextFollowUp").value = data.next_follow_up_at?.split("T")[0] || '';
+    document.getElementById("leadLastContacted").value = data.last_contacted_at?.split("T")[0] || '';
 
-    document.getElementById("lead-id").value = lead.id;
-    document.getElementById("name").value = lead.name || "";
-    document.getElementById("email").value = lead.email || "";
-    document.getElementById("phone").value = lead.phone || "";
-    document.getElementById("website_url").value = lead.website_url || "";
-    document.getElementById("industry_id").value = lead.industry_id || "";
-    document.getElementById("referral_source_id").value = lead.referral_source_id || "";
-    document.getElementById("priority").value = lead.priority || "";
-    document.getElementById("status").value = lead.status || "";
-    document.getElementById("customer_id").value = lead.customer_id || "";
-    document.getElementById("sales_rep_id").value = lead.sales_rep_id || "";
-    document.getElementById("notes").value = lead.notes || "";
-    document.getElementById("last_contacted_at").value = lead.last_contacted_at ? lead.last_contacted_at.split('T')[0] : "";
-    document.getElementById("next_follow_up_at").value = lead.next_follow_up_at ? lead.next_follow_up_at.split('T')[0] : "";
-
-    const interests = lead.lead_interests || [];
-    const interestSelect = document.getElementById("lead_interests");
+    const interestSelect = document.getElementById("leadInterests");
     Array.from(interestSelect.options).forEach(opt => {
-      opt.selected = interests.includes(parseInt(opt.value));
+      opt.selected = data.lead_interests?.includes(parseInt(opt.value)) || false;
     });
 
-    bootstrap.Modal.getOrCreateInstance(document.getElementById("leadModal")).show();
+    new bootstrap.Modal(document.getElementById("editLeadModal")).show();
   } catch (err) {
-    console.error("Load error:", err);
+    console.error("Edit error:", err);
   }
-}
+};
 
-async function deleteLead(id) {
-  if (!confirm("Delete this lead?")) return;
+window.viewLead = async function(id) {
+  try {
+    const res = await fetchWithAuth(`/api/leads/${id}`);
+    const data = await res.json();
+    const body = document.getElementById("viewLeadBody");
+    body.innerHTML = `
+      <tr><td>Name</td><td>${data.name}</td></tr>
+      <tr><td>Email</td><td>${data.email || ''}</td></tr>
+      <tr><td>Phone</td><td>${data.phone || ''}</td></tr>
+      <tr><td>Website</td><td>${data.website_url || ''}</td></tr>
+      <tr><td>Industry</td><td>${data.industry_name || ''}</td></tr>
+      <tr><td>Referral</td><td>${data.referral_source_name || ''}</td></tr>
+      <tr><td>Status</td><td>${data.status}</td></tr>
+      <tr><td>Priority</td><td>${data.priority}</td></tr>
+      <tr><td>Next Follow Up</td><td>${data.next_follow_up_at?.split('T')[0] || ''}</td></tr>
+      <tr><td>Last Contacted</td><td>${data.last_contacted_at?.split('T')[0] || ''}</td></tr>
+      <tr><td>Notes</td><td>${data.notes || ''}</td></tr>
+    `;
+    new bootstrap.Modal(document.getElementById("viewLeadModal")).show();
+  } catch (err) {
+    console.error("View error:", err);
+  }
+};
 
+window.deleteLead = async function(id) {
+  if (!confirm("Are you sure you want to delete this lead?")) return;
   try {
     const res = await fetchWithAuth(`/api/leads/${id}`, { method: "DELETE" });
-    if (res.ok) fetchLeads(currentPage);
-    else alert("Delete failed");
+    if (!res.ok) throw new Error("Delete failed");
+    fetchLeads();
   } catch (err) {
     console.error("Delete error:", err);
   }
-}
+};
