@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", () => {
   fetchLeads();
   populateSelect('leadIndustry', '/api/industries');
@@ -14,9 +15,14 @@ let rowsPerPage = 10;
 
 async function fetchLeads(query = '') {
   try {
-    const res = await fetch(`${API_BASE}/api/leads?search=${encodeURIComponent(query)}&page=${currentPage}&limit=${rowsPerPage}`);
+    const res = await fetch(`${API_BASE}/api/leads?search=${encodeURIComponent(query)}&page=${currentPage}&limit=${rowsPerPage}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+
+    if (!res.ok) throw new Error("Unauthorized or failed to fetch leads");
+
     const data = await res.json();
-    leads = data.results || data;
+    leads = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
     renderLeads(leads);
     if (data.total) {
       renderPagination(data.total, currentPage, rowsPerPage, (page) => {
@@ -78,7 +84,10 @@ async function handleFormSubmit(e) {
     const url = id ? `${API_BASE}/api/leads/${id}` : `${API_BASE}/api/leads`;
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(payload),
     });
 
@@ -94,7 +103,9 @@ async function handleFormSubmit(e) {
 
 window.editLead = async function(id) {
   try {
-    const res = await fetch(`${API_BASE}/api/leads/${id}`);
+    const res = await fetch(`${API_BASE}/api/leads/${id}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
     const data = await res.json();
     document.getElementById("leadId").value = data.id;
     document.getElementById("leadName").value = data.name || '';
@@ -122,7 +133,9 @@ window.editLead = async function(id) {
 
 window.viewLead = async function(id) {
   try {
-    const res = await fetch(`${API_BASE}/api/leads/${id}`);
+    const res = await fetch(`${API_BASE}/api/leads/${id}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
     const data = await res.json();
     const body = document.getElementById("viewLeadBody");
     body.innerHTML = `
@@ -147,7 +160,10 @@ window.viewLead = async function(id) {
 window.deleteLead = async function(id) {
   if (!confirm("Are you sure you want to delete this lead?")) return;
   try {
-    const res = await fetch(`${API_BASE}/api/leads/${id}`, { method: "DELETE" });
+    const res = await fetch(`${API_BASE}/api/leads/${id}`, {
+      method: "DELETE",
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
     if (!res.ok) throw new Error("Delete failed");
     fetchLeads();
   } catch (err) {
