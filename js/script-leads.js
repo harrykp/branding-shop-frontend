@@ -1,123 +1,174 @@
-let leadModal;
-const tableBody = document.getElementById('leads-table-body');
-const searchInput = document.getElementById('searchInput');
-const leadForm = document.getElementById('leadForm');
-let currentPage = 1;
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const { authenticate } = require('../middleware/auth');
 
-window.addEventListener('DOMContentLoaded', async () => {
-  requireAdmin();
-  await includeHTML();
-  leadModal = new bootstrap.Modal(document.getElementById('editLeadModal'));
-  await populateSelect('industries', 'leadIndustry');
-  await populateSelect('referral_sources', 'leadReferral');
-  await populateSelect('product_categories', 'leadInterests');
-  loadLeads();
-});
-
-searchInput.addEventListener('input', () => loadLeads(1));
-
-async function loadLeads(page = 1) {
-  currentPage = page;
-  const search = searchInput.value.trim();
+// GET all leads with joins
+router.get('/', authenticate, async (req, res) => {
   try {
-    const res = await fetchWithAuth(`/api/leads?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
-    const { data, total } = await res.json();
-    tableBody.innerHTML = '';
-    data.forEach(lead => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${lead.name}</td>
-        <td>${lead.email || ''}</td>
-        <td>${lead.phone || ''}</td>
-        <td>${lead.industry_name || ''}</td>
-        <td>${lead.referral_source_name || ''}</td>
-        <td>${lead.status}</td>
-        <td>
-          <button class="btn btn-sm btn-info" onclick='viewLead(${JSON.stringify(lead)})'>View</button>
-          <button class="btn btn-sm btn-primary" onclick='editLead(${JSON.stringify(lead)})'>Edit</button>
-          <button class="btn btn-sm btn-danger" onclick='deleteLead(${lead.id})'>Delete</button>
-        </td>`;
-      tableBody.appendChild(tr);
-    });
-    renderPagination(total, 'pagination', loadLeads);
+    const result = await db.query(`
+      SELECT l.*, 
+             c.name AS customer_name, 
+             u.name AS sales_rep_name,
+             i.name AS industry_name,
+             r.name AS referral_source_name
+      FROM leads l
+      LEFT JOIN customers c ON l.customer_id = c.id
+      LEFT JOIN users u ON l.sales_rep_id = u.id
+      LEFT JOIN industries i ON l.industry_id = i.id
+      LEFT JOIN referral_sources r ON l.referral_source_id = r.id
+      ORDER BY l.created_at DESC
+    `);
+
+    const leads = result.rows;
+
+    for (const lead of leads) {
+      const interestRes = await db.query(
+        'SELECT category_id FROM lead_interests WHERE lead_id = $1',
+        [lead.id]
+      );
+      lead.interested_in = interestRes.rows.map(row => row.category_id);
+    }
+
+    res.json(leads);
   } catch (err) {
-    console.error('Error loading leads:', err);
-  }
-}
-
-window.editLead = (lead) => {
-  document.getElementById('leadId').value = lead.id;
-  document.getElementById('leadName').value = lead.name;
-  document.getElementById('leadEmail').value = lead.email || '';
-  document.getElementById('leadPhone').value = lead.phone || '';
-  document.getElementById('leadWebsite').value = lead.website_url || '';
-  document.getElementById('leadIndustry').value = lead.industry_id || '';
-  document.getElementById('leadReferral').value = lead.referral_source_id || '';
-  document.getElementById('leadNotes').value = lead.notes || '';
-  document.getElementById('leadStatus').value = lead.status || 'new';
-  document.getElementById('leadPriority').value = lead.priority || 'low';
-  document.getElementById('leadNextFollowUp').value = lead.next_follow_up_at?.split('T')[0] || '';
-
-  const interests = document.getElementById('leadInterests');
-  Array.from(interests.options).forEach(opt => opt.selected = (lead.interest_ids || []).includes(parseInt(opt.value)));
-
-  leadModal.show();
-};
-
-window.viewLead = (lead) => {
-  const body = document.getElementById('viewLeadBody');
-  body.innerHTML = `
-    <tr><td><strong>Name</strong></td><td>${lead.name}</td></tr>
-    <tr><td><strong>Email</strong></td><td>${lead.email || ''}</td></tr>
-    <tr><td><strong>Phone</strong></td><td>${lead.phone || ''}</td></tr>
-    <tr><td><strong>Website</strong></td><td>${lead.website_url || ''}</td></tr>
-    <tr><td><strong>Industry</strong></td><td>${lead.industry_name || ''}</td></tr>
-    <tr><td><strong>Referral</strong></td><td>${lead.referral_source_name || ''}</td></tr>
-    <tr><td><strong>Status</strong></td><td>${lead.status}</td></tr>
-    <tr><td><strong>Priority</strong></td><td>${lead.priority}</td></tr>
-    <tr><td><strong>Notes</strong></td><td>${lead.notes || ''}</td></tr>
-    <tr><td><strong>Next Follow Up</strong></td><td>${lead.next_follow_up_at?.split('T')[0] || ''}</td></tr>
-    <tr><td><strong>Interested In</strong></td><td>${(lead.interest_names || []).join(', ')}</td></tr>
-  `;
-  new bootstrap.Modal(document.getElementById('viewLeadModal')).show();
-};
-
-window.deleteLead = async (id) => {
-  if (!confirm('Delete this lead?')) return;
-  try {
-    await fetchWithAuth(`/api/leads/${id}`, { method: 'DELETE' });
-    loadLeads(currentPage);
-  } catch (err) {
-    console.error('Failed to delete lead:', err);
-  }
-};
-
-leadForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const id = document.getElementById('leadId').value;
-  const payload = {
-    name: document.getElementById('leadName').value,
-    email: document.getElementById('leadEmail').value,
-    phone: document.getElementById('leadPhone').value,
-    website_url: document.getElementById('leadWebsite').value,
-    industry_id: document.getElementById('leadIndustry').value,
-    referral_source_id: document.getElementById('leadReferral').value,
-    notes: document.getElementById('leadNotes').value,
-    status: document.getElementById('leadStatus').value,
-    priority: document.getElementById('leadPriority').value,
-    next_follow_up_at: document.getElementById('leadNextFollowUp').value,
-    interest_ids: Array.from(document.getElementById('leadInterests').selectedOptions).map(opt => parseInt(opt.value))
-  };
-  try {
-    const method = id ? 'PUT' : 'POST';
-    const url = `/api/leads${id ? '/' + id : ''}`;
-    await fetchWithAuth(url, {
-      method,
-      body: JSON.stringify(payload)
-    });
-    leadModal.hide();
-    loadLeads(currentPage);
-  } catch (err) {
-    console.error('Failed to save lead:', err);
+    console.error('Error fetching leads:', err);
+    res.status(500).json({ message: 'Failed to fetch leads' });
   }
 });
+
+// GET single lead
+router.get('/:id', authenticate, async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await db.query(
+      `SELECT * FROM leads WHERE id = $1`,
+      [id]
+    );
+
+    const interests = await db.query(
+      'SELECT category_id FROM lead_interests WHERE lead_id = $1',
+      [id]
+    );
+
+    const lead = result.rows[0];
+    lead.interested_in = interests.rows.map(row => row.category_id);
+
+    res.json(lead);
+  } catch (err) {
+    console.error('Error fetching lead:', err);
+    res.status(500).json({ message: 'Failed to fetch lead' });
+  }
+});
+
+// POST new lead
+router.post('/', authenticate, async (req, res) => {
+  const {
+    name,
+    email,
+    phone,
+    website_url,
+    status,
+    customer_id,
+    sales_rep_id,
+    industry_id,
+    referral_source_id,
+    interested_in = []
+  } = req.body;
+  const user_id = req.user.id;
+
+  try {
+    await db.query('BEGIN');
+
+    const result = await db.query(
+      `INSERT INTO leads 
+        (name, email, phone, website_url, status, customer_id, sales_rep_id, industry_id, referral_source_id, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id`,
+      [name, email, phone, website_url, status, customer_id, sales_rep_id, industry_id, referral_source_id, user_id]
+    );
+
+    const leadId = result.rows[0].id;
+
+    for (const catId of interested_in) {
+      await db.query(
+        'INSERT INTO lead_interests (lead_id, category_id) VALUES ($1, $2)',
+        [leadId, catId]
+      );
+    }
+
+    await db.query('COMMIT');
+    res.status(201).json({ message: 'Lead created' });
+  } catch (err) {
+    await db.query('ROLLBACK');
+    console.error('Error creating lead:', err);
+    res.status(500).json({ message: 'Failed to create lead' });
+  }
+});
+
+// PUT update lead
+router.put('/:id', authenticate, async (req, res) => {
+  const id = req.params.id;
+  const {
+    name,
+    email,
+    phone,
+    website_url,
+    status,
+    customer_id,
+    sales_rep_id,
+    industry_id,
+    referral_source_id,
+    interested_in = []
+  } = req.body;
+
+  try {
+    await db.query('BEGIN');
+
+    await db.query(
+      `UPDATE leads SET 
+        name = $1,
+        email = $2,
+        phone = $3,
+        website_url = $4,
+        status = $5,
+        customer_id = $6,
+        sales_rep_id = $7,
+        industry_id = $8,
+        referral_source_id = $9
+       WHERE id = $10`,
+      [name, email, phone, website_url, status, customer_id, sales_rep_id, industry_id, referral_source_id, id]
+    );
+
+    await db.query('DELETE FROM lead_interests WHERE lead_id = $1', [id]);
+
+    for (const catId of interested_in) {
+      await db.query(
+        'INSERT INTO lead_interests (lead_id, category_id) VALUES ($1, $2)',
+        [id, catId]
+      );
+    }
+
+    await db.query('COMMIT');
+    res.json({ message: 'Lead updated' });
+  } catch (err) {
+    await db.query('ROLLBACK');
+    console.error('Error updating lead:', err);
+    res.status(500).json({ message: 'Failed to update lead' });
+  }
+});
+
+// DELETE lead
+router.delete('/:id', authenticate, async (req, res) => {
+  const id = req.params.id;
+  try {
+    await db.query('DELETE FROM lead_interests WHERE lead_id = $1', [id]);
+    await db.query('DELETE FROM leads WHERE id = $1', [id]);
+    res.json({ message: 'Lead deleted' });
+  } catch (err) {
+    console.error('Error deleting lead:', err);
+    res.status(500).json({ message: 'Failed to delete lead' });
+  }
+});
+
+module.exports = router;
