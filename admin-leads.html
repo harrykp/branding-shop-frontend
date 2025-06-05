@@ -5,129 +5,117 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Leads</title>
   <link rel="stylesheet" href="style.css" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-  <div w3-include-html="admin-nav.html"></div>
-
-  <div class="container mt-4">
-    <h2>Lead Management</h2>
-    <div class="d-flex justify-content-between mb-2">
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editLeadModal">+ New Lead</button>
-      <button class="btn btn-secondary" onclick="exportTableToCSV('leadsTable')">Export CSV</button>
-    </div>
-    <input type="text" id="searchInput" class="form-control mb-2" placeholder="Search leads..." />
-    <div class="table-responsive">
-      <table class="table table-bordered" id="leadsTable">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Industry</th>
-            <th>Referral Source</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="leads-table-body"></tbody>
-      </table>
-    </div>
-    <div id="pagination"></div>
+<div w3-include-html="admin-nav.html"></div>
+<div class="container mt-4">
+  <h2>Lead Management</h2>
+  <div class="d-flex justify-content-between mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#leadModal">+ New Lead</button>
+    <button class="btn btn-secondary" onclick="exportTableToCSV('leadsTable')">Export CSV</button>
   </div>
+  <input type="text" id="searchInput" class="form-control mb-2" placeholder="Search leads...">
+  <div class="table-responsive">
+    <table class="table table-bordered" id="leadsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Company</th>
+          <th>Position</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="leadsTableBody"></tbody>
+    </table>
+  </div>
+  <div id="pagination"></div>
+</div>
 
-  <!-- Edit Lead Modal -->
-  <div class="modal fade" id="editLeadModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <form id="leadForm">
-          <div class="modal-header">
-            <h5 class="modal-title">Lead Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <input type="hidden" id="leadId">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Name</label>
-                <input type="text" id="leadName" class="form-control" required>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Company</label>
-                <input type="text" id="leadCompany" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Position</label>
-                <input type="text" id="leadPosition" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Email</label>
-                <input type="email" id="leadEmail" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Phone</label>
-                <input type="text" id="leadPhone" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Website</label>
-                <input type="url" id="leadWebsite" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Industry</label>
-                <select id="leadIndustry" class="form-select"></select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Referral Source</label>
-                <select id="leadReferralSource" class="form-select"></select>
-              </div>
-              <div class="col-md-12">
-                <label class="form-label">Interested In (Product Categories)</label>
-                <select id="leadInterests" class="form-select" multiple></select>
-              </div>
-              <div class="col-md-12">
-                <label class="form-label">Notes</label>
-                <textarea id="leadNotes" class="form-control" rows="3"></textarea>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Priority</label>
-                <select id="leadPriority" class="form-select">
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Status</label>
-                <select id="leadStatus" class="form-select">
-                  <option value="New">New</option>
-                  <option value="Contacted">Contacted</option>
-                  <option value="Qualified">Qualified</option>
-                  <option value="Converted">Converted</option>
-                  <option value="Lost">Lost</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Last Contacted</label>
-                <input type="date" id="leadLastContacted" class="form-control">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Next Follow-Up</label>
-                <input type="date" id="leadNextFollowUp" class="form-control">
-              </div>
+<!-- Modal -->
+<div class="modal fade" id="leadModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form id="leadForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Lead Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="leadId">
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <label for="leadName" class="form-label">Name</label>
+              <input type="text" class="form-control" id="leadName" required>
+            </div>
+            <div class="col-md-6">
+              <label for="leadCompany" class="form-label">Company</label>
+              <input type="text" class="form-control" id="leadCompany">
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-success">Save</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <label for="leadPosition" class="form-label">Position</label>
+              <input type="text" class="form-control" id="leadPosition">
+            </div>
+            <div class="col-md-6">
+              <label for="leadStatus" class="form-label">Status</label>
+              <select id="leadStatus" class="form-select">
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="qualified">Qualified</option>
+                <option value="converted">Converted</option>
+              </select>
+            </div>
           </div>
-        </form>
-      </div>
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <label for="leadEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="leadEmail">
+            </div>
+            <div class="col-md-6">
+              <label for="leadPhone" class="form-label">Phone</label>
+              <input type="text" class="form-control" id="leadPhone">
+            </div>
+          </div>
+          <div class="mb-2">
+            <label for="leadWebsite" class="form-label">Website URL</label>
+            <input type="url" class="form-control" id="leadWebsite">
+          </div>
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <label for="leadIndustry" class="form-label">Industry</label>
+              <select id="leadIndustry" class="form-select"></select>
+            </div>
+            <div class="col-md-6">
+              <label for="leadReferralSource" class="form-label">Referral Source</label>
+              <select id="leadReferralSource" class="form-select"></select>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label for="leadInterestedIn" class="form-label">Interested In (Categories)</label>
+            <select id="leadInterestedIn" class="form-select" multiple></select>
+          </div>
+          <div class="mb-2">
+            <label for="leadNotes" class="form-label">Notes</label>
+            <textarea class="form-control" id="leadNotes" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
     </div>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/includes.js" defer></script>
-  <script src="js/helpers.js" defer></script>
-  <script src="js/script-leads.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/includes.js" defer></script>
+<script src="js/helpers.js" defer></script>
+<script src="js/script-leads.js" defer></script>
 </body>
 </html>
