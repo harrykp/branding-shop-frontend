@@ -1,27 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin – Production</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Production Jobs</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
   <div w3-include-html="admin-nav.html"></div>
+
   <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>Production Jobs</h2>
-      <button class="btn btn-success">+ New Job</button>
+    <h2>Production Jobs</h2>
+    <div class="d-flex justify-content-between mb-2">
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#jobModal">+ New Job</button>
+      <button class="btn btn-secondary" onclick="exportTableToCSV('jobs-table', 'jobs.csv')">Export CSV</button>
     </div>
-    <table class="table table-bordered" id="job-table">
-      <thead><tr><th>Order</th><th>Job Type</th><th>Quantity</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody></tbody>
-    </table>
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search jobs...">
+    <div class="table-responsive">
+      <table class="table table-bordered" id="jobs-table">
+        <thead>
+          <tr>
+            <th>Job Name</th>
+            <th>Order</th>
+            <th>Product</th>
+            <th>Department</th>
+            <th>Assigned To</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="job-table-body"></tbody>
+      </table>
+    </div>
+    <div id="pagination-container" class="mt-3"></div>
   </div>
-  <script src="js/includes.js"></script>
-  <script src="js/helpers.js"></script>
-  <script src="js/script-production.js"></script>
-  <script>includeHTML();</script>
+
+  <!-- Job Modal -->
+  <div class="modal fade" id="jobModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="jobForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Job Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body row g-3">
+            <input type="hidden" id="job-id">
+            <div class="col-md-6">
+              <label class="form-label">Job Name</label>
+              <input type="text" id="job_name" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Order</label>
+              <select id="order_id" class="form-select"></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Product</label>
+              <select id="product_id" class="form-select"></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Department</label>
+              <select id="department_id" class="form-select"></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Assigned To</label>
+              <select id="assigned_to" class="form-select"></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
+              <input type="text" id="status" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Priority</label>
+              <select id="priority" class="form-select">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Delivery Date</label>
+              <input type="date" id="delivery_date" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Payment Status</label>
+              <input type="text" id="payment_status" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Payment Due Date</label>
+              <input type="date" id="payment_due_date" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes / Comments</label>
+              <textarea id="comments" class="form-control"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Modal -->
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">View Job</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="view-job-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-outline-primary" onclick="printElementById('view-job-body')">Print</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/includes.js" defer></script>
+  <script src="js/helpers.js" defer></script>
+  <script src="js/script-production.js" defer></script>
 </body>
 </html>
