@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
   fetchLeads();
-  populateSelect('leadIndustry', `${API_BASE}/api/industries`);
-  populateSelect('leadReferral', `${API_BASE}/api/referral-sources`);
-  populateSelect('leadInterests', `${API_BASE}/api/product-categories`, true);
+  populateSelect('leadIndustry', 'industries');
+  populateSelect('leadReferral', 'referral-sources');
+  populateSelect('leadInterests', 'categories');
 
   document.getElementById("leadForm").addEventListener("submit", handleFormSubmit);
   document.getElementById("searchInput").addEventListener("input", handleSearch);
