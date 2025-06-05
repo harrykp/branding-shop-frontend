@@ -1,4 +1,4 @@
-// ✅ FINAL: js/script-leads.js
+// /js/script-leads.js
 
 document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateSelect("referral-sources", "referral_source_id");
   populateSelect("product-categories", "interested_in", true);
 
+  fetchLeads();
 
   document.getElementById("searchInput").addEventListener("input", fetchLeads);
   document.getElementById("leadForm").addEventListener("submit", handleLeadSubmit);
