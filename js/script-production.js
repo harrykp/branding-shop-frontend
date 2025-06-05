@@ -54,7 +54,7 @@ async function updateJobField(id, field, value) {
     });
     console.log(`Updated ${field} for job ${id}`);
   } catch (err) {
-    console.error(`Error updating ${field} for job ${id}:`, err);
+    console.error(`Error updating ${field} for job ${id}:", err);
   }
 }
 
@@ -66,6 +66,9 @@ function editJob(job) {
   document.getElementById("priority").value = job.priority;
   document.getElementById("delivery_date").value = job.delivery_date;
   document.getElementById("comments").value = job.comments;
+  document.getElementById("started_at").value = job.started_at ? job.started_at.split("T")[0] : "";
+  document.getElementById("completed_qty").value = job.completed_qty || 0;
+  document.getElementById("percent_complete").value = job.percent_complete || 0;
   bootstrap.Modal.getOrCreateInstance(document.getElementById("jobModal")).show();
 }
 
@@ -79,6 +82,9 @@ async function handleJobSubmit(e) {
     priority: document.getElementById("priority").value,
     delivery_date: document.getElementById("delivery_date").value,
     comments: document.getElementById("comments").value,
+    started_at: document.getElementById("started_at").value,
+    completed_qty: parseInt(document.getElementById("completed_qty").value),
+    percent_complete: parseInt(document.getElementById("percent_complete").value)
   };
   const method = id ? "PUT" : "POST";
   const url = id ? `/api/jobs/${id}` : `/api/jobs`;
