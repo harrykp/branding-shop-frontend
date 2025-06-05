@@ -1,13 +1,13 @@
 // /js/script-leads.js
 
 let leadModal;
-const leadsTableBody = document.getElementById('leads-table-body');
-const leadForm = document.getElementById('leadForm');
-const searchInput = document.getElementById('searchInput');
+const leadForm = document.getElementById("leadForm");
+const leadsTableBody = document.getElementById("leads-table-body");
+const searchInput = document.getElementById("searchInput");
 let currentPage = 1;
 
 function exportLeadsToCSV() {
-  exportTableToCSV('leadsTable');
+  exportTableToCSV("leadsTable");
 }
 
 async function loadLeads(page = 1) {
@@ -16,88 +16,88 @@ async function loadLeads(page = 1) {
   try {
     const res = await fetchWithAuth(`/api/leads?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
+    leadsTableBody.innerHTML = "";
 
-    leadsTableBody.innerHTML = '';
-    data.forEach(lead => {
-      const tr = document.createElement('tr');
+    data.forEach((lead) => {
+      const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${lead.name}</td>
         <td>${lead.email || ''}</td>
         <td>${lead.phone || ''}</td>
-        <td>${lead.company || ''}</td>
         <td>${lead.industry_name || ''}</td>
         <td>${lead.referral_source_name || ''}</td>
-        <td>${lead.status || ''}</td>
+        <td>${lead.status}</td>
         <td>
-          <button class="btn btn-sm btn-info" onclick='editLead(${JSON.stringify(lead)})'>Edit</button>
+          <button class="btn btn-sm btn-info" onclick='viewLead(${JSON.stringify(lead)})'>View</button>
+          <button class="btn btn-sm btn-primary" onclick='editLead(${JSON.stringify(lead)})'>Edit</button>
           <button class="btn btn-sm btn-danger" onclick='deleteLead(${lead.id})'>Delete</button>
-        </td>`;
+        </td>
+      `;
       leadsTableBody.appendChild(tr);
     });
 
-    renderPagination(total, 'pagination', loadLeads);
+    renderPagination(total, "pagination", loadLeads);
   } catch (err) {
-    console.error('Failed to load leads:', err);
+    console.error("Failed to load leads:", err);
   }
 }
 
-window.editLead = async function (lead) {
-  document.getElementById('leadId').value = lead.id;
-  document.getElementById('name').value = lead.name;
-  document.getElementById('email').value = lead.email || '';
-  document.getElementById('phone').value = lead.phone || '';
-  document.getElementById('website_url').value = lead.website_url || '';
-  document.getElementById('company').value = lead.company || '';
-  document.getElementById('position').value = lead.position || '';
-  document.getElementById('industry_id').value = lead.industry_id || '';
-  document.getElementById('referral_source_id').value = lead.referral_source_id || '';
-  document.getElementById('priority').value = lead.priority || 'medium';
-  document.getElementById('notes').value = lead.notes || '';
-  document.getElementById('last_contacted_at').value = lead.last_contacted_at ? lead.last_contacted_at.substring(0, 10) : '';
-  document.getElementById('next_follow_up_at').value = lead.next_follow_up_at ? lead.next_follow_up_at.substring(0, 10) : '';
-  document.getElementById('status').value = lead.status || 'new';
+window.editLead = function (lead) {
+  document.getElementById("leadId").value = lead.id;
+  document.getElementById("leadName").value = lead.name;
+  document.getElementById("leadEmail").value = lead.email || '';
+  document.getElementById("leadPhone").value = lead.phone || '';
+  document.getElementById("leadWebsite").value = lead.website_url || '';
+  document.getElementById("leadIndustry").value = lead.industry_id || '';
+  document.getElementById("leadReferral").value = lead.referral_source_id || '';
+  document.getElementById("leadNotes").value = lead.notes || '';
+  document.getElementById("leadStatus").value = lead.status;
+  document.getElementById("leadPriority").value = lead.priority;
+  document.getElementById("leadLastContacted").value = lead.last_contacted_at?.split("T")[0] || '';
+  document.getElementById("leadNextFollowUp").value = lead.next_follow_up_at?.split("T")[0] || '';
 
-  const interestSelect = document.getElementById('interests');
-  Array.from(interestSelect.options).forEach(option => {
-    option.selected = (lead.interests || []).includes(parseInt(option.value));
+  const interestsSelect = document.getElementById("leadInterests");
+  Array.from(interestsSelect.options).forEach(opt => {
+    opt.selected = lead.interests?.includes(parseInt(opt.value)) || false;
   });
 
   leadModal.show();
 };
 
-async function deleteLead(id) {
-  if (!confirm('Delete this lead?')) return;
+window.viewLead = function (lead) {
+  alert(JSON.stringify(lead, null, 2)); // For now
+};
+
+window.deleteLead = async function (id) {
+  if (!confirm("Delete this lead?")) return;
   try {
-    await fetchWithAuth(`/api/leads/${id}`, { method: 'DELETE' });
+    await fetchWithAuth(`/api/leads/${id}`, { method: "DELETE" });
     loadLeads(currentPage);
   } catch (err) {
-    console.error('Failed to delete lead:', err);
+    console.error("Failed to delete lead:", err);
   }
-}
+};
 
-leadForm.addEventListener('submit', async (e) => {
+leadForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const id = document.getElementById('leadId').value;
-  const interests = Array.from(document.getElementById('interests').selectedOptions).map(opt => parseInt(opt.value));
+  const id = document.getElementById("leadId").value;
   const payload = {
-    name: document.getElementById('name').value,
-    email: document.getElementById('email').value,
-    phone: document.getElementById('phone').value,
-    website_url: document.getElementById('website_url').value,
-    company: document.getElementById('company').value,
-    position: document.getElementById('position').value,
-    industry_id: document.getElementById('industry_id').value,
-    referral_source_id: document.getElementById('referral_source_id').value,
-    priority: document.getElementById('priority').value,
-    notes: document.getElementById('notes').value,
-    last_contacted_at: document.getElementById('last_contacted_at').value,
-    next_follow_up_at: document.getElementById('next_follow_up_at').value,
-    status: document.getElementById('status').value,
-    interests
+    name: document.getElementById("leadName").value,
+    email: document.getElementById("leadEmail").value,
+    phone: document.getElementById("leadPhone").value,
+    website_url: document.getElementById("leadWebsite").value,
+    industry_id: document.getElementById("leadIndustry").value,
+    referral_source_id: document.getElementById("leadReferral").value,
+    notes: document.getElementById("leadNotes").value,
+    status: document.getElementById("leadStatus").value,
+    priority: document.getElementById("leadPriority").value,
+    last_contacted_at: document.getElementById("leadLastContacted").value,
+    next_follow_up_at: document.getElementById("leadNextFollowUp").value,
+    interests: Array.from(document.getElementById("leadInterests").selectedOptions).map(opt => parseInt(opt.value))
   };
 
   try {
-    const method = id ? 'PUT' : 'POST';
+    const method = id ? "PUT" : "POST";
     const url = `/api/leads${id ? '/' + id : ''}`;
     await fetchWithAuth(url, {
       method,
@@ -106,16 +106,16 @@ leadForm.addEventListener('submit', async (e) => {
     leadModal.hide();
     loadLeads(currentPage);
   } catch (err) {
-    console.error('Failed to save lead:', err);
+    console.error("Failed to save lead:", err);
   }
 });
 
-window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
   await includeHTML();
-  leadModal = new bootstrap.Modal(document.getElementById('editLeadModal'));
-  await populateSelect('industries', 'industry_id');
-  await populateSelect('referral_sources', 'referral_source_id');
-  await populateSelect('product-categories', 'interests');
+  leadModal = new bootstrap.Modal(document.getElementById("editLeadModal"));
+  await populateSelect("industries", "leadIndustry");
+  await populateSelect("referral_sources", "leadReferral");
+  await populateSelect("product_categories", "leadInterests");
   loadLeads();
 });
