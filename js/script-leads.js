@@ -17,18 +17,21 @@ async function loadLeads(page = 1) {
     const res = await fetchWithAuth(`/api/leads?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
 
+    if (!Array.isArray(data)) {
+      console.error("Expected array for leads but got:", data);
+      return;
+    }
+
     leadsTableBody.innerHTML = '';
     data.forEach(lead => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${lead.name}</td>
-        <td>${lead.company || ''}</td>
-        <td>${lead.position || ''}</td>
-        <td>${lead.industry || ''}</td>
-        <td>${lead.referral_source || ''}</td>
-        <td>${lead.priority}</td>
-        <td>${lead.converted ? 'Yes' : 'No'}</td>
-        <td>${lead.next_follow_up_at ? new Date(lead.next_follow_up_at).toLocaleDateString() : ''}</td>
+        <td>${lead.name || ''}</td>
+        <td>${lead.email || ''}</td>
+        <td>${lead.phone || ''}</td>
+        <td>${lead.industry_name || ''}</td>
+        <td>${lead.referral_source_name || ''}</td>
+        <td>${lead.status || ''}</td>
         <td>
           <button class="btn btn-sm btn-primary" onclick='editLead(${JSON.stringify(lead)})'>Edit</button>
           <button class="btn btn-sm btn-danger" onclick='deleteLead(${lead.id})'>Delete</button>
@@ -44,19 +47,28 @@ async function loadLeads(page = 1) {
 
 window.editLead = function(lead) {
   document.getElementById('leadId').value = lead.id;
-  document.getElementById('leadName').value = lead.name;
+  document.getElementById('leadName').value = lead.name || '';
   document.getElementById('leadCompany').value = lead.company || '';
   document.getElementById('leadPosition').value = lead.position || '';
-  document.getElementById('leadIndustry').value = lead.industry || '';
-  document.getElementById('leadReferral').value = lead.referral_source || '';
-  document.getElementById('leadPriority').value = lead.priority || 'medium';
-  document.getElementById('leadLastContacted').value = lead.last_contacted_at ? lead.last_contacted_at.substring(0, 16) : '';
-  document.getElementById('leadNextFollowUp').value = lead.next_follow_up_at ? lead.next_follow_up_at.substring(0, 16) : '';
+  document.getElementById('leadEmail').value = lead.email || '';
+  document.getElementById('leadPhone').value = lead.phone || '';
+  document.getElementById('leadWebsite').value = lead.website_url || '';
+  document.getElementById('leadIndustry').value = lead.industry_id || '';
+  document.getElementById('leadReferralSource').value = lead.referral_source_id || '';
   document.getElementById('leadNotes').value = lead.notes || '';
-  document.getElementById('leadConverted').checked = lead.converted;
+  document.getElementById('leadPriority').value = lead.priority || 'Medium';
+  document.getElementById('leadStatus').value = lead.status || 'New';
+  document.getElementById('leadLastContacted').value = lead.last_contacted_at?.split('T')[0] || '';
+  document.getElementById('leadNextFollowUp').value = lead.next_follow_up_at?.split('T')[0] || '';
+
+  // Handle interests multi-select
+  const interestsSelect = document.getElementById('leadInterests');
+  Array.from(interestsSelect.options).forEach(opt => {
+    opt.selected = lead.interests?.includes(parseInt(opt.value)) || false;
+  });
 
   leadModal.show();
-}
+};
 
 async function deleteLead(id) {
   if (!confirm('Delete this lead?')) return;
@@ -71,17 +83,22 @@ async function deleteLead(id) {
 leadForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('leadId').value;
+  const interests = Array.from(document.getElementById('leadInterests').selectedOptions).map(o => parseInt(o.value));
   const payload = {
     name: document.getElementById('leadName').value,
     company: document.getElementById('leadCompany').value,
     position: document.getElementById('leadPosition').value,
-    industry: document.getElementById('leadIndustry').value,
-    referral_source: document.getElementById('leadReferral').value,
+    email: document.getElementById('leadEmail').value,
+    phone: document.getElementById('leadPhone').value,
+    website_url: document.getElementById('leadWebsite').value,
+    industry_id: document.getElementById('leadIndustry').value,
+    referral_source_id: document.getElementById('leadReferralSource').value,
+    notes: document.getElementById('leadNotes').value,
     priority: document.getElementById('leadPriority').value,
+    status: document.getElementById('leadStatus').value,
     last_contacted_at: document.getElementById('leadLastContacted').value,
     next_follow_up_at: document.getElementById('leadNextFollowUp').value,
-    notes: document.getElementById('leadNotes').value,
-    converted: document.getElementById('leadConverted').checked
+    interests
   };
 
   try {
@@ -98,11 +115,12 @@ leadForm.addEventListener('submit', async (e) => {
   }
 });
 
-searchInput.addEventListener('input', () => loadLeads(1));
-
 window.addEventListener('DOMContentLoaded', async () => {
   requireAdmin();
   await includeHTML();
   leadModal = new bootstrap.Modal(document.getElementById('editLeadModal'));
+  await populateSelect('industries', 'leadIndustry');
+  await populateSelect('referral_sources', 'leadReferralSource');
+  await populateSelect('product-categories', 'leadInterests');
   loadLeads();
 });
