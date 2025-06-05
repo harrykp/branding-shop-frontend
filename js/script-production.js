@@ -2,6 +2,7 @@
 
 document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
+  populateSelect("departments", "department_id");
   await loadJobs();
 
   document.getElementById("searchInput").addEventListener("input", loadJobs);
@@ -20,7 +21,7 @@ async function loadJobs() {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${job.job_name || ""}</td>
-        <td>${job.department_name || ""}</td>
+        <td>${job.department_name || job.department_id || ""}</td>
         <td><select class="form-select form-select-sm" onchange="updateJobField(${job.id}, 'status', this.value)">
           ${["queued", "in_progress", "cancelled", "finished"].map(status => `<option value="${status}" ${job.status === status ? "selected" : ""}>${status}</option>`).join("")}
         </select></td>
@@ -33,7 +34,7 @@ async function loadJobs() {
         <td><input type="number" class="form-control form-control-sm" value="${job.percent_complete || 0}" onchange="updateJobField(${job.id}, 'percent_complete', this.value)" /></td>
         <td>
           <button class="btn btn-sm btn-info" onclick="viewJob(${job.id})">View</button>
-          <button class="btn btn-sm btn-primary" onclick='editJob(${JSON.stringify(job)})'>Edit</button>
+          <button class="btn btn-sm btn-primary" onclick='editJob(${JSON.stringify(job).replace(/'/g, "&apos;")})'>Edit</button>
           <button class="btn btn-sm btn-danger" onclick="deleteJob(${job.id})">Delete</button>
         </td>
       `;
@@ -54,21 +55,21 @@ async function updateJobField(id, field, value) {
     });
     console.log(`Updated ${field} for job ${id}`);
   } catch (err) {
-    console.error(`Error updating ${field} for job ${id}:", err);
+    console.error(`Error updating ${field} for job ${id}:`, err);
   }
 }
 
 function editJob(job) {
   document.getElementById("job-id").value = job.id;
-  document.getElementById("job_name").value = job.job_name;
-  document.getElementById("department_id").value = job.department_id;
-  document.getElementById("status").value = job.status;
-  document.getElementById("priority").value = job.priority;
-  document.getElementById("delivery_date").value = job.delivery_date;
-  document.getElementById("comments").value = job.comments;
-  document.getElementById("started_at").value = job.started_at ? job.started_at.split("T")[0] : "";
+  document.getElementById("job_name").value = job.job_name || "";
+  document.getElementById("department_id").value = job.department_id || "";
+  document.getElementById("status").value = job.status || "";
+  document.getElementById("priority").value = job.priority || "";
+  document.getElementById("delivery_date").value = job.delivery_date || "";
+  document.getElementById("started_at").value = job.started_at?.split("T")[0] || "";
   document.getElementById("completed_qty").value = job.completed_qty || 0;
   document.getElementById("percent_complete").value = job.percent_complete || 0;
+  document.getElementById("comments").value = job.comments || "";
   bootstrap.Modal.getOrCreateInstance(document.getElementById("jobModal")).show();
 }
 
@@ -81,10 +82,10 @@ async function handleJobSubmit(e) {
     status: document.getElementById("status").value,
     priority: document.getElementById("priority").value,
     delivery_date: document.getElementById("delivery_date").value,
-    comments: document.getElementById("comments").value,
     started_at: document.getElementById("started_at").value,
-    completed_qty: parseInt(document.getElementById("completed_qty").value),
-    percent_complete: parseInt(document.getElementById("percent_complete").value)
+    completed_qty: document.getElementById("completed_qty").value,
+    percent_complete: document.getElementById("percent_complete").value,
+    comments: document.getElementById("comments").value,
   };
   const method = id ? "PUT" : "POST";
   const url = id ? `/api/jobs/${id}` : `/api/jobs`;
