@@ -17,7 +17,6 @@
       <button class="btn btn-secondary" onclick="exportTableToCSV('leadsTable')">Export CSV</button>
     </div>
     <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search leads..." />
-
     <div class="table-responsive">
       <table class="table table-bordered" id="leadsTable">
         <thead>
@@ -37,7 +36,7 @@
     <div id="pagination"></div>
   </div>
 
-  <!-- Create/Edit Lead Modal -->
+  <!-- Lead Modal -->
   <div class="modal fade" id="leadModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -48,17 +47,48 @@
           </div>
           <div class="modal-body row g-3 px-3">
             <input type="hidden" id="leadId" />
-            <div class="col-md-6"><label class="form-label">Name</label><input type="text" id="leadName" class="form-control" required /></div>
-            <div class="col-md-6"><label class="form-label">Company</label><input type="text" id="leadCompany" class="form-control" /></div>
-            <div class="col-md-6"><label class="form-label">Position</label><input type="text" id="leadPosition" class="form-control" /></div>
-            <div class="col-md-6"><label class="form-label">Email</label><input type="email" id="leadEmail" class="form-control" /></div>
-            <div class="col-md-6"><label class="form-label">Phone</label><input type="text" id="leadPhone" class="form-control" /></div>
-            <div class="col-md-6"><label class="form-label">Website URL</label><input type="url" id="leadWebsite" class="form-control" /></div>
-            <div class="col-md-6"><label class="form-label">Industry</label><select id="leadIndustry" class="form-select"></select></div>
-            <div class="col-md-6"><label class="form-label">Referral Source</label><select id="leadReferral" class="form-select"></select></div>
-            <div class="col-md-12"><label class="form-label">Interested In</label><select id="leadInterests" class="form-select" multiple></select></div>
-            <div class="col-md-12"><label class="form-label">Notes</label><textarea id="leadNotes" class="form-control"></textarea></div>
-            <div class="col-md-6"><label class="form-label">Priority</label>
+            <div class="col-md-6">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="leadName" class="form-control" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Company</label>
+              <input type="text" id="leadCompany" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Position</label>
+              <input type="text" id="leadPosition" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" id="leadEmail" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone</label>
+              <input type="text" id="leadPhone" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Website URL</label>
+              <input type="url" id="leadWebsite" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Industry</label>
+              <select id="leadIndustry" class="form-select"></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Referral Source</label>
+              <select id="leadReferral" class="form-select"></select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Interested In</label>
+              <select id="leadInterests" class="form-select" multiple></select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea id="leadNotes" class="form-control"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Priority</label>
               <select id="leadPriority" class="form-select">
                 <option value="">-- Select --</option>
                 <option value="low">Low</option>
@@ -66,7 +96,8 @@
                 <option value="high">High</option>
               </select>
             </div>
-            <div class="col-md-6"><label class="form-label">Status</label>
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
               <select id="leadStatus" class="form-select">
                 <option value="new">New</option>
                 <option value="contacted">Contacted</option>
@@ -74,8 +105,14 @@
                 <option value="lost">Lost</option>
               </select>
             </div>
-            <div class="col-md-6"><label class="form-label">Last Contacted</label><input type="datetime-local" id="lastContacted" class="form-control" /></div>
-            <div class="col-md-6"><label class="form-label">Next Follow Up</label><input type="datetime-local" id="nextFollowUp" class="form-control" /></div>
+            <div class="col-md-6">
+              <label class="form-label">Last Contacted</label>
+              <input type="datetime-local" id="lastContacted" class="form-control" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Next Follow Up</label>
+              <input type="datetime-local" id="nextFollowUp" class="form-control" />
+            </div>
           </div>
           <div class="modal-footer">
             <button type="submit" class="btn btn-success">Save</button>
@@ -103,8 +140,8 @@
           <p><strong>Referral Source:</strong> <span id="viewLeadReferral"></span></p>
           <p><strong>Status:</strong> <span id="viewLeadStatus"></span></p>
           <p><strong>Priority:</strong> <span id="viewLeadPriority"></span></p>
-          <p><strong>Converted:</strong> <span id="viewLeadConverted">No</span></p>
-          <p><strong>Notes:</strong><br /><span id="viewLeadNotes"></span></p>
+          <p><strong>Converted:</strong> <span id="viewLeadConverted"></span></p>
+          <p><strong>Notes:</strong><br><span id="viewLeadNotes"></span></p>
         </div>
       </div>
     </div>
