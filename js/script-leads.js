@@ -2,10 +2,10 @@
 
 document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
-  populateSelect("industry_id", "industries");
-  populateSelect("referral_source_id", "referral-sources");
-  populateSelect("interested_in", "product-categories", true);
-  fetchLeads();
+  populateSelect("industries", "industry_id");
+  populateSelect("referral-sources", "referral_source_id");
+  populateSelect("product-categories", "interested_in", true);
+
 
   document.getElementById("searchInput").addEventListener("input", fetchLeads);
   document.getElementById("leadForm").addEventListener("submit", handleLeadSubmit);
