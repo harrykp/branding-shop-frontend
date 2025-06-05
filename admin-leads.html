@@ -1,31 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Leads</title>
   <link rel="stylesheet" href="style.css" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
   <div w3-include-html="admin-nav.html"></div>
-
   <div class="container mt-4">
-    <h2>Lead Management</h2>
+    <h2>Leads</h2>
     <div class="d-flex justify-content-between mb-2">
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#leadModal">+ New Lead</button>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editLeadModal">+ New Lead</button>
       <button class="btn btn-secondary" onclick="exportTableToCSV('leadsTable')">Export CSV</button>
     </div>
-    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search leads..." />
+    <input type="text" id="searchInput" class="form-control mb-2" placeholder="Search leads...">
     <div class="table-responsive">
       <table class="table table-bordered" id="leadsTable">
         <thead>
           <tr>
             <th>Name</th>
-            <th>Company</th>
             <th>Email</th>
             <th>Phone</th>
             <th>Industry</th>
+            <th>Referral</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -36,8 +35,8 @@
     <div id="pagination"></div>
   </div>
 
-  <!-- Lead Modal -->
-  <div class="modal fade" id="leadModal" tabindex="-1">
+  <!-- Edit Lead Modal -->
+  <div class="modal fade" id="editLeadModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <form id="leadForm">
@@ -45,73 +44,60 @@
             <h5 class="modal-title">Lead Details</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
-          <div class="modal-body row g-3 px-3">
-            <input type="hidden" id="leadId" />
+          <div class="modal-body row g-3">
+            <input type="hidden" id="leadId">
             <div class="col-md-6">
-              <label class="form-label">Full Name</label>
-              <input type="text" id="leadName" class="form-control" required />
+              <label for="leadName" class="form-label">Name</label>
+              <input type="text" id="leadName" class="form-control" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Company</label>
-              <input type="text" id="leadCompany" class="form-control" />
+              <label for="leadEmail" class="form-label">Email</label>
+              <input type="email" id="leadEmail" class="form-control">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Position</label>
-              <input type="text" id="leadPosition" class="form-control" />
+              <label for="leadPhone" class="form-label">Phone</label>
+              <input type="text" id="leadPhone" class="form-control">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Email</label>
-              <input type="email" id="leadEmail" class="form-control" />
+              <label for="leadWebsite" class="form-label">Website</label>
+              <input type="url" id="leadWebsite" class="form-control">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Phone</label>
-              <input type="text" id="leadPhone" class="form-control" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Website URL</label>
-              <input type="url" id="leadWebsite" class="form-control" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Industry</label>
+              <label for="leadIndustry" class="form-label">Industry</label>
               <select id="leadIndustry" class="form-select"></select>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Referral Source</label>
+              <label for="leadReferral" class="form-label">Referral Source</label>
               <select id="leadReferral" class="form-select"></select>
             </div>
             <div class="col-12">
-              <label class="form-label">Interested In</label>
+              <label for="leadInterests" class="form-label">Interested In</label>
               <select id="leadInterests" class="form-select" multiple></select>
             </div>
-            <div class="col-12">
-              <label class="form-label">Notes</label>
+            <div class="col-md-12">
+              <label for="leadNotes" class="form-label">Notes</label>
               <textarea id="leadNotes" class="form-control"></textarea>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Priority</label>
+            <div class="col-md-4">
+              <label for="leadStatus" class="form-label">Status</label>
+              <select id="leadStatus" class="form-select">
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="qualified">Qualified</option>
+                <option value="converted">Converted</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="leadPriority" class="form-label">Priority</label>
               <select id="leadPriority" class="form-select">
-                <option value="">-- Select --</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
               </select>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Status</label>
-              <select id="leadStatus" class="form-select">
-                <option value="new">New</option>
-                <option value="contacted">Contacted</option>
-                <option value="converted">Converted</option>
-                <option value="lost">Lost</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Last Contacted</label>
-              <input type="datetime-local" id="lastContacted" class="form-control" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Next Follow Up</label>
-              <input type="datetime-local" id="nextFollowUp" class="form-control" />
+            <div class="col-md-4">
+              <label for="leadNextFollowUp" class="form-label">Next Follow Up</label>
+              <input type="date" id="leadNextFollowUp" class="form-control">
             </div>
           </div>
           <div class="modal-footer">
@@ -125,29 +111,28 @@
 
   <!-- View Lead Modal -->
   <div class="modal fade" id="viewLeadModal" tabindex="-1">
-    <div class="modal-dialog modal-md">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Lead Details</h5>
+          <h5 class="modal-title">Lead Information</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p><strong>Name:</strong> <span id="viewLeadName"></span></p>
-          <p><strong>Company:</strong> <span id="viewLeadCompany"></span></p>
-          <p><strong>Email:</strong> <span id="viewLeadEmail"></span></p>
-          <p><strong>Phone:</strong> <span id="viewLeadPhone"></span></p>
-          <p><strong>Industry:</strong> <span id="viewLeadIndustry"></span></p>
-          <p><strong>Referral Source:</strong> <span id="viewLeadReferral"></span></p>
-          <p><strong>Status:</strong> <span id="viewLeadStatus"></span></p>
-          <p><strong>Priority:</strong> <span id="viewLeadPriority"></span></p>
-          <p><strong>Converted:</strong> <span id="viewLeadConverted"></span></p>
-          <p><strong>Notes:</strong><br><span id="viewLeadNotes"></span></p>
+          <div id="leadDetails"></div>
+          <table class="table table-bordered mt-3">
+            <thead><tr><th colspan="2">Lead Overview</th></tr></thead>
+            <tbody id="viewLeadBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button class="btn btn-outline-primary" onclick="printElementById('leadDetails')">Print</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/includes.js" defer></script>
   <script src="js/helpers.js" defer></script>
   <script src="js/script-leads.js" defer></script>
