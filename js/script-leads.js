@@ -1,174 +1,156 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../db');
-const { authenticate } = require('../middleware/auth');
+document.addEventListener("DOMContentLoaded", () => {
+  fetchLeads();
+  populateSelect('leadIndustry', '/api/industries');
+  populateSelect('leadReferral', '/api/referral-sources');
+  populateSelect('leadInterests', '/api/product-categories', true);
 
-// GET all leads with joins
-router.get('/', authenticate, async (req, res) => {
+  document.getElementById("leadForm").addEventListener("submit", handleFormSubmit);
+  document.getElementById("searchInput").addEventListener("input", handleSearch);
+});
+
+let leads = [];
+let currentPage = 1;
+let rowsPerPage = 10;
+
+async function fetchLeads(query = '') {
   try {
-    const result = await db.query(`
-      SELECT l.*, 
-             c.name AS customer_name, 
-             u.name AS sales_rep_name,
-             i.name AS industry_name,
-             r.name AS referral_source_name
-      FROM leads l
-      LEFT JOIN customers c ON l.customer_id = c.id
-      LEFT JOIN users u ON l.sales_rep_id = u.id
-      LEFT JOIN industries i ON l.industry_id = i.id
-      LEFT JOIN referral_sources r ON l.referral_source_id = r.id
-      ORDER BY l.created_at DESC
-    `);
-
-    const leads = result.rows;
-
-    for (const lead of leads) {
-      const interestRes = await db.query(
-        'SELECT category_id FROM lead_interests WHERE lead_id = $1',
-        [lead.id]
-      );
-      lead.interested_in = interestRes.rows.map(row => row.category_id);
+    const res = await fetch(`${API_BASE}/api/leads?search=${encodeURIComponent(query)}&page=${currentPage}&limit=${rowsPerPage}`);
+    const data = await res.json();
+    leads = data.results || data;
+    renderLeads(leads);
+    if (data.total) {
+      renderPagination(data.total, currentPage, rowsPerPage, (page) => {
+        currentPage = page;
+        fetchLeads(query);
+      });
     }
-
-    res.json(leads);
   } catch (err) {
     console.error('Error fetching leads:', err);
-    res.status(500).json({ message: 'Failed to fetch leads' });
   }
-});
+}
 
-// GET single lead
-router.get('/:id', authenticate, async (req, res) => {
-  const id = req.params.id;
-  try {
-    const result = await db.query(
-      `SELECT * FROM leads WHERE id = $1`,
-      [id]
-    );
+function renderLeads(leads) {
+  const tbody = document.getElementById("leads-table-body");
+  tbody.innerHTML = "";
+  leads.forEach((lead) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${lead.name}</td>
+      <td>${lead.email || ''}</td>
+      <td>${lead.phone || ''}</td>
+      <td>${lead.industry_name || ''}</td>
+      <td>${lead.referral_source_name || ''}</td>
+      <td>${lead.status}</td>
+      <td>
+        <button class="btn btn-sm btn-info" onclick="viewLead(${lead.id})">View</button>
+        <button class="btn btn-sm btn-warning" onclick="editLead(${lead.id})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteLead(${lead.id})">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
 
-    const interests = await db.query(
-      'SELECT category_id FROM lead_interests WHERE lead_id = $1',
-      [id]
-    );
+function handleSearch(e) {
+  fetchLeads(e.target.value);
+}
 
-    const lead = result.rows[0];
-    lead.interested_in = interests.rows.map(row => row.category_id);
-
-    res.json(lead);
-  } catch (err) {
-    console.error('Error fetching lead:', err);
-    res.status(500).json({ message: 'Failed to fetch lead' });
-  }
-});
-
-// POST new lead
-router.post('/', authenticate, async (req, res) => {
-  const {
-    name,
-    email,
-    phone,
-    website_url,
-    status,
-    customer_id,
-    sales_rep_id,
-    industry_id,
-    referral_source_id,
-    interested_in = []
-  } = req.body;
-  const user_id = req.user.id;
-
-  try {
-    await db.query('BEGIN');
-
-    const result = await db.query(
-      `INSERT INTO leads 
-        (name, email, phone, website_url, status, customer_id, sales_rep_id, industry_id, referral_source_id, user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id`,
-      [name, email, phone, website_url, status, customer_id, sales_rep_id, industry_id, referral_source_id, user_id]
-    );
-
-    const leadId = result.rows[0].id;
-
-    for (const catId of interested_in) {
-      await db.query(
-        'INSERT INTO lead_interests (lead_id, category_id) VALUES ($1, $2)',
-        [leadId, catId]
-      );
-    }
-
-    await db.query('COMMIT');
-    res.status(201).json({ message: 'Lead created' });
-  } catch (err) {
-    await db.query('ROLLBACK');
-    console.error('Error creating lead:', err);
-    res.status(500).json({ message: 'Failed to create lead' });
-  }
-});
-
-// PUT update lead
-router.put('/:id', authenticate, async (req, res) => {
-  const id = req.params.id;
-  const {
-    name,
-    email,
-    phone,
-    website_url,
-    status,
-    customer_id,
-    sales_rep_id,
-    industry_id,
-    referral_source_id,
-    interested_in = []
-  } = req.body;
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById("leadId").value;
+  const payload = {
+    name: document.getElementById("leadName").value,
+    email: document.getElementById("leadEmail").value,
+    phone: document.getElementById("leadPhone").value,
+    website_url: document.getElementById("leadWebsite").value,
+    industry_id: document.getElementById("leadIndustry").value || null,
+    referral_source_id: document.getElementById("leadReferral").value || null,
+    lead_interests: Array.from(document.getElementById("leadInterests").selectedOptions).map(o => o.value),
+    notes: document.getElementById("leadNotes").value,
+    status: document.getElementById("leadStatus").value,
+    priority: document.getElementById("leadPriority").value,
+    next_follow_up_at: document.getElementById("leadNextFollowUp").value || null,
+    last_contacted_at: document.getElementById("leadLastContacted").value || null
+  };
 
   try {
-    await db.query('BEGIN');
+    const method = id ? "PUT" : "POST";
+    const url = id ? `${API_BASE}/api/leads/${id}` : `${API_BASE}/api/leads`;
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    await db.query(
-      `UPDATE leads SET 
-        name = $1,
-        email = $2,
-        phone = $3,
-        website_url = $4,
-        status = $5,
-        customer_id = $6,
-        sales_rep_id = $7,
-        industry_id = $8,
-        referral_source_id = $9
-       WHERE id = $10`,
-      [name, email, phone, website_url, status, customer_id, sales_rep_id, industry_id, referral_source_id, id]
-    );
+    if (!res.ok) throw new Error("Failed to save lead");
 
-    await db.query('DELETE FROM lead_interests WHERE lead_id = $1', [id]);
-
-    for (const catId of interested_in) {
-      await db.query(
-        'INSERT INTO lead_interests (lead_id, category_id) VALUES ($1, $2)',
-        [id, catId]
-      );
-    }
-
-    await db.query('COMMIT');
-    res.json({ message: 'Lead updated' });
+    document.getElementById("leadForm").reset();
+    bootstrap.Modal.getInstance(document.getElementById("editLeadModal")).hide();
+    fetchLeads();
   } catch (err) {
-    await db.query('ROLLBACK');
-    console.error('Error updating lead:', err);
-    res.status(500).json({ message: 'Failed to update lead' });
+    console.error("Save error:", err);
   }
-});
+}
 
-// DELETE lead
-router.delete('/:id', authenticate, async (req, res) => {
-  const id = req.params.id;
+window.editLead = async function(id) {
   try {
-    await db.query('DELETE FROM lead_interests WHERE lead_id = $1', [id]);
-    await db.query('DELETE FROM leads WHERE id = $1', [id]);
-    res.json({ message: 'Lead deleted' });
-  } catch (err) {
-    console.error('Error deleting lead:', err);
-    res.status(500).json({ message: 'Failed to delete lead' });
-  }
-});
+    const res = await fetch(`${API_BASE}/api/leads/${id}`);
+    const data = await res.json();
+    document.getElementById("leadId").value = data.id;
+    document.getElementById("leadName").value = data.name || '';
+    document.getElementById("leadEmail").value = data.email || '';
+    document.getElementById("leadPhone").value = data.phone || '';
+    document.getElementById("leadWebsite").value = data.website_url || '';
+    document.getElementById("leadIndustry").value = data.industry_id || '';
+    document.getElementById("leadReferral").value = data.referral_source_id || '';
+    document.getElementById("leadNotes").value = data.notes || '';
+    document.getElementById("leadStatus").value = data.status || 'new';
+    document.getElementById("leadPriority").value = data.priority || 'medium';
+    document.getElementById("leadNextFollowUp").value = data.next_follow_up_at ? data.next_follow_up_at.split('T')[0] : '';
+    document.getElementById("leadLastContacted").value = data.last_contacted_at ? data.last_contacted_at.split('T')[0] : '';
 
-module.exports = router;
+    const interestSelect = document.getElementById("leadInterests");
+    Array.from(interestSelect.options).forEach(opt => {
+      opt.selected = data.lead_interests?.includes(parseInt(opt.value)) || false;
+    });
+
+    new bootstrap.Modal(document.getElementById("editLeadModal")).show();
+  } catch (err) {
+    console.error("Edit error:", err);
+  }
+};
+
+window.viewLead = async function(id) {
+  try {
+    const res = await fetch(`${API_BASE}/api/leads/${id}`);
+    const data = await res.json();
+    const body = document.getElementById("viewLeadBody");
+    body.innerHTML = `
+      <tr><td>Name</td><td>${data.name}</td></tr>
+      <tr><td>Email</td><td>${data.email || ''}</td></tr>
+      <tr><td>Phone</td><td>${data.phone || ''}</td></tr>
+      <tr><td>Website</td><td>${data.website_url || ''}</td></tr>
+      <tr><td>Industry</td><td>${data.industry_name || ''}</td></tr>
+      <tr><td>Referral</td><td>${data.referral_source_name || ''}</td></tr>
+      <tr><td>Status</td><td>${data.status}</td></tr>
+      <tr><td>Priority</td><td>${data.priority}</td></tr>
+      <tr><td>Next Follow Up</td><td>${data.next_follow_up_at?.split('T')[0] || ''}</td></tr>
+      <tr><td>Last Contacted</td><td>${data.last_contacted_at?.split('T')[0] || ''}</td></tr>
+      <tr><td>Notes</td><td>${data.notes || ''}</td></tr>
+    `;
+    new bootstrap.Modal(document.getElementById("viewLeadModal")).show();
+  } catch (err) {
+    console.error("View error:", err);
+  }
+};
+
+window.deleteLead = async function(id) {
+  if (!confirm("Are you sure you want to delete this lead?")) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/leads/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Delete failed");
+    fetchLeads();
+  } catch (err) {
+    console.error("Delete error:", err);
+  }
+};
