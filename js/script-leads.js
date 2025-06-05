@@ -1,9 +1,8 @@
-
 document.addEventListener("DOMContentLoaded", () => {
   fetchLeads();
-  populateSelect('leadIndustry', '/api/industries');
-  populateSelect('leadReferral', '/api/referral-sources');
-  populateSelect('leadInterests', '/api/product-categories', true);
+  populateSelect('leadIndustry', `${API_BASE}/api/industries`);
+  populateSelect('leadReferral', `${API_BASE}/api/referral-sources`);
+  populateSelect('leadInterests', `${API_BASE}/api/product-categories`, true);
 
   document.getElementById("leadForm").addEventListener("submit", handleFormSubmit);
   document.getElementById("searchInput").addEventListener("input", handleSearch);
@@ -24,6 +23,7 @@ async function fetchLeads(query = '') {
     const data = await res.json();
     leads = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
     renderLeads(leads);
+
     if (data.total) {
       renderPagination(data.total, currentPage, rowsPerPage, (page) => {
         currentPage = page;
