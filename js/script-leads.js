@@ -1,3 +1,4 @@
+// ======================= script-leads.js =======================
 document.addEventListener("DOMContentLoaded", () => {
   fetchLeads();
   populateSelect('leadIndustry', 'industries');
@@ -15,20 +16,17 @@ let rowsPerPage = 10;
 async function fetchLeads(query = '') {
   try {
     const res = await fetch(`${API_BASE}/api/leads?search=${encodeURIComponent(query)}&page=${currentPage}&limit=${rowsPerPage}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { Authorization: `Bearer ${getStoredToken()}` }
     });
 
-    if (!res.ok) throw new Error("Unauthorized or failed to fetch leads");
-
     const data = await res.json();
-    leads = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
+    leads = Array.isArray(data.results) ? data.results : data;
     renderLeads(leads);
-
     if (data.total) {
-      renderPagination(data.total, currentPage, rowsPerPage, (page) => {
+      renderPagination(data.total, "pagination", (page) => {
         currentPage = page;
         fetchLeads(query);
-      });
+      }, rowsPerPage, currentPage);
     }
   } catch (err) {
     console.error('Error fetching leads:', err);
@@ -48,9 +46,9 @@ function renderLeads(leads) {
       <td>${lead.referral_source_name || ''}</td>
       <td>${lead.status}</td>
       <td>
-        <button class="btn btn-sm btn-info" onclick="viewLead(${lead.id})">View</button>
-        <button class="btn btn-sm btn-warning" onclick="editLead(${lead.id})">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteLead(${lead.id})">Delete</button>
+        <button class="btn btn-info btn-sm" onclick="viewLead(${lead.id})">View</button>
+        <button class="btn btn-warning btn-sm" onclick="editLead(${lead.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteLead(${lead.id})">Delete</button>
       </td>
     `;
     tbody.appendChild(row);
@@ -85,7 +83,7 @@ async function handleFormSubmit(e) {
     const res = await fetch(url, {
       method,
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${getStoredToken()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload),
@@ -104,7 +102,7 @@ async function handleFormSubmit(e) {
 window.editLead = async function(id) {
   try {
     const res = await fetch(`${API_BASE}/api/leads/${id}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { 'Authorization': `Bearer ${getStoredToken()}` }
     });
     const data = await res.json();
     document.getElementById("leadId").value = data.id;
@@ -117,8 +115,8 @@ window.editLead = async function(id) {
     document.getElementById("leadNotes").value = data.notes || '';
     document.getElementById("leadStatus").value = data.status || 'new';
     document.getElementById("leadPriority").value = data.priority || 'medium';
-    document.getElementById("leadNextFollowUp").value = data.next_follow_up_at ? data.next_follow_up_at.split('T')[0] : '';
-    document.getElementById("leadLastContacted").value = data.last_contacted_at ? data.last_contacted_at.split('T')[0] : '';
+    document.getElementById("leadNextFollowUp").value = data.next_follow_up_at?.split('T')[0] || '';
+    document.getElementById("leadLastContacted").value = data.last_contacted_at?.split('T')[0] || '';
 
     const interestSelect = document.getElementById("leadInterests");
     Array.from(interestSelect.options).forEach(opt => {
@@ -134,7 +132,7 @@ window.editLead = async function(id) {
 window.viewLead = async function(id) {
   try {
     const res = await fetch(`${API_BASE}/api/leads/${id}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { 'Authorization': `Bearer ${getStoredToken()}` }
     });
     const data = await res.json();
     const body = document.getElementById("viewLeadBody");
@@ -162,7 +160,7 @@ window.deleteLead = async function(id) {
   try {
     const res = await fetch(`${API_BASE}/api/leads/${id}`, {
       method: "DELETE",
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { 'Authorization': `Bearer ${getStoredToken()}` }
     });
     if (!res.ok) throw new Error("Delete failed");
     fetchLeads();
