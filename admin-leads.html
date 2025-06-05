@@ -78,8 +78,24 @@
           <div class="col-md-6"><label class="form-label">Industry</label><select id="industry_id" class="form-select"></select></div>
           <div class="col-md-6"><label class="form-label">Referral Source</label><select id="referral_source_id" class="form-select"></select></div>
           <div class="col-md-12"><label class="form-label">Interested In</label><select id="interested_in" class="form-select" multiple></select></div>
-          <div class="col-md-6"><label class="form-label">Status</label><input type="text" id="status" class="form-control" /></div>
-          <div class="col-md-6"><label class="form-label">Priority</label><input type="text" id="priority" class="form-control" /></div>
+          <div class="col-md-6">
+            <label class="form-label">Status</label>
+            <select id="status" class="form-select">
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="qualified">Qualified</option>
+              <option value="converted">Converted</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Priority</label>
+            <select id="priority" class="form-select">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
           <div class="col-md-6"><label class="form-label">Last Contacted</label><input type="date" id="last_contacted_at" class="form-control" /></div>
           <div class="col-md-6"><label class="form-label">Next Follow-up</label><input type="date" id="next_follow_up_at" class="form-control" /></div>
           <div class="col-md-12"><label class="form-label">Notes</label><textarea id="notes" class="form-control"></textarea></div>
