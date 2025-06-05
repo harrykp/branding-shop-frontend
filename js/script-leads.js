@@ -39,12 +39,43 @@ function renderLeads(leads) {
       <td>${lead.status || ""}</td>
       <td>${lead.priority || ""}</td>
       <td>
+        <button class="btn btn-sm btn-info" onclick='viewLead(${lead.id})'>View</button>
         <button class="btn btn-sm btn-primary" onclick='editLead(${JSON.stringify(lead)})'>Edit</button>
         <button class="btn btn-sm btn-danger" onclick='deleteLead(${lead.id})'>Delete</button>
       </td>
     `;
     tbody.appendChild(row);
   });
+}
+
+async function viewLead(id) {
+  try {
+    const res = await fetchWithAuth(`/api/leads/${id}`);
+    const data = await res.json();
+    const wrapper = document.getElementById("view-lead-body");
+    const interests = (data.lead_interests || []).map(i => i.name || i).join(", ");
+    wrapper.innerHTML = `
+      <table class="table">
+        <tr><th>Name</th><td>${data.name}</td></tr>
+        <tr><th>Email</th><td>${data.email || ""}</td></tr>
+        <tr><th>Phone</th><td>${data.phone || ""}</td></tr>
+        <tr><th>Company</th><td>${data.company || ""}</td></tr>
+        <tr><th>Position</th><td>${data.position || ""}</td></tr>
+        <tr><th>Website</th><td>${data.website_url || ""}</td></tr>
+        <tr><th>Industry</th><td>${data.industry_name || ""}</td></tr>
+        <tr><th>Referral Source</th><td>${data.referral_source_name || ""}</td></tr>
+        <tr><th>Status</th><td>${data.status || ""}</td></tr>
+        <tr><th>Priority</th><td>${data.priority || ""}</td></tr>
+        <tr><th>Last Contacted</th><td>${data.last_contacted_at?.split("T")[0] || ""}</td></tr>
+        <tr><th>Next Follow Up</th><td>${data.next_follow_up_at?.split("T")[0] || ""}</td></tr>
+        <tr><th>Interested In</th><td>${interests}</td></tr>
+        <tr><th>Notes</th><td>${data.notes || ""}</td></tr>
+      </table>
+    `;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("viewModal")).show();
+  } catch (err) {
+    console.error("Failed to view lead:", err);
+  }
 }
 
 function editLead(lead) {
@@ -65,7 +96,7 @@ function editLead(lead) {
 
   const interestSelect = document.getElementById("interested_in");
   [...interestSelect.options].forEach(opt => {
-    opt.selected = (lead.interested_in || []).some(i => i.id == opt.value);
+    opt.selected = (lead.interested_in || []).some(i => i.id == opt.value || i == opt.value);
   });
 
   bootstrap.Modal.getOrCreateInstance(document.getElementById("leadModal")).show();
