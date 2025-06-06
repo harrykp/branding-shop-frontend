@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateSelect("deals", "deal_id");
   populateSelect("orders", "order_id");
   populateSelect("products", "product_id");
+  populateSelect("product-categories", "type");
 
   document.getElementById("jobForm").addEventListener("submit", handleJobSubmit);
   document.getElementById("searchInput").addEventListener("input", () => loadJobs(1));
