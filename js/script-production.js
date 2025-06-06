@@ -136,29 +136,16 @@ async function viewJob(id) {
 async function handleJobSubmit(e) {
   e.preventDefault();
   const id = document.getElementById("job-id").value;
-  const payload = {
-    job_name: document.getElementById("job_name").value,
-    department_id: document.getElementById("department_id").value,
-    customer_id: document.getElementById("customer_id").value,
-    sales_rep_id: document.getElementById("sales_rep_id").value,
-    stage: document.getElementById("stage").value,
-    type: document.getElementById("type").value,
-    status: document.getElementById("status").value,
-    priority: document.getElementById("priority").value,
-    assigned_to: document.getElementById("assigned_to").value,
-    order_id: document.getElementById("order_id").value,
-    deal_id: document.getElementById("deal_id").value,
-    product_id: document.getElementById("product_id").value,
-    qty: document.getElementById("qty").value,
-    qty_remaining: document.getElementById("qty_remaining").value,
-    price: document.getElementById("price").value,
-    ordered_value: document.getElementById("ordered_value").value,
-    delivery_date: document.getElementById("delivery_date").value,
-    started_at: document.getElementById("started_at").value,
-    completed_qty: document.getElementById("completed_qty").value,
-    percent_complete: document.getElementById("percent_complete").value,
-    comments: document.getElementById("comments").value,
-  };
+  const fields = [
+    "job_name", "department_id", "customer_id", "sales_rep_id", "stage", "type", "status", "priority", "assigned_to",
+    "order_id", "deal_id", "product_id", "qty", "qty_remaining", "price", "ordered_value",
+    "delivery_date", "started_at", "completed_qty", "percent_complete", "comments"
+  ];
+  const payload = {};
+  fields.forEach(field => {
+    const val = document.getElementById(field)?.value;
+    payload[field] = val === "" ? null : isNaN(val) || ["job_name", "stage", "type", "status", "priority", "comments"].includes(field) ? val : parseFloat(val);
+  });
 
   try {
     const method = id ? "PUT" : "POST";
@@ -175,6 +162,8 @@ async function handleJobSubmit(e) {
   }
 }
 
+
+
 async function deleteJob(id) {
   if (!confirm("Are you sure you want to delete this job?")) return;
   try {
@@ -186,5 +175,5 @@ async function deleteJob(id) {
 }
 
 window.exportJobsToCSV = function () {
-  exportTableToCSV("jobs-table", "jobs.csv");
+  exportTableToCSV("job-table", "production-jobs.csv");
 };
