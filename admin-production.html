@@ -15,12 +15,12 @@
       <input type="text" id="searchInput" class="form-control w-50" placeholder="Search jobs...">
       <div>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#jobModal">+ New Job</button>
-        <button class="btn btn-secondary" onclick="exportTableToCSV('production-jobs.csv')">Export CSV</button>
+        <button class="btn btn-secondary" onclick="exportJobsToCSV()">Export CSV</button>
         <button class="btn btn-outline-secondary" onclick="window.print()">Print</button>
       </div>
     </div>
 
-    <table class="table table-bordered">
+    <table class="table table-bordered" id="job-table">
       <thead>
         <tr>
           <th>Job Name</th>
