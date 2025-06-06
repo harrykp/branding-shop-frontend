@@ -123,12 +123,18 @@ async function populateSelect(endpoint, selectElOrId) {
     data.forEach(item => {
       const opt = document.createElement('option');
       opt.value = item.id;
-      const label = item.name || item.job_name || item.stage || item.status || `ID ${item.id}`;
+    
+      let label = item.name || item.job_name || `ID ${item.id}`;
+      if (!item.name) {
+        if (endpoint === "orders") label = `Order #${item.id}`;
+        if (endpoint === "deals") label = `Deal #${item.id}`;
+      }
+    
       opt.textContent = label;
-
       if (item.unit_price) opt.dataset.price = item.unit_price;
       selectElement.appendChild(opt);
     });
+
   } catch (error) {
     console.error(`Failed to populate ${endpoint} select:`, error);
   }
