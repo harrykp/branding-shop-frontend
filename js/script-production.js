@@ -9,7 +9,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   await populateSelect("deals", "deal_id");
   await populateSelect("customers", "customer_id");
   await populateSelect("users", "sales_rep_id");
-  await loadJobs();
+  await populateSelect("product-categories", "type");
+  populateStaticSelect("stage", ["Digitizing", "Printing", "Packing", "Cutting", "Embroidering", "Pressing", "Quality Control", "Folding", "Counting", "Purchasing", "End Stage"]);
+  loadJobs();
 
   document.getElementById("searchInput").addEventListener("input", loadJobs);
   document.getElementById("jobForm").addEventListener("submit", handleJobSubmit);
@@ -27,18 +29,19 @@ async function loadJobs() {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${job.job_name || ""}</td>
+        <td>${job.customer_name || job.customer_id || ""}</td>
+        <td>${job.sales_rep_name || job.sales_rep_id || ""}</td>
         <td>${job.department_name || ""}</td>
-        <td>${job.product_name || ""}</td>
-        <td>${job.customer_id || ""}</td>
-        <td>${job.sales_rep_id || ""}</td>
-        <td>${job.qty || 0}</td>
-        <td>${job.qty_remaining || 0}</td>
-        <td>${job.status || ""}</td>
-        <td>${job.priority || ""}</td>
+        <td>${job.assigned_to_name || job.assigned_to || ""}</td>
         <td>${job.stage || ""}</td>
         <td>${job.type || ""}</td>
+        <td>${job.product_name || ""}</td>
+        <td>${job.qty || 0}</td>
+        <td>${job.qty_remaining || 0}</td>
         <td>${job.price || 0}</td>
         <td>${job.ordered_value || 0}</td>
+        <td>${job.status || ""}</td>
+        <td>${job.priority || ""}</td>
         <td>${job.delivery_date || ""}</td>
         <td>${job.started_at ? job.started_at.split(".")[0] : ""}</td>
         <td>${job.completed_qty || 0}</td>
@@ -58,58 +61,40 @@ async function loadJobs() {
   }
 }
 
+function populateStaticSelect(id, options) {
+  const select = document.getElementById(id);
+  select.innerHTML = "<option value=''>Select</option>" + options.map(opt => `<option value='${opt}'>${opt}</option>`).join("");
+}
+
 function editJob(job) {
   document.getElementById("job-id").value = job.id;
-  document.getElementById("job_name").value = job.job_name;
-  document.getElementById("department_id").value = job.department_id;
-  document.getElementById("product_id").value = job.product_id;
-  document.getElementById("assigned_to").value = job.assigned_to;
-  document.getElementById("order_id").value = job.order_id;
-  document.getElementById("deal_id").value = job.deal_id;
-  document.getElementById("customer_id").value = job.customer_id;
-  document.getElementById("sales_rep_id").value = job.sales_rep_id;
-  document.getElementById("qty").value = job.qty;
-  document.getElementById("qty_remaining").value = job.qty_remaining;
-  document.getElementById("price").value = job.price;
-  document.getElementById("ordered_value").value = job.ordered_value;
-  document.getElementById("type").value = job.type;
-  document.getElementById("stage").value = job.stage;
-  document.getElementById("status").value = job.status;
-  document.getElementById("priority").value = job.priority;
-  document.getElementById("delivery_date").value = job.delivery_date;
-  document.getElementById("started_at").value = job.started_at ? job.started_at.split(".")[0] : "";
-  document.getElementById("completed_qty").value = job.completed_qty || 0;
-  document.getElementById("percent_complete").value = job.percent_complete || 0;
-  document.getElementById("comments").value = job.comments;
+  [
+    "job_name", "department_id", "product_id", "assigned_to", "order_id", "deal_id",
+    "customer_id", "sales_rep_id", "type", "stage", "qty", "qty_remaining",
+    "price", "ordered_value", "status", "priority", "delivery_date", "payment_status",
+    "payment_due_date", "started_at", "completed_qty", "percent_complete", "comments"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = job[id] || "";
+  });
   bootstrap.Modal.getOrCreateInstance(document.getElementById("jobModal")).show();
 }
 
 async function handleJobSubmit(e) {
   e.preventDefault();
   const id = document.getElementById("job-id").value;
-  const payload = {
-    job_name: document.getElementById("job_name").value,
-    department_id: document.getElementById("department_id").value,
-    product_id: document.getElementById("product_id").value,
-    assigned_to: document.getElementById("assigned_to").value,
-    order_id: document.getElementById("order_id").value,
-    deal_id: document.getElementById("deal_id").value,
-    customer_id: document.getElementById("customer_id").value,
-    sales_rep_id: document.getElementById("sales_rep_id").value,
-    qty: document.getElementById("qty").value,
-    qty_remaining: document.getElementById("qty_remaining").value,
-    price: document.getElementById("price").value,
-    ordered_value: document.getElementById("ordered_value").value,
-    type: document.getElementById("type").value,
-    stage: document.getElementById("stage").value,
-    status: document.getElementById("status").value,
-    priority: document.getElementById("priority").value,
-    delivery_date: document.getElementById("delivery_date").value,
-    started_at: document.getElementById("started_at").value,
-    completed_qty: document.getElementById("completed_qty").value,
-    percent_complete: document.getElementById("percent_complete").value,
-    comments: document.getElementById("comments").value
-  };
+  const payload = {};
+
+  [
+    "job_name", "department_id", "product_id", "assigned_to", "order_id", "deal_id",
+    "customer_id", "sales_rep_id", "type", "stage", "qty", "qty_remaining",
+    "price", "ordered_value", "status", "priority", "delivery_date", "payment_status",
+    "payment_due_date", "started_at", "completed_qty", "percent_complete", "comments"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    payload[id] = el ? el.value : null;
+  });
+
   const method = id ? "PUT" : "POST";
   const url = id ? `/api/jobs/${id}` : `/api/jobs`;
 
@@ -145,15 +130,8 @@ async function viewJob(id) {
       <table class="table">
         <tr><th>Job Name</th><td>${job.job_name}</td></tr>
         <tr><th>Department</th><td>${job.department_name || job.department_id}</td></tr>
-        <tr><th>Product</th><td>${job.product_name || job.product_id}</td></tr>
         <tr><th>Status</th><td>${job.status}</td></tr>
         <tr><th>Priority</th><td>${job.priority}</td></tr>
-        <tr><th>Stage</th><td>${job.stage}</td></tr>
-        <tr><th>Type</th><td>${job.type}</td></tr>
-        <tr><th>Price</th><td>${job.price}</td></tr>
-        <tr><th>Qty</th><td>${job.qty}</td></tr>
-        <tr><th>Qty Remaining</th><td>${job.qty_remaining}</td></tr>
-        <tr><th>Ordered Value</th><td>${job.ordered_value}</td></tr>
         <tr><th>Delivery Date</th><td>${job.delivery_date}</td></tr>
         <tr><th>Started At</th><td>${job.started_at || ''}</td></tr>
         <tr><th>Completed Qty</th><td>${job.completed_qty}</td></tr>
