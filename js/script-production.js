@@ -7,10 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await populateSelect("users", "assigned_to");
   await populateSelect("orders", "order_id");
   await populateSelect("deals", "deal_id");
-  await populateSelect("customers", "customer_id");
-  await populateSelect("users", "sales_rep_id");
   await populateSelect("product-categories", "type");
-  populateStaticSelect("stage", ["Digitizing", "Printing", "Packing", "Cutting", "Embroidering", "Pressing", "Quality Control", "Folding", "Counting", "Purchasing", "End Stage"]);
   loadJobs();
 
   document.getElementById("searchInput").addEventListener("input", loadJobs);
@@ -29,22 +26,19 @@ async function loadJobs() {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${job.job_name || ""}</td>
-        <td>${job.customer_name || job.customer_id || ""}</td>
-        <td>${job.sales_rep_name || job.sales_rep_id || ""}</td>
-        <td>${job.department_name || ""}</td>
-        <td>${job.assigned_to_name || job.assigned_to || ""}</td>
-        <td>${job.stage || ""}</td>
+        <td>${job.department_name || job.department_id || ""}</td>
+        <td>${job.product_name || job.product_id || ""}</td>
+        <td>${job.status || ""}</td>
+        <td>${job.priority || ""}</td>
         <td>${job.type || ""}</td>
-        <td>${job.product_name || ""}</td>
+        <td>${job.stage || ""}</td>
+        <td>${job.delivery_date || ""}</td>
+        <td>${job.started_at ? job.started_at.split(".")[0] : ""}</td>
+        <td>${job.completed_qty || 0}</td>
         <td>${job.qty || 0}</td>
         <td>${job.qty_remaining || 0}</td>
         <td>${job.price || 0}</td>
         <td>${job.ordered_value || 0}</td>
-        <td>${job.status || ""}</td>
-        <td>${job.priority || ""}</td>
-        <td>${job.delivery_date || ""}</td>
-        <td>${job.started_at ? job.started_at.split(".")[0] : ""}</td>
-        <td>${job.completed_qty || 0}</td>
         <td>${job.percent_complete || 0}%</td>
         <td>
           <button class="btn btn-sm btn-info" onclick="viewJob(${job.id})">View</button>
@@ -61,39 +55,35 @@ async function loadJobs() {
   }
 }
 
-function populateStaticSelect(id, options) {
-  const select = document.getElementById(id);
-  select.innerHTML = "<option value=''>Select</option>" + options.map(opt => `<option value='${opt}'>${opt}</option>`).join("");
-}
-
 function editJob(job) {
   document.getElementById("job-id").value = job.id;
-  [
-    "job_name", "department_id", "product_id", "assigned_to", "order_id", "deal_id",
-    "customer_id", "sales_rep_id", "type", "stage", "qty", "qty_remaining",
-    "price", "ordered_value", "status", "priority", "delivery_date", "payment_status",
-    "payment_due_date", "started_at", "completed_qty", "percent_complete", "comments"
-  ].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = job[id] || "";
+  ["job_name","department_id","product_id","assigned_to","order_id","deal_id","qty","price","status","priority","type","stage","delivery_date","started_at","completed_qty","percent_complete","comments"].forEach(field => {
+    document.getElementById(field).value = job[field] || "";
   });
-  bootstrap.Modal.getOrCreateInstance(document.getElementById("jobModal")).show();
 }
 
 async function handleJobSubmit(e) {
   e.preventDefault();
   const id = document.getElementById("job-id").value;
-  const payload = {};
-
-  [
-    "job_name", "department_id", "product_id", "assigned_to", "order_id", "deal_id",
-    "customer_id", "sales_rep_id", "type", "stage", "qty", "qty_remaining",
-    "price", "ordered_value", "status", "priority", "delivery_date", "payment_status",
-    "payment_due_date", "started_at", "completed_qty", "percent_complete", "comments"
-  ].forEach(id => {
-    const el = document.getElementById(id);
-    payload[id] = el ? el.value : null;
-  });
+  const payload = {
+    job_name: document.getElementById("job_name").value,
+    department_id: parseInt(document.getElementById("department_id").value) || null,
+    product_id: parseInt(document.getElementById("product_id").value) || null,
+    assigned_to: parseInt(document.getElementById("assigned_to").value) || null,
+    order_id: parseInt(document.getElementById("order_id").value) || null,
+    deal_id: parseInt(document.getElementById("deal_id").value) || null,
+    qty: parseFloat(document.getElementById("qty").value) || 0,
+    price: parseFloat(document.getElementById("price").value) || 0,
+    status: document.getElementById("status").value,
+    priority: document.getElementById("priority").value,
+    type: document.getElementById("type").value,
+    stage: document.getElementById("stage").value,
+    delivery_date: document.getElementById("delivery_date").value,
+    started_at: document.getElementById("started_at").value,
+    completed_qty: parseFloat(document.getElementById("completed_qty").value) || 0,
+    percent_complete: parseFloat(document.getElementById("percent_complete").value) || 0,
+    comments: document.getElementById("comments").value
+  };
 
   const method = id ? "PUT" : "POST";
   const url = id ? `/api/jobs/${id}` : `/api/jobs`;
@@ -130,13 +120,20 @@ async function viewJob(id) {
       <table class="table">
         <tr><th>Job Name</th><td>${job.job_name}</td></tr>
         <tr><th>Department</th><td>${job.department_name || job.department_id}</td></tr>
+        <tr><th>Assigned To</th><td>${job.assigned_to || ""}</td></tr>
         <tr><th>Status</th><td>${job.status}</td></tr>
         <tr><th>Priority</th><td>${job.priority}</td></tr>
+        <tr><th>Stage</th><td>${job.stage}</td></tr>
+        <tr><th>Type</th><td>${job.type}</td></tr>
         <tr><th>Delivery Date</th><td>${job.delivery_date}</td></tr>
-        <tr><th>Started At</th><td>${job.started_at || ''}</td></tr>
+        <tr><th>Started At</th><td>${job.started_at}</td></tr>
         <tr><th>Completed Qty</th><td>${job.completed_qty}</td></tr>
+        <tr><th>Qty</th><td>${job.qty}</td></tr>
+        <tr><th>Qty Remaining</th><td>${job.qty_remaining}</td></tr>
+        <tr><th>Price</th><td>${job.price}</td></tr>
+        <tr><th>Ordered Value</th><td>${job.ordered_value}</td></tr>
         <tr><th>% Complete</th><td>${job.percent_complete}%</td></tr>
-        <tr><th>Comments</th><td>${job.comments || ''}</td></tr>
+        <tr><th>Comments</th><td>${job.comments}</td></tr>
       </table>`;
     bootstrap.Modal.getOrCreateInstance(document.getElementById("viewModal")).show();
   } catch (err) {
