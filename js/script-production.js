@@ -28,7 +28,7 @@ async function loadJobs(page = 1) {
     const res = await fetchWithAuth(`/api/jobs?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
     renderJobs(data);
-    renderPagination(total, page, 10, loadJobs, "pagination-container");
+    renderPagination(total, "pagination-container", loadJobs, 10, page);
   } catch (err) {
     console.error("Failed to load jobs:", err);
   }
@@ -186,5 +186,5 @@ async function deleteJob(id) {
 }
 
 window.exportJobsToCSV = function () {
-  exportTableToCSV("jobs-table", "jobs");
+  exportTableToCSV("jobs-table", "jobs.csv");
 };
