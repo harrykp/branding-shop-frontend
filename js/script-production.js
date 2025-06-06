@@ -185,4 +185,6 @@ async function deleteJob(id) {
   }
 }
 
-window.exportTableToCSV = () => exportTableToCSV("production-jobs.csv");
+window.exportJobsToCSV = function () {
+  exportTableToCSV("jobs-table", "jobs");
+};
