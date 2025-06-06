@@ -124,7 +124,7 @@ async function populateSelect(endpoint, selectElOrId) {
       const opt = document.createElement('option');
       opt.value = item.id;
       const label = item.name || item.job_name || item.stage || item.status || `ID ${item.id}`;
-      option.textContent = label;
+      opt.textContent = label;
 
       if (item.unit_price) opt.dataset.price = item.unit_price;
       selectElement.appendChild(opt);
