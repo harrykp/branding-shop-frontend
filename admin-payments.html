@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payments</title>
-  <link rel="stylesheet" href="style.css">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 <body onload="requireAdmin(); includeHTML();">
   <div w3-include-html="admin-nav.html"></div>
   <div class="container mt-4">
     <h2>Payments</h2>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <input type="text" id="searchInput" class="form-control w-50" placeholder="Search payments...">
+    <div class="d-flex justify-content-between mb-3">
+      <input type="text" id="searchInput" class="form-control w-50" placeholder="Search payments..." />
       <div>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#paymentModal">+ New Payment</button>
         <button class="btn btn-secondary" onclick="exportTableToCSV('payments-table', 'payments.csv')">Export CSV</button>
@@ -24,15 +24,13 @@
       <thead>
         <tr>
           <th>Payment Name</th>
-          <th>Job</th>
           <th>Customer</th>
           <th>Amount</th>
           <th>Type</th>
           <th>Method</th>
-          <th>Payment Date</th>
-          <th>Received By</th>
-          <th>Exempt</th>
-          <th>WHT</th>
+          <th>Date</th>
+          <th>Gateway</th>
+          <th>Transaction ID</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -43,7 +41,7 @@
 
   <!-- Payment Modal -->
   <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <form id="paymentForm">
           <div class="modal-header">
@@ -51,64 +49,83 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <input type="hidden" id="payment-id">
-            <div class="mb-2">
-              <label for="payment_name" class="form-label">Payment Name</label>
-              <input type="text" id="payment_name" class="form-control" required>
-            </div>
-            <div class="mb-2">
-              <label for="job_id" class="form-label">Job</label>
-              <select id="job_id" class="form-select" required></select>
-            </div>
-            <div class="mb-2">
-              <label for="customer_id" class="form-label">Customer</label>
-              <select id="customer_id" class="form-select" required></select>
-            </div>
-            <div class="mb-2">
-              <label for="amount" class="form-label">Amount</label>
-              <input type="number" id="amount" class="form-control" step="0.01" required>
-            </div>
-            <div class="mb-2">
-              <label for="payment_type" class="form-label">Payment Type</label>
-              <select id="payment_type" class="form-select">
-                <option value="regular">Regular</option>
-                <option value="tax_exclusive">Tax Exclusive</option>
-                <option value="withholding">Withholding</option>
-                <option value="purchase">Purchase</option>
-              </select>
-            </div>
-            <div class="mb-2">
-              <label for="method" class="form-label">Payment Method</label>
-              <select id="method" class="form-select">
-                <option value="momo">Mobile Money</option>
-                <option value="stripe">Stripe</option>
-                <option value="cash">Cash</option>
-                <option value="bank">Bank Transfer</option>
-              </select>
-            </div>
-            <div class="mb-2">
-              <label for="payment_date" class="form-label">Payment Date</label>
-              <input type="date" id="payment_date" class="form-control">
-            </div>
-            <div class="mb-2">
-              <label for="delivery_date" class="form-label">Delivery Date</label>
-              <input type="date" id="delivery_date" class="form-control">
-            </div>
-            <div class="mb-2">
-              <label for="received_by" class="form-label">Received By</label>
-              <select id="received_by" class="form-select"></select>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" id="exempt">
-              <label class="form-check-label" for="exempt">Tax Exempt</label>
-            </div>
-            <div class="mb-2">
-              <label for="wht_amount" class="form-label">WHT Amount</label>
-              <input type="number" id="wht_amount" class="form-control" step="0.01">
-            </div>
-            <div class="mb-2">
-              <label for="notes" class="form-label">Notes</label>
-              <textarea id="notes" class="form-control"></textarea>
+            <input type="hidden" id="payment-id" />
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="payment_name" class="form-label">Payment Name</label>
+                <input type="text" class="form-control" id="payment_name" required />
+              </div>
+              <div class="col-md-6">
+                <label for="job_id" class="form-label">Job</label>
+                <select class="form-select" id="job_id"></select>
+              </div>
+              <div class="col-md-6">
+                <label for="customer_id" class="form-label">Customer</label>
+                <select class="form-select" id="customer_id"></select>
+              </div>
+              <div class="col-md-6">
+                <label for="amount" class="form-label">Amount</label>
+                <input type="number" class="form-control" id="amount" required />
+              </div>
+              <div class="col-md-6">
+                <label for="payment_type" class="form-label">Payment Type</label>
+                <select class="form-select" id="payment_type">
+                  <option value="regular">Regular</option>
+                  <option value="tax_exclusive">Tax Exclusive</option>
+                  <option value="withholding">Withholding</option>
+                  <option value="purchase">Purchase</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="method" class="form-label">Method</label>
+                <input type="text" class="form-control" id="method" />
+              </div>
+              <div class="col-md-6">
+                <label for="payment_date" class="form-label">Payment Date</label>
+                <input type="date" class="form-control" id="payment_date" />
+              </div>
+              <div class="col-md-6">
+                <label for="delivery_date" class="form-label">Delivery Date</label>
+                <input type="date" class="form-control" id="delivery_date" />
+              </div>
+              <div class="col-md-6">
+                <label for="order_id" class="form-label">Order</label>
+                <select class="form-select" id="order_id"></select>
+              </div>
+              <div class="col-md-6">
+                <label for="gateway" class="form-label">Gateway</label>
+                <select class="form-select" id="gateway">
+                  <option value="momo">MTN Momo</option>
+                  <option value="airtel">Airtel Tigo</option>
+                  <option value="telecel">Telecel</option>
+                  <option value="stripe">Stripe</option>
+                  <option value="card">Card</option>
+                  <option value="cash">Cash</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="transaction_id" class="form-label">Transaction ID</label>
+                <input type="text" class="form-control" id="transaction_id" />
+              </div>
+              <div class="col-md-3">
+                <label for="wht_amount" class="form-label">WHT Amount</label>
+                <input type="number" step="0.01" class="form-control" id="wht_amount" />
+              </div>
+              <div class="col-md-3">
+                <label for="exempt" class="form-label">Exempt</label>
+                <select class="form-select" id="exempt">
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="received_by" class="form-label">Received By</label>
+                <select class="form-select" id="received_by"></select>
+              </div>
+              <div class="col-md-12">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" rows="2"></textarea>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
