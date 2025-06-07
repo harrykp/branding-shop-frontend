@@ -2,12 +2,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
   await includeHTML();
 
-  populateSelect("jobs", "job_id");
   populateSelect("customers", "customer_id");
   populateSelect("users", "received_by");
+  populateSelect("jobs", "job_id");
+  populateSelect("orders", "order_id");
 
-  document.getElementById("paymentForm").addEventListener("submit", handlePaymentSubmit);
   document.getElementById("searchInput").addEventListener("input", () => loadPayments(1));
+  document.getElementById("paymentForm").addEventListener("submit", handlePaymentSubmit);
 
   loadPayments();
 });
@@ -30,22 +31,20 @@ async function loadPayments(page = 1) {
 function renderPayments(payments) {
   const tbody = document.getElementById("payment-table-body");
   tbody.innerHTML = "";
-  payments.forEach(p => {
+  payments.forEach(payment => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${p.payment_name || ""}</td>
-      <td>${p.job_name || ""}</td>
-      <td>${p.customer_name || ""}</td>
-      <td>${p.amount || ""}</td>
-      <td>${p.payment_type || ""}</td>
-      <td>${p.method || ""}</td>
-      <td>${p.payment_date?.split("T")[0] || ""}</td>
-      <td>${p.received_by_name || ""}</td>
-      <td>${p.exempt ? "Yes" : "No"}</td>
-      <td>${p.wht_amount || 0}</td>
+      <td>${payment.payment_name || ""}</td>
+      <td>${payment.customer_name || ""}</td>
+      <td>${payment.amount || ""}</td>
+      <td>${payment.payment_type || ""}</td>
+      <td>${payment.method || ""}</td>
+      <td>${payment.payment_date?.split("T")[0] || ""}</td>
+      <td>${payment.gateway || ""}</td>
+      <td>${payment.transaction_id || ""}</td>
       <td>
-        <button class="btn btn-sm btn-primary" onclick='editPayment(${JSON.stringify(p)})'>Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deletePayment(${p.id})">Delete</button>
+        <button class="btn btn-sm btn-info" onclick='editPayment(${JSON.stringify(payment)})'>Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePayment(${payment.id})">Delete</button>
       </td>
     `;
     tbody.appendChild(row);
@@ -62,9 +61,12 @@ function editPayment(payment) {
   document.getElementById("method").value = payment.method || "";
   document.getElementById("payment_date").value = payment.payment_date?.split("T")[0] || "";
   document.getElementById("delivery_date").value = payment.delivery_date?.split("T")[0] || "";
+  document.getElementById("order_id").value = payment.order_id || "";
+  document.getElementById("gateway").value = payment.gateway || "";
+  document.getElementById("transaction_id").value = payment.transaction_id || "";
+  document.getElementById("wht_amount").value = payment.wht_amount || "0";
+  document.getElementById("exempt").value = payment.exempt ? "true" : "false";
   document.getElementById("received_by").value = payment.received_by || "";
-  document.getElementById("exempt").checked = !!payment.exempt;
-  document.getElementById("wht_amount").value = payment.wht_amount || 0;
   document.getElementById("notes").value = payment.notes || "";
 
   bootstrap.Modal.getOrCreateInstance(document.getElementById("paymentModal")).show();
@@ -82,10 +84,13 @@ async function handlePaymentSubmit(e) {
     method: document.getElementById("method").value,
     payment_date: document.getElementById("payment_date").value,
     delivery_date: document.getElementById("delivery_date").value,
-    received_by: document.getElementById("received_by").value,
-    exempt: document.getElementById("exempt").checked,
+    order_id: document.getElementById("order_id").value,
+    gateway: document.getElementById("gateway").value,
+    transaction_id: document.getElementById("transaction_id").value,
     wht_amount: document.getElementById("wht_amount").value,
-    notes: document.getElementById("notes").value,
+    exempt: document.getElementById("exempt").value === "true",
+    received_by: document.getElementById("received_by").value,
+    notes: document.getElementById("notes").value
   };
 
   try {
@@ -112,7 +117,3 @@ async function deletePayment(id) {
     console.error("Error deleting payment:", err);
   }
 }
-
-window.exportPaymentsToCSV = function () {
-  exportTableToCSV("payments-table", "payments.csv");
-};
