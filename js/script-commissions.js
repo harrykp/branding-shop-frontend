@@ -62,6 +62,7 @@ function renderCommissions(commissions) {
       <td>${c.commission_status || ""}</td>
       <td>${c.commission_pay_date?.split("T")[0] || ""}</td>
       <td>
+        <button class="btn btn-sm btn-info" onclick='viewCommission(${JSON.stringify(c)})'>View</button>
         <button class="btn btn-sm btn-primary" onclick='editCommission(${JSON.stringify(c)})'>Edit</button>
         <button class="btn btn-sm btn-danger" onclick="deleteCommission(${c.id})">Delete</button>
       </td>
