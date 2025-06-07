@@ -40,6 +40,8 @@ async function injectNavLinks() {
     "Leads": "leads.html",
     "Deals": "deals.html",
     "HR": "hr.html",
+    "Payments": "payments.html",
+    "Commissions": "commissions.html",
     "Finance/Payments": "finance.html",
     "Reports": "reports.html"
   };
@@ -59,6 +61,8 @@ async function injectNavLinks() {
     "Leads": "admin-leads.html",
     "Deals": "admin-deals.html",
     "HR": "admin-hr.html",
+    "Payments": "admin-payments.html",
+    "Commissions": "admin-commissions.html",
     "Finance": "admin-finance.html",
     "Reports": "admin-reports.html",
     "Pricing Rules": "admin-pricing.html"
