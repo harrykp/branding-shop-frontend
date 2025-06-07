@@ -1,3 +1,5 @@
+// script-hr.js
+
 document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
   await includeHTML();
