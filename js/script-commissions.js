@@ -23,7 +23,12 @@ async function loadCommissions(page = 1) {
   try {
     const res = await fetchWithAuth(`/api/commissions?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
+  if (Array.isArray(data)) {
     renderCommissions(data);
+  } else {
+    console.error("Invalid data structure:", data);
+    renderCommissions([]);
+  }
     renderPagination(total, "pagination-container", loadCommissions, 10, page);
   } catch (err) {
     console.error("Failed to load commissions:", err);
