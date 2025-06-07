@@ -43,7 +43,7 @@ function renderPayments(payments) {
       <td>${payment.gateway || ""}</td>
       <td>${payment.transaction_id || ""}</td>
       <td>
-        <button class="btn btn-sm btn-info" onclick='viewPayment(${JSON.stringify(p)})'>View</button>
+        <button class="btn btn-sm btn-info" onclick='viewPayment(${JSON.stringify(payment)})'>View</button>
         <button class="btn btn-sm btn-info" onclick='editPayment(${JSON.stringify(payment)})'>Edit</button>
         <button class="btn btn-sm btn-danger" onclick="deletePayment(${payment.id})">Delete</button>
       </td>
