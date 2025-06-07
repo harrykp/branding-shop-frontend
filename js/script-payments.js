@@ -124,17 +124,22 @@ function viewPayment(p) {
   container.innerHTML = `
     <table class="table table-bordered">
       <tr><th>Payment Name</th><td>${p.payment_name || ""}</td></tr>
+      <tr><th>Job</th><td>${p.job_id || ""}</td></tr>
+      <tr><th>Customer</th><td>${p.customer_name || ""}</td></tr>
       <tr><th>Amount</th><td>${p.amount || ""}</td></tr>
+      <tr><th>Payment Type</th><td>${p.payment_type || ""}</td></tr>
       <tr><th>Method</th><td>${p.method || ""}</td></tr>
       <tr><th>Payment Date</th><td>${p.payment_date?.split("T")[0] || ""}</td></tr>
       <tr><th>Delivery Date</th><td>${p.delivery_date?.split("T")[0] || ""}</td></tr>
-      <tr><th>Exempt</th><td>${p.exempt ? "Yes" : "No"}</td></tr>
-      <tr><th>WHT</th><td>${p.wht_amount || ""}</td></tr>
-      <tr><th>Transaction ID</th><td>${p.transaction_id || ""}</td></tr>
+      <tr><th>Order</th><td>${p.order_id || ""}</td></tr>
       <tr><th>Gateway</th><td>${p.gateway || ""}</td></tr>
+      <tr><th>Transaction ID</th><td>${p.transaction_id || ""}</td></tr>
+      <tr><th>WHT Amount</th><td>${p.wht_amount || ""}</td></tr>
+      <tr><th>Exempt</th><td>${p.exempt ? "Yes" : "No"}</td></tr>
+      <tr><th>Received By</th><td>${p.received_by_name || p.received_by || ""}</td></tr>
       <tr><th>Notes</th><td>${p.notes || ""}</td></tr>
     </table>
   `;
   bootstrap.Modal.getOrCreateInstance(document.getElementById("viewModal")).show();
-}
+} 
 
