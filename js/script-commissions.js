@@ -21,16 +21,16 @@ async function loadCommissions(page = 1) {
   currentPage = page;
   const search = document.getElementById("searchInput").value.trim();
   try {
-  const res = await fetchWithAuth(`/api/commissions?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
-  const result = await res.json();
-  console.log("Commission API response:", result);
-  const { data, total } = result;
-  if (Array.isArray(data)) {
-    renderCommissions(data);
-  } else {
-    console.error("Invalid data format for commissions");
-    renderCommissions([]);
-  }
+    const res = await fetchWithAuth(`/api/commissions?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
+    const result = await res.json();
+    console.log("Commission API response:", result);
+    const { data, total } = result;
+    if (Array.isArray(data)) {
+      renderCommissions(data);
+    } else {
+      console.error("Invalid data format for commissions");
+      renderCommissions([]);
+    }
     renderPagination(total, "pagination-container", loadCommissions, 10, page);
   } catch (err) {
     console.error("Failed to load commissions:", err);
