@@ -118,3 +118,23 @@ async function deletePayment(id) {
     console.error("Error deleting payment:", err);
   }
 }
+
+function viewPayment(p) {
+  const container = document.getElementById("view-payment-body");
+  container.innerHTML = `
+    <table class="table table-bordered">
+      <tr><th>Payment Name</th><td>${p.payment_name || ""}</td></tr>
+      <tr><th>Amount</th><td>${p.amount || ""}</td></tr>
+      <tr><th>Method</th><td>${p.method || ""}</td></tr>
+      <tr><th>Payment Date</th><td>${p.payment_date?.split("T")[0] || ""}</td></tr>
+      <tr><th>Delivery Date</th><td>${p.delivery_date?.split("T")[0] || ""}</td></tr>
+      <tr><th>Exempt</th><td>${p.exempt ? "Yes" : "No"}</td></tr>
+      <tr><th>WHT</th><td>${p.wht_amount || ""}</td></tr>
+      <tr><th>Transaction ID</th><td>${p.transaction_id || ""}</td></tr>
+      <tr><th>Gateway</th><td>${p.gateway || ""}</td></tr>
+      <tr><th>Notes</th><td>${p.notes || ""}</td></tr>
+    </table>
+  `;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("viewModal")).show();
+}
+
