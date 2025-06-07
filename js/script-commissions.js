@@ -4,6 +4,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   populateSelect("payments", "payment_id");
   populateSelect("jobs", "job_id");
+  
+  document.getElementById("job_id").addEventListener("change", async (e) => {
+    const jobId = e.target.value;
+    if (!jobId) return;
+    try {
+      const res = await fetchWithAuth(`/api/jobs/${jobId}`);
+      const job = await res.json();
+      document.getElementById("job_status").value = job.status || "";
+    } catch (err) {
+      console.error("Failed to load job status for job_id", jobId, err);
+    }
+  });
+
   populateSelect("deals", "deal_id");
   populateSelect("orders", "order_id");
   populateSelect("users", "sales_rep_id");
