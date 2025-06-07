@@ -24,13 +24,10 @@ async function loadCommissions(page = 1) {
     const res = await fetchWithAuth(`/api/commissions?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const result = await res.json();
     console.log("Commission API response:", result);
-    const { data, total } = result;
-    if (Array.isArray(data)) {
-      renderCommissions(data);
-    } else {
-      console.error("Invalid data format for commissions");
-      renderCommissions([]);
-    }
+    const commissions = Array.isArray(result.data) ? result.data : Array.isArray(result) ? result : [];
+    const total = result.total || commissions.length;
+    renderCommissions(commissions);
+
     renderPagination(total, "pagination-container", loadCommissions, 10, page);
   } catch (err) {
     console.error("Failed to load commissions:", err);
