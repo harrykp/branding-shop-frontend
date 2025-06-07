@@ -134,3 +134,31 @@ async function deleteCommission(id) {
     console.error("Error deleting commission:", err);
   }
 }
+
+function viewCommission(c) {
+  const container = document.getElementById("view-commission-body");
+  container.innerHTML = `
+    <table class="table table-bordered">
+      <tr><th>Payment</th><td>${c.payment_id || ""}</td></tr>
+      <tr><th>Job</th><td>${c.job_name || ""}</td></tr>
+      <tr><th>Deal</th><td>${c.deal_id || ""}</td></tr>
+      <tr><th>Order</th><td>${c.order_id || ""}</td></tr>
+      <tr><th>Sales Rep</th><td>${c.sales_rep_name || ""}</td></tr>
+      <tr><th>Agent</th><td>${c.agent_id || ""}</td></tr>
+      <tr><th>Job Status</th><td>${c.job_status || ""}</td></tr>
+      <tr><th>Commission Rate</th><td>${c.commission_rate || ""}</td></tr>
+      <tr><th>Commission Earned</th><td>${c.commission_earned || ""}</td></tr>
+      <tr><th>WHT on Commission</th><td>${c.wht_on_commission || ""}</td></tr>
+      <tr><th>Commission After WHT</th><td>${c.commission_after_wht || ""}</td></tr>
+      <tr><th>After WHT + Tax</th><td>${c.comm_after_wht_and_sales_tax || ""}</td></tr>
+      <tr><th>Status</th><td>${c.commission_status || ""}</td></tr>
+      <tr><th>Commission Pay Date</th><td>${c.commission_pay_date?.split("T")[0] || ""}</td></tr>
+      <tr><th>Unpaid Balance</th><td>${c.unpaid_balance || ""}</td></tr>
+      <tr><th>Job Start</th><td>${c.job_start_date?.split("T")[0] || ""}</td></tr>
+      <tr><th>Job Complete</th><td>${c.job_complete_date?.split("T")[0] || ""}</td></tr>
+      <tr><th>Delivery Date</th><td>${c.delivery_date?.split("T")[0] || ""}</td></tr>
+      <tr><th>Notes</th><td>${c.notes || ""}</td></tr>
+    </table>
+  `;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("viewCommissionModal")).show();
+}
