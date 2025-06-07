@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
   await includeHTML();
 
-  populateSelect("users", "user_id");
+  populateSelect("users/options", "user_id");
   populateSelect("departments", "department_id");
 
   document.getElementById("searchInput").addEventListener("input", () => loadHR(1));
