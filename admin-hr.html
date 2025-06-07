@@ -3,25 +3,152 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin – HR</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <title>HR Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
-<body>
+<body onload="requireAdmin(); includeHTML();">
   <div w3-include-html="admin-nav.html"></div>
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>HR Management</h2>
-      <button class="btn btn-success">+ New Employee</button>
+      <h2>HR Info</h2>
+      <div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#hrModal">+ New</button>
+        <button class="btn btn-secondary" onclick="exportTableToCSV('hr-table', 'hr-info.csv')">Export CSV</button>
+        <button class="btn btn-outline-secondary" onclick="window.print()">Print</button>
+      </div>
     </div>
-    <table class="table table-bordered" id="hr-table">
-      <thead><tr><th>Full Name</th><th>Department</th><th>Position</th><th>Phone</th><th>Actions</th></tr></thead>
-      <tbody></tbody>
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search by employee name..."/>
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Employee</th>
+          <th>Department</th>
+          <th>Position</th>
+          <th>Employment Type</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Salary</th>
+          <th>SSNIT</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="hr-table-body"></tbody>
     </table>
+    <div id="pagination-container" class="mt-3"></div>
   </div>
-  <script src="js/includes.js"></script>
-  <script src="js/helpers.js"></script>
-  <script src="js/script-hr.js"></script>
-  <script>includeHTML();</script>
+
+  <div class="modal fade" id="hrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="hrForm">
+          <div class="modal-header">
+            <h5 class="modal-title">HR Info</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="hr-id" />
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="user_id" class="form-label">Employee</label>
+                <select id="user_id" class="form-select" required></select>
+              </div>
+              <div class="col-md-6">
+                <label for="department_id" class="form-label">Department</label>
+                <select id="department_id" class="form-select"></select>
+              </div>
+              <div class="col-md-6">
+                <label for="position" class="form-label">Position</label>
+                <input type="text" id="position" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="employment_type" class="form-label">Employment Type</label>
+                <select id="employment_type" class="form-select">
+                  <option>Full-time</option>
+                  <option>Part-time</option>
+                  <option>Contract</option>
+                  <option>Intern</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" id="start_date" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" id="end_date" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="salary" class="form-label">Salary</label>
+                <input type="number" id="salary" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="bank_account" class="form-label">Bank Account</label>
+                <input type="text" id="bank_account" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="ssnit_number" class="form-label">SSNIT</label>
+                <input type="text" id="ssnit_number" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="tin_number" class="form-label">TIN</label>
+                <input type="text" id="tin_number" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="nhis_number" class="form-label">NHIS</label>
+                <input type="text" id="nhis_number" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="photo_url" class="form-label">Photo URL</label>
+                <input type="url" id="photo_url" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="next_of_kin_name" class="form-label">Next of Kin Name</label>
+                <input type="text" id="next_of_kin_name" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="next_of_kin_phone" class="form-label">Next of Kin Phone</label>
+                <input type="text" id="next_of_kin_phone" class="form-control"/>
+              </div>
+              <div class="col-md-6">
+                <label for="next_of_kin_relationship" class="form-label">Next of Kin Relationship</label>
+                <input type="text" id="next_of_kin_relationship" class="form-control"/>
+              </div>
+              <div class="col-12">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea id="notes" class="form-control" rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">View HR Info</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="view-hr-body"></div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="window.print()">Print</button>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/helpers.js" defer></script>
+  <script src="js/includes.js" defer></script>
+  <script src="js/script-hr.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
