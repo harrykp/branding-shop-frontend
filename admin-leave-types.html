@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leave Types Management</title>
+  <link href="style.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div w3-include-html="admin-nav.html"></div>
+
+  <div class="container mt-4">
+    <h2>Leave Types</h2>
+    <div class="d-flex justify-content-between my-3">
+      <input id="searchInput" class="form-control w-25" placeholder="Search..." />
+      <div>
+        <button class="btn btn-success" onclick="exportTableToCSV('leave-types-table', 'leave-types.csv')">Export CSV</button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#leaveTypeModal">+ New</button>
+      </div>
+    </div>
+
+    <table class="table table-striped" id="leave-types-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Max Days</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="leave-types-body"></tbody>
+    </table>
+    <div id="pagination-container" class="mt-3"></div>
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div class="modal fade" id="leaveTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form id="leaveTypeForm" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Leave Type</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="leave-type-id" />
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" id="name" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea id="description" class="form-control"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Max Days</label>
+            <input type="number" id="max_days" class="form-control" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Modal -->
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Leave Type Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="view-body"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="printDiv('view-body')">Print</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/includes.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/script-leave-types.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      await includeHTML();
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
