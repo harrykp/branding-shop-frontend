@@ -61,6 +61,7 @@ async function injectNavLinks() {
     "Leads": "admin-leads.html",
     "Deals": "admin-deals.html",
     "HR": "admin-hr.html",
+    "Leave Types": "admin-leave-types.html",
     "Payments": "admin-payments.html",
     "Commissions": "admin-commissions.html",
     "Finance": "admin-finance.html",
