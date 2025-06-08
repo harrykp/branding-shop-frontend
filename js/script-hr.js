@@ -1,5 +1,3 @@
-// script-hr.js
-
 document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
   await includeHTML();
@@ -19,7 +17,7 @@ async function loadHR(page = 1) {
   currentPage = page;
   const search = document.getElementById("searchInput").value.trim();
   try {
-    const res = await fetchWithAuth(`/api/hr_info?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
+    const res = await fetchWithAuth(`/api/hr?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
     const result = await res.json();
     const hr = Array.isArray(result.data) ? result.data : [];
     renderHR(hr);
@@ -71,7 +69,7 @@ function editHR(hr) {
 
 async function viewHR(id) {
   try {
-    const res = await fetchWithAuth(`/api/hr_info/${id}`);
+    const res = await fetchWithAuth(`/api/hr/${id}`);
     const hr = await res.json();
     const body = document.getElementById("view-hr-body");
     body.innerHTML = `
@@ -122,7 +120,7 @@ async function handleSubmit(e) {
 
   try {
     const method = id ? "PUT" : "POST";
-    const url = id ? `/api/hr_info/${id}` : "/api/hr_info";
+    const url = id ? `/api/hr/${id}` : "/api/hr";
     await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
     bootstrap.Modal.getInstance(document.getElementById("hrModal")).hide();
     document.getElementById("hrForm").reset();
@@ -135,7 +133,7 @@ async function handleSubmit(e) {
 async function deleteHR(id) {
   if (!confirm("Delete HR record?")) return;
   try {
-    await fetchWithAuth(`/api/hr_info/${id}`, { method: "DELETE" });
+    await fetchWithAuth(`/api/hr/${id}`, { method: "DELETE" });
     loadHR(currentPage);
   } catch (err) {
     console.error("Delete error:", err);
