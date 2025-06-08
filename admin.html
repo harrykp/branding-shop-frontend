@@ -47,9 +47,9 @@
 
       try {
         const [usersRes, ordersRes, quotesRes] = await Promise.all([
-          fetchWithAuth(`${API_BASE}/users/count`),
-          fetchWithAuth(`${API_BASE}/orders/count`),
-          fetchWithAuth(`${API_BASE}/quotes/count`)
+          fetchWithAuth(`${API_BASE}/api/users/count`),
+          fetchWithAuth(`${API_BASE}/api/orders/count`),
+          fetchWithAuth(`${API_BASE}/api/quotes/count`)
         ]);
 
         const users = await usersRes.json();
