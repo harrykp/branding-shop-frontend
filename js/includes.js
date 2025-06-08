@@ -38,6 +38,8 @@ async function injectNavLinks() {
       "Leads": "admin-leads.html",
       "Deals": "admin-deals.html",
       "Customers": "admin-customers.html"
+      "Quotes": "admin-quotes.html",
+      "Orders": "admin-orders.html"
     },
     "Production": {
       "Products": "admin-products.html",
