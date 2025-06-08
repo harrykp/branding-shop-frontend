@@ -37,7 +37,7 @@ async function injectNavLinks() {
     "CRM": {
       "Leads": "admin-leads.html",
       "Deals": "admin-deals.html",
-      "Customers": "admin-customers.html"
+      "Customers": "admin-customers.html",
       "Quotes": "admin-quotes.html",
       "Orders": "admin-orders.html"
     },
