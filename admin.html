@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div w3-include-html="admin-nav.html"></div>
+  <div include-html="admin-nav.html"></div>
 
   <div class="container mt-4">
     <h2>Welcome, Admin</h2>
@@ -39,7 +39,7 @@
   <script src="js/includes.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      includeHTML();
+      await includeHTML();
       requireAdmin();
 
       try {
