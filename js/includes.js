@@ -50,7 +50,8 @@ async function injectNavLinks() {
     },
     "HR": {
       "HR Info": "admin-hr.html",
-      "Leave Types": "admin-leave-types.html"
+      "Leave Types": "admin-leave-types.html",
+      "Leave Balances": "admin-leave-balances.html"
     },
     "Finance": {
       "Payments": "admin-payments.html",
