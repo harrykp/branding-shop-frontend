@@ -1,9 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  requireAdmin(); // Ensure token and role
-
-  await populateSelect('user_id', 'users/options');        // ✅ Working
-  await populateSelect('leave_type_id', 'leave-types');    // ✅ Now working
-
+  requireAdmin();
+  await populateSelect('user_id', 'users/options');
+  await populateSelect('leave_type_id', 'leave-types');
   loadLeaveRequests();
 
   document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
@@ -13,7 +11,9 @@ async function loadLeaveRequests(page = 1) {
   const search = document.getElementById('searchInput')?.value || '';
   try {
     const res = await fetchWithAuth(`${API_BASE}/api/leave-requests?page=${page}&search=${search}`);
-    const { data, totalPages } = res;
+    const data = Array.isArray(res) ? res : res.data || [];
+    const totalPages = res.totalPages || 1;
+
     const tbody = document.getElementById('leave-requests-table-body');
     tbody.innerHTML = '';
 
