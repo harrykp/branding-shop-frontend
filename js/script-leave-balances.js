@@ -67,9 +67,9 @@ window.viewLeaveBalance = async (id) => {
     container.innerHTML = `
       <p><strong>Employee:</strong> ${data.employee_name}</p>
       <p><strong>Leave Type:</strong> ${data.leave_type_name}</p>
-      <p><strong>Allocated:</strong> ${data.allocated_days}</p>
-      <p><strong>Used:</strong> ${data.used_days}</p>
-      <p><strong>Remaining:</strong> ${data.remaining_days}</p>
+      <p><strong>Allocated Days:</strong> ${data.allocated_days}</p>
+      <p><strong>Used Days:</strong> ${data.used_days}</p>
+      <p><strong>Remaining Days:</strong> ${data.remaining_days}</p>
     `;
     const modal = new bootstrap.Modal(document.getElementById("viewLeaveBalanceModal"));
     modal.show();
@@ -79,7 +79,7 @@ window.viewLeaveBalance = async (id) => {
 };
 
 window.deleteLeaveBalance = async (id) => {
-  if (!confirm("Are you sure you want to delete this record?")) return;
+  if (!confirm("Are you sure you want to delete this balance?")) return;
   try {
     await fetchWithAuth(`${API_BASE}/api/leave_balances/${id}`, { method: "DELETE" });
     loadLeaveBalances();
@@ -95,9 +95,9 @@ async function handleSubmit(e) {
   const formData = {
     user_id: form.user_id.value,
     leave_type_id: form.leave_type_id.value,
-    allocated_days: form.allocated_days.value,
-    used_days: form.used_days.value,
-    remaining_days: form.remaining_days.value
+    allocated_days: parseInt(form.allocated_days.value || 0),
+    used_days: parseInt(form.used_days.value || 0),
+    remaining_days: parseInt(form.remaining_days.value || 0)
   };
 
   try {
