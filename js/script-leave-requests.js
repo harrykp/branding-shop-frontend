@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadLeaveRequests(page = 1) {
   const search = document.getElementById('searchInput')?.value || '';
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/leave_requests?page=${page}&search=${search}`);
+    const res = await fetchWithAuth(`${API_BASE}/api/leave-requests?page=${page}&search=${search}`);
     const { data, total } = await res.json();
     const tbody = document.getElementById('leave-request-table-body');
     tbody.innerHTML = '';
@@ -52,7 +52,7 @@ async function saveLeaveRequest(e) {
   };
 
   try {
-    const url = `${API_BASE}/api/leave_requests${id ? `/${id}` : ''}`;
+    const url = `${API_BASE}/api/leave-requests${id ? `/${id}` : ''}`;
     const method = id ? 'PUT' : 'POST';
     await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
     bootstrap.Modal.getOrCreateInstance(document.getElementById('leaveRequestModal')).hide();
@@ -91,7 +91,7 @@ function viewLeaveRequest(lr) {
 async function deleteLeaveRequest(id) {
   if (confirm('Delete this leave request?')) {
     try {
-      await fetchWithAuth(`${API_BASE}/api/leave_requests/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`, { method: 'DELETE' });
       await loadLeaveRequests();
     } catch (err) {
       console.error('Delete failed:', err);
