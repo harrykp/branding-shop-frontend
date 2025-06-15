@@ -108,7 +108,10 @@
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       await includeHTML();
+      if (typeof requireAdmin === 'function') requireAdmin();
+      if (typeof loadLeaveRequests === 'function') loadLeaveRequests();
     });
   </script>
+
 </body>
 </html>
