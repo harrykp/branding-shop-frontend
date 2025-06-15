@@ -13,8 +13,7 @@ async function loadLeaveBalances(page = 1) {
   try {
     const res = await fetchWithAuth(`${API_BASE}/api/leave-balances?page=${page}&search=${search}`);
     const data = Array.isArray(res) ? res : res.data || [];
-    const totalPages = res.totalPages || 1;
-
+    const totalPages = res.totalPages || res.total || 1;
     const tbody = document.getElementById('leave-balance-table-body');
     tbody.innerHTML = '';
 
