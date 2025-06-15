@@ -15,7 +15,7 @@ async function loadLeaveBalances(page = 1) {
     const data = Array.isArray(res) ? res : res.data || [];
     const totalPages = res.totalPages || 1;
 
-    const tbody = document.getElementById('leave-balances-table-body');
+    const tbody = document.getElementById('leave-balance-table-body');
     tbody.innerHTML = '';
 
     data.forEach(lb => {
