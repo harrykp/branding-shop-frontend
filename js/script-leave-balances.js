@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   requireAdmin();
   await loadLeaveBalances();
-  await populateSelect('user_id', '/api/users');
+  await populateSelect('user_id', '/api/users/options');
   await populateSelect('leave_type_id', '/api/leave-types');
 
   document.getElementById('leaveBalanceForm')?.addEventListener('submit', saveLeaveBalance);
