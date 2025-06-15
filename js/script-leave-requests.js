@@ -12,9 +12,8 @@ async function loadLeaveRequests(page = 1) {
   try {
     const res = await fetchWithAuth(`${API_BASE}/api/leave-requests?page=${page}&search=${search}`);
     const data = Array.isArray(res) ? res : res.data || [];
-    const totalPages = res.totalPages || 1;
-
-    const tbody = document.getElementById('leave-requests-table-body');
+    const totalPages = res.totalPages || res.total || 1;
+    const tbody = document.getElementById('leave-request-table-body');
     tbody.innerHTML = '';
 
     data.forEach(lr => {
