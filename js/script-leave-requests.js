@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   requireAdmin();
-  await populateSelect('user_id', 'users/options');
-  await populateSelect('leave_type_id', 'leave-types');
+  await populateSelect('users/options', 'user_id');
+  await populateSelect('leave-types', 'leave_type_id');
   loadLeaveRequests();
 
   document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
