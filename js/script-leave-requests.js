@@ -1,100 +1,118 @@
-// script-leave-requests.js
-
 document.addEventListener('DOMContentLoaded', async () => {
-  requireAdmin();
-  await loadLeaveRequests();
-  await populateSelect('user_id', '/api/users/options');
-  await populateSelect('leave_type_id', '/api/leave-types');
+  requireAdmin(); // Ensure token and role
 
-  document.getElementById('leaveRequestForm')?.addEventListener('submit', saveLeaveRequest);
+  await populateSelect('user_id', 'users/options');        // ✅ Working
+  await populateSelect('leave_type_id', 'leave-types');    // ✅ Now working
+
+  loadLeaveRequests();
+
+  document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
 });
 
 async function loadLeaveRequests(page = 1) {
   const search = document.getElementById('searchInput')?.value || '';
   try {
     const res = await fetchWithAuth(`${API_BASE}/api/leave-requests?page=${page}&search=${search}`);
-    const { data, total } = await res.json();
-    const tbody = document.getElementById('leave-request-table-body');
+    const { data, totalPages } = res;
+    const tbody = document.getElementById('leave-requests-table-body');
     tbody.innerHTML = '';
 
     data.forEach(lr => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${lr.user_name}</td>
-        <td>${lr.leave_type_name}</td>
+        <td class="d-none">${lr.id}</td>
+        <td>${lr.user_name || '-'}</td>
+        <td>${lr.leave_type_name || '-'}</td>
         <td>${lr.start_date}</td>
         <td>${lr.end_date}</td>
         <td>${lr.status}</td>
         <td>
-          <button class="btn btn-sm btn-info" onclick='viewLeaveRequest(${JSON.stringify(lr)})'>View</button>
-          <button class="btn btn-sm btn-primary" onclick='editLeaveRequest(${JSON.stringify(lr)})'>Edit</button>
-          <button class="btn btn-sm btn-danger" onclick='deleteLeaveRequest(${lr.id})'>Delete</button>
-        </td>`;
+          <button class="btn btn-sm btn-info" onclick="viewLeaveRequest(${lr.id})">View</button>
+          <button class="btn btn-sm btn-primary" onclick="editLeaveRequest(${lr.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteLeaveRequest(${lr.id})">Delete</button>
+        </td>
+      `;
       tbody.appendChild(tr);
     });
-    renderPagination(total, page, loadLeaveRequests);
+
+    renderPagination('leave-request-pagination', totalPages, page, loadLeaveRequests);
   } catch (err) {
     console.error('Failed to load leave requests:', err);
   }
 }
 
-async function saveLeaveRequest(e) {
+async function submitLeaveRequestForm(e) {
   e.preventDefault();
-  const id = document.getElementById('leave_request_id').value;
+  const form = e.target;
+  const id = form.leave_request_id.value;
   const payload = {
-    user_id: document.getElementById('user_id').value,
-    leave_type_id: document.getElementById('leave_type_id').value,
-    start_date: document.getElementById('start_date').value,
-    end_date: document.getElementById('end_date').value,
-    reason: document.getElementById('reason').value,
-    status: document.getElementById('status').value,
-    approved_by: document.getElementById('approved_by').value
+    user_id: form.user_id.value,
+    leave_type_id: form.leave_type_id.value,
+    start_date: form.start_date.value,
+    end_date: form.end_date.value,
+    reason: form.reason.value,
+    status: form.status.value
   };
 
   try {
     const url = `${API_BASE}/api/leave-requests${id ? `/${id}` : ''}`;
     const method = id ? 'PUT' : 'POST';
-    await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
+    await fetchWithAuth(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
     bootstrap.Modal.getOrCreateInstance(document.getElementById('leaveRequestModal')).hide();
-    await loadLeaveRequests();
+    form.reset();
+    loadLeaveRequests();
   } catch (err) {
-    console.error('Save failed:', err);
+    console.error('Failed to submit leave request:', err);
   }
 }
 
-function editLeaveRequest(lr) {
-  document.getElementById('leave_request_id').value = lr.id;
-  document.getElementById('user_id').value = lr.user_id;
-  document.getElementById('leave_type_id').value = lr.leave_type_id;
-  document.getElementById('start_date').value = lr.start_date;
-  document.getElementById('end_date').value = lr.end_date;
-  document.getElementById('reason').value = lr.reason;
-  document.getElementById('status').value = lr.status;
-  document.getElementById('approved_by').value = lr.approved_by;
-  new bootstrap.Modal(document.getElementById('leaveRequestModal')).show();
-}
+window.editLeaveRequest = async function (id) {
+  try {
+    const data = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
+    const form = document.getElementById('leaveRequestForm');
+    form.leave_request_id.value = data.id;
+    form.user_id.value = data.user_id;
+    form.leave_type_id.value = data.leave_type_id;
+    form.start_date.value = data.start_date;
+    form.end_date.value = data.end_date;
+    form.reason.value = data.reason;
+    form.status.value = data.status;
 
-function viewLeaveRequest(lr) {
-  const body = document.getElementById('view-leave-request-body');
-  body.innerHTML = `
-    <p><strong>Employee:</strong> ${lr.user_name}</p>
-    <p><strong>Leave Type:</strong> ${lr.leave_type_name}</p>
-    <p><strong>Start:</strong> ${lr.start_date}</p>
-    <p><strong>End:</strong> ${lr.end_date}</p>
-    <p><strong>Status:</strong> ${lr.status}</p>
-    <p><strong>Reason:</strong> ${lr.reason}</p>
-    <p><strong>Approved By:</strong> ${lr.approved_by || 'N/A'}</p>
-  `;
-  new bootstrap.Modal(document.getElementById('viewLeaveRequestModal')).show();
-}
-
-async function deleteLeaveRequest(id) {
-  if (confirm('Delete this leave request?')) {
-    try {
-      await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`, { method: 'DELETE' });
-      await loadLeaveRequests();
-    } catch (err) {
-      console.error('Delete failed:', err);
-    }
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('leaveRequestModal')).show();
+  } catch (err) {
+    console.error('Failed to load leave request for editing:', err);
   }
-}
+};
+
+window.viewLeaveRequest = async function (id) {
+  try {
+    const data = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
+    const modal = document.getElementById('viewLeaveRequestModal');
+    modal.querySelector('.modal-body').innerHTML = `
+      <p><strong>User:</strong> ${data.user_name}</p>
+      <p><strong>Leave Type:</strong> ${data.leave_type_name}</p>
+      <p><strong>Start Date:</strong> ${data.start_date}</p>
+      <p><strong>End Date:</strong> ${data.end_date}</p>
+      <p><strong>Reason:</strong> ${data.reason}</p>
+      <p><strong>Status:</strong> ${data.status}</p>
+    `;
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  } catch (err) {
+    console.error('Failed to view leave request:', err);
+  }
+};
+
+window.deleteLeaveRequest = async function (id) {
+  if (!confirm('Delete this leave request?')) return;
+  try {
+    await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`, { method: 'DELETE' });
+    loadLeaveRequests();
+  } catch (err) {
+    console.error('Failed to delete leave request:', err);
+  }
+};
