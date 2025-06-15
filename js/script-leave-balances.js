@@ -1,16 +1,19 @@
 // js/script-leave-balances.js
-
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  requireAdmin();
+  await populateSelect("user_id", "/api/users");
+  await populateSelect("leave_type_id", "/api/leave-types");
   loadLeaveBalances();
-  document.getElementById("searchInput").addEventListener("input", loadLeaveBalances);
-  document.getElementById("leaveForm").addEventListener("submit", handleSubmit);
+
+  document.getElementById("leave-balance-form").addEventListener("submit", handleSubmit);
 });
 
 async function loadLeaveBalances(page = 1) {
-  const search = document.getElementById("searchInput").value || "";
+  const search = document.getElementById("searchInput").value;
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/leave_balances?page=${page}&search=${encodeURIComponent(search)}`);
+    const res = await fetchWithAuth(`${API_BASE}/api/leave-balances?page=${page}&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
+
     const tbody = document.getElementById("leave-balance-table-body");
     tbody.innerHTML = "";
 
@@ -19,15 +22,12 @@ async function loadLeaveBalances(page = 1) {
       tr.innerHTML = `
         <td>${item.user_name || ""}</td>
         <td>${item.leave_type_name || ""}</td>
-        <td>${item.year}</td>
         <td>${item.days_allocated}</td>
         <td>${item.days_used}</td>
-        <td>${item.days_allocated - item.days_used}</td>
-        <td>${item.notes || ""}</td>
+        <td>${item.days_remaining}</td>
         <td>
-          <button class="btn btn-sm btn-info" onclick='viewLeave(${JSON.stringify(item)})'>View</button>
-          <button class="btn btn-sm btn-warning" onclick='editLeave(${JSON.stringify(item)})'>Edit</button>
-          <button class="btn btn-sm btn-danger" onclick='deleteLeave(${item.id})'>Delete</button>
+          <button class="btn btn-sm btn-primary" onclick="editBalance(${item.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteBalance(${item.id})">Delete</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -39,77 +39,49 @@ async function loadLeaveBalances(page = 1) {
   }
 }
 
-function viewLeave(data) {
-  const container = document.getElementById("view-leave-body");
-  container.innerHTML = `
-    <p><strong>Employee:</strong> ${data.user_name}</p>
-    <p><strong>Leave Type:</strong> ${data.leave_type_name}</p>
-    <p><strong>Year:</strong> ${data.year}</p>
-    <p><strong>Days Allocated:</strong> ${data.days_allocated}</p>
-    <p><strong>Days Used:</strong> ${data.days_used}</p>
-    <p><strong>Remaining:</strong> ${data.days_allocated - data.days_used}</p>
-    <p><strong>Notes:</strong> ${data.notes || "N/A"}</p>
-  `;
-  new bootstrap.Modal(document.getElementById("viewModal")).show();
-}
+window.editBalance = async function (id) {
+  const res = await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`);
+  const data = await res.json();
 
-function editLeave(data) {
-  document.getElementById("leave_balance_id").value = data.id;
+  document.getElementById("balance-id").value = data.id;
   document.getElementById("user_id").value = data.user_id;
   document.getElementById("leave_type_id").value = data.leave_type_id;
-  document.getElementById("year").value = data.year;
   document.getElementById("days_allocated").value = data.days_allocated;
   document.getElementById("days_used").value = data.days_used;
-  document.getElementById("notes").value = data.notes;
-  new bootstrap.Modal(document.getElementById("leaveModal")).show();
-}
+  document.getElementById("days_remaining").value = data.days_remaining;
 
-async function deleteLeave(id) {
-  if (!confirm("Delete this leave balance?")) return;
-  try {
-    await fetchWithAuth(`${API_BASE}/api/leave_balances/${id}`, { method: "DELETE" });
-    loadLeaveBalances();
-  } catch (err) {
-    console.error("Delete failed", err);
-  }
-}
+  new bootstrap.Modal(document.getElementById("leaveBalanceModal")).show();
+};
+
+window.deleteBalance = async function (id) {
+  if (!confirm("Are you sure you want to delete this record?")) return;
+  await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`, { method: "DELETE" });
+  loadLeaveBalances();
+};
 
 async function handleSubmit(e) {
   e.preventDefault();
-  const id = document.getElementById("leave_balance_id").value;
+  const id = document.getElementById("balance-id").value;
   const payload = {
     user_id: document.getElementById("user_id").value,
     leave_type_id: document.getElementById("leave_type_id").value,
-    year: document.getElementById("year").value,
     days_allocated: document.getElementById("days_allocated").value,
     days_used: document.getElementById("days_used").value,
-    notes: document.getElementById("notes").value
+    days_remaining: document.getElementById("days_remaining").value
   };
 
-  try {
-    const method = id ? "PUT" : "POST";
-    const url = id ? `${API_BASE}/api/leave_balances/${id}` : `${API_BASE}/api/leave_balances`;
-    await fetchWithAuth(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    bootstrap.Modal.getInstance(document.getElementById("leaveModal")).hide();
-    loadLeaveBalances();
-    document.getElementById("leaveForm").reset();
-  } catch (err) {
-    console.error("Save failed", err);
-  }
+  const method = id ? "PUT" : "POST";
+  const url = id ? `${API_BASE}/api/leave-balances/${id}` : `${API_BASE}/api/leave-balances`;
+
+  await fetchWithAuth(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  bootstrap.Modal.getInstance(document.getElementById("leaveBalanceModal")).hide();
+  document.getElementById("leave-balance-form").reset();
+  loadLeaveBalances();
 }
 
-// Populate dropdowns
-(async function initDropdowns() {
-  try {
-    await includeHTML();
-    requireAdmin();
-    populateSelect("user_id", `${API_BASE}/api/users`, "name");
-    populateSelect("leave_type_id", `${API_BASE}/api/leave_types`, "name");
-  } catch (err) {
-    console.error("Init error", err);
-  }
-})();
+window.exportBalances = () => exportTableToCSV("leave-balance-table", "leave-balances.csv");
