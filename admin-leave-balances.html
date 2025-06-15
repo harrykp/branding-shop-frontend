@@ -100,6 +100,8 @@
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       await includeHTML();
+      if (typeof requireAdmin === 'function') requireAdmin();
+      if (typeof loadLeaveBalances === 'function') loadLeaveBalances();
     });
   </script>
 </body>
