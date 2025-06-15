@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function loadLeaveBalances(page = 1) {
   const search = document.getElementById("searchInput")?.value || "";
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/leave_balances?page=${page}&search=${encodeURIComponent(search)}`);
+    const res = await fetchWithAuth(`${API_BASE}/api/leave-balances?page=${page}&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
 
     const tbody = document.getElementById("leave-balances-table-body");
