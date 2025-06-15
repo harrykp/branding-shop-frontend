@@ -1,87 +1,125 @@
 // js/script-leave-balances.js
+
 document.addEventListener("DOMContentLoaded", async () => {
   requireAdmin();
-  await populateSelect("user_id", "/api/users");
-  await populateSelect("leave_type_id", "/api/leave-types");
+  await includeHTML();
   loadLeaveBalances();
+  populateSelect("user_id", "users", "name");
+  populateSelect("leave_type_id", "leave_types", "name");
 
-  document.getElementById("leave-balance-form").addEventListener("submit", handleSubmit);
+  const form = document.getElementById("leave-balance-form");
+  if (form) {
+    form.addEventListener("submit", handleSubmit);
+  }
 });
 
 async function loadLeaveBalances(page = 1) {
-  const search = document.getElementById("searchInput").value;
+  const search = document.getElementById("searchInput")?.value || "";
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/leave-balances?page=${page}&search=${encodeURIComponent(search)}`);
+    const res = await fetchWithAuth(`${API_BASE}/api/leave_balances?page=${page}&search=${encodeURIComponent(search)}`);
     const { data, total } = await res.json();
 
-    const tbody = document.getElementById("leave-balance-table-body");
+    const tbody = document.getElementById("leave-balances-table-body");
     tbody.innerHTML = "";
-
-    data.forEach(item => {
+    data.forEach(row => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${item.user_name || ""}</td>
-        <td>${item.leave_type_name || ""}</td>
-        <td>${item.days_allocated}</td>
-        <td>${item.days_used}</td>
-        <td>${item.days_remaining}</td>
+        <td>${row.employee_name}</td>
+        <td>${row.leave_type_name}</td>
+        <td>${row.allocated_days}</td>
+        <td>${row.used_days}</td>
+        <td>${row.remaining_days}</td>
         <td>
-          <button class="btn btn-sm btn-primary" onclick="editBalance(${item.id})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteBalance(${item.id})">Delete</button>
+          <button class="btn btn-sm btn-info" onclick="viewLeaveBalance(${row.id})">View</button>
+          <button class="btn btn-sm btn-primary" onclick="editLeaveBalance(${row.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteLeaveBalance(${row.id})">Delete</button>
         </td>
       `;
       tbody.appendChild(tr);
     });
 
-    renderPagination(total, page, loadLeaveBalances);
+    renderPagination("pagination-container", total, page, loadLeaveBalances);
   } catch (err) {
     console.error("Failed to load leave balances", err);
   }
 }
 
-window.editBalance = async function (id) {
-  const res = await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`);
-  const data = await res.json();
-
-  document.getElementById("balance-id").value = data.id;
-  document.getElementById("user_id").value = data.user_id;
-  document.getElementById("leave_type_id").value = data.leave_type_id;
-  document.getElementById("days_allocated").value = data.days_allocated;
-  document.getElementById("days_used").value = data.days_used;
-  document.getElementById("days_remaining").value = data.days_remaining;
-
-  new bootstrap.Modal(document.getElementById("leaveBalanceModal")).show();
+window.editLeaveBalance = async (id) => {
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/leave_balances/${id}`);
+    const data = await res.json();
+    for (const field in data) {
+      const el = document.getElementById(field);
+      if (el) el.value = data[field];
+    }
+    const modal = new bootstrap.Modal(document.getElementById("leaveBalanceModal"));
+    modal.show();
+  } catch (err) {
+    console.error("Error loading leave balance", err);
+  }
 };
 
-window.deleteBalance = async function (id) {
+window.viewLeaveBalance = async (id) => {
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/leave_balances/${id}`);
+    const data = await res.json();
+    const container = document.getElementById("view-leave-balance-body");
+    container.innerHTML = `
+      <p><strong>Employee:</strong> ${data.employee_name}</p>
+      <p><strong>Leave Type:</strong> ${data.leave_type_name}</p>
+      <p><strong>Allocated:</strong> ${data.allocated_days}</p>
+      <p><strong>Used:</strong> ${data.used_days}</p>
+      <p><strong>Remaining:</strong> ${data.remaining_days}</p>
+    `;
+    const modal = new bootstrap.Modal(document.getElementById("viewLeaveBalanceModal"));
+    modal.show();
+  } catch (err) {
+    console.error("Error viewing leave balance", err);
+  }
+};
+
+window.deleteLeaveBalance = async (id) => {
   if (!confirm("Are you sure you want to delete this record?")) return;
-  await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`, { method: "DELETE" });
-  loadLeaveBalances();
+  try {
+    await fetchWithAuth(`${API_BASE}/api/leave_balances/${id}`, { method: "DELETE" });
+    loadLeaveBalances();
+  } catch (err) {
+    console.error("Error deleting leave balance", err);
+  }
 };
 
 async function handleSubmit(e) {
   e.preventDefault();
-  const id = document.getElementById("balance-id").value;
-  const payload = {
-    user_id: document.getElementById("user_id").value,
-    leave_type_id: document.getElementById("leave_type_id").value,
-    days_allocated: document.getElementById("days_allocated").value,
-    days_used: document.getElementById("days_used").value,
-    days_remaining: document.getElementById("days_remaining").value
+  const form = e.target;
+  const id = document.getElementById("id").value;
+  const formData = {
+    user_id: form.user_id.value,
+    leave_type_id: form.leave_type_id.value,
+    allocated_days: form.allocated_days.value,
+    used_days: form.used_days.value,
+    remaining_days: form.remaining_days.value
   };
 
-  const method = id ? "PUT" : "POST";
-  const url = id ? `${API_BASE}/api/leave-balances/${id}` : `${API_BASE}/api/leave-balances`;
+  try {
+    const method = id ? "PUT" : "POST";
+    const url = id
+      ? `${API_BASE}/api/leave_balances/${id}`
+      : `${API_BASE}/api/leave_balances`;
 
-  await fetchWithAuth(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+    await fetchWithAuth(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
 
-  bootstrap.Modal.getInstance(document.getElementById("leaveBalanceModal")).hide();
-  document.getElementById("leave-balance-form").reset();
-  loadLeaveBalances();
+    bootstrap.Modal.getInstance(document.getElementById("leaveBalanceModal")).hide();
+    form.reset();
+    loadLeaveBalances();
+  } catch (err) {
+    console.error("Error saving leave balance", err);
+  }
 }
 
-window.exportBalances = () => exportTableToCSV("leave-balance-table", "leave-balances.csv");
+window.exportLeaveBalances = () => {
+  exportTableToCSV("leave-balances-table", "leave-balances.csv");
+};
