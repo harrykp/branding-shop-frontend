@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
 });
 
-
 async function loadLeaveRequests(page = 1) {
   const search = document.getElementById('searchInput')?.value || '';
   try {
@@ -51,7 +50,8 @@ async function submitLeaveRequestForm(e) {
     start_date: form.start_date.value,
     end_date: form.end_date.value,
     reason: form.reason.value,
-    status: form.status.value
+    status: form.status.value,
+    approved_by: form.approved_by?.value || null
   };
 
   try {
@@ -82,6 +82,7 @@ window.editLeaveRequest = async function (id) {
     form.end_date.value = data.end_date;
     form.reason.value = data.reason;
     form.status.value = data.status;
+    if (form.approved_by) form.approved_by.value = data.approved_by || '';
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('leaveRequestModal')).show();
   } catch (err) {
@@ -100,6 +101,7 @@ window.viewLeaveRequest = async function (id) {
       <p><strong>End Date:</strong> ${data.end_date}</p>
       <p><strong>Reason:</strong> ${data.reason}</p>
       <p><strong>Status:</strong> ${data.status}</p>
+      <p><strong>Approved By:</strong> ${data.approved_by_name || '-'}</p>
     `;
     bootstrap.Modal.getOrCreateInstance(modal).show();
   } catch (err) {
@@ -116,4 +118,3 @@ window.deleteLeaveRequest = async function (id) {
     console.error('Failed to delete leave request:', err);
   }
 };
-
