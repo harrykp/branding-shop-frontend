@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   await populateSelect('users/options', 'user_id');
   await populateSelect('leave-types', 'leave_type_id');
+  await populateSelect('users/options', 'approved_by');
   loadLeaveRequests();
 
   document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
