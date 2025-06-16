@@ -2,33 +2,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   await populateSelect('users/options', 'user_id');
   await populateSelect('leave-types', 'leave_type_id');
   await populateSelect('users/options', 'approved_by');
+  document.getElementById('searchInput').value = '';
   await loadLeaveRequests();
 
   document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
 });
 
 async function loadLeaveRequests(page = 1) {
-  const search = document.getElementById('searchInput')?.value || '';
+  const searchBox = document.getElementById('searchInput');
+  const search = searchBox && searchBox.value.trim() !== '' ? searchBox.value.trim() : '';
+  const url = `${API_BASE}/api/leave-requests?page=${page}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/leave-requests?page=${page}&search=${search}`);
+    const res = await fetchWithAuth(url);
     const data = Array.isArray(res) ? res : res.data || [];
     const totalPages = res.totalPages || res.total || 1;
 
     console.log("Leave Requests Data:", data);
 
     const tbody = document.getElementById('leave-request-table-body');
-    if (!tbody) return console.error('Table body not found');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     data.forEach(lr => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="d-none">${lr.id || '-'}</td>
+        <td class="d-none">${lr.id}</td>
         <td>${lr.user_name || '-'}</td>
         <td>${lr.leave_type_name || '-'}</td>
-        <td>${lr.start_date || '-'}</td>
-        <td>${lr.end_date || '-'}</td>
-        <td>${lr.status || '-'}</td>
+        <td>${lr.start_date}</td>
+        <td>${lr.end_date}</td>
+        <td>${lr.status}</td>
         <td>${lr.approved_by_name || '-'}</td>
         <td>
           <button class="btn btn-sm btn-info" onclick="viewLeaveRequest(${lr.id})">View</button>
@@ -57,12 +61,13 @@ async function submitLeaveRequestForm(e) {
     end_date: form.end_date.value,
     reason: form.reason.value,
     status: form.status.value,
-    approved_by: form.approved_by?.value || null
+    approved_by: form.approved_by.value || null
   };
 
   try {
     const url = `${API_BASE}/api/leave-requests${id ? `/${id}` : ''}`;
     const method = id ? 'PUT' : 'POST';
+
     await fetchWithAuth(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -81,6 +86,7 @@ window.editLeaveRequest = async function (id) {
   try {
     const data = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
     const form = document.getElementById('leaveRequestForm');
+
     form.leave_request_id.value = data.id;
     form.user_id.value = data.user_id;
     form.leave_type_id.value = data.leave_type_id;
@@ -88,9 +94,7 @@ window.editLeaveRequest = async function (id) {
     form.end_date.value = data.end_date;
     form.reason.value = data.reason;
     form.status.value = data.status;
-    if (form.approved_by && data.approved_by) {
-      form.approved_by.value = data.approved_by;
-    }
+    if (data.approved_by) form.approved_by.value = data.approved_by;
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('leaveRequestModal')).show();
   } catch (err) {
@@ -103,15 +107,14 @@ window.viewLeaveRequest = async function (id) {
     const data = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
     const modal = document.getElementById('viewLeaveRequestModal');
     const body = modal.querySelector('.modal-body');
-    if (!body) return;
 
     body.innerHTML = `
-      <p><strong>User:</strong> ${data.user_name || '-'}</p>
-      <p><strong>Leave Type:</strong> ${data.leave_type_name || '-'}</p>
-      <p><strong>Start Date:</strong> ${data.start_date || '-'}</p>
-      <p><strong>End Date:</strong> ${data.end_date || '-'}</p>
-      <p><strong>Reason:</strong> ${data.reason || '-'}</p>
-      <p><strong>Status:</strong> ${data.status || '-'}</p>
+      <p><strong>User:</strong> ${data.user_name}</p>
+      <p><strong>Leave Type:</strong> ${data.leave_type_name}</p>
+      <p><strong>Start Date:</strong> ${data.start_date}</p>
+      <p><strong>End Date:</strong> ${data.end_date}</p>
+      <p><strong>Reason:</strong> ${data.reason}</p>
+      <p><strong>Status:</strong> ${data.status}</p>
       <p><strong>Approved By:</strong> ${data.approved_by_name || '-'}</p>
     `;
 
