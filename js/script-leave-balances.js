@@ -51,7 +51,7 @@ async function loadLeaveBalances(page = 1) {
         <td class="d-none">${lb.id}</td>
         <td>${lb.employee_name || '-'}</td>
         <td>${lb.leave_type_name || '-'}</td>
-        <td>${formatDate(lb.year)}</td>
+        <td>${lb.year}</td>
         <td>${formatNumber(lb.allocated_days)}</td>
         <td>${formatNumber(lb.used_days)}</td>
         <td>${formatNumber(remaining)}</td>
@@ -129,7 +129,7 @@ window.viewLeaveBalance = async function (id) {
     modal.querySelector('.modal-body').innerHTML = `
       <p><strong>User:</strong> ${data.employee_name}</p>
       <p><strong>Leave Type:</strong> ${data.leave_type_name}</p>
-      <p><strong>Year:</strong> ${formatDate(data.year)}</p>
+      <p><strong>Year:</strong> ${data.year}</p>
       <p><strong>Allocated:</strong> ${formatNumber(data.allocated_days)}</p>
       <p><strong>Used:</strong> ${formatNumber(data.used_days)}</p>
       <p><strong>Remaining:</strong> ${formatNumber(remaining)}</p>
