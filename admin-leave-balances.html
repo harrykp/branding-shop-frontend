@@ -93,16 +93,16 @@
     </div>
   </div>
 
-  <script src="js/includes.js"></script>
-  <script src="js/helpers.js"></script>
-  <script src="js/script-leave-balances.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/includes.js" defer></script>
+  <script src="js/helpers.js" defer></script>
+  <script src="js/script-leave-balances.js" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       await includeHTML();
-      if (typeof requireAdmin === 'function') requireAdmin();
-      if (typeof loadLeaveBalances === 'function') loadLeaveBalances();
+      requireAdmin();
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+
 </body>
 </html>
