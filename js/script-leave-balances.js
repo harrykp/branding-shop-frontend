@@ -1,12 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  requireAdmin();
   await populateSelect('users/options', 'user_id');
   await populateSelect('leave-types', 'leave_type_id');
-
   loadLeaveBalances();
 
   document.getElementById('leaveBalanceForm').addEventListener('submit', submitLeaveBalanceForm);
 });
+
 
 async function loadLeaveBalances(page = 1) {
   const search = document.getElementById('searchInput')?.value || '';
