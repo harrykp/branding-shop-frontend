@@ -115,3 +115,11 @@ window.deleteLeaveRequest = async function (id) {
     console.error('Failed to delete leave request:', err);
   }
 };
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await populateSelect('users/options', 'user_id');
+  await populateSelect('leave-types', 'leave_type_id');
+  loadLeaveRequests();
+
+  document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
+});
