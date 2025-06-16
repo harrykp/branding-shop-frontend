@@ -25,6 +25,7 @@ async function loadLeaveRequests(page = 1) {
         <td>${lr.start_date}</td>
         <td>${lr.end_date}</td>
         <td>${lr.status}</td>
+        <td>${lr.approved_by_name || '-'}</td>
         <td>
           <button class="btn btn-sm btn-info" onclick="viewLeaveRequest(${lr.id})">View</button>
           <button class="btn btn-sm btn-primary" onclick="editLeaveRequest(${lr.id})">Edit</button>
