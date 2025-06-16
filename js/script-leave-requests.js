@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  requireAdmin();
   await populateSelect('users/options', 'user_id');
   await populateSelect('leave-types', 'leave_type_id');
   loadLeaveRequests();
 
   document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
 });
+
 
 async function loadLeaveRequests(page = 1) {
   const search = document.getElementById('searchInput')?.value || '';
@@ -116,10 +116,3 @@ window.deleteLeaveRequest = async function (id) {
   }
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
-  await populateSelect('users/options', 'user_id');
-  await populateSelect('leave-types', 'leave_type_id');
-  loadLeaveRequests();
-
-  document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
-});
