@@ -16,11 +16,12 @@ async function loadLeaveBalances(page = 1) {
   if (!tbody) return;
 
   try {
-    const res = await fetchWithAuth(url);
-    const data = Array.isArray(res) ? res : Array.isArray(res.data) ? res.data : [];
-    const total = res.total || 1;
+    const response = await fetchWithAuth(url);
+    const result = await response.json(); // ✅ Parse JSON here
+    const data = Array.isArray(result) ? result : Array.isArray(result.data) ? result.data : [];
+    const total = result.total || 0;
 
-    console.log('Leave Balances Response:', res);
+    console.log('Leave Balances Result:', result);
     console.log('Parsed Leave Balances Data:', data);
 
     tbody.innerHTML = '';
@@ -88,9 +89,10 @@ async function submitLeaveBalanceForm(e) {
 
 window.editLeaveBalance = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`);
-    const form = document.getElementById('leaveBalanceForm');
+    const response = await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`);
+    const data = await response.json();
 
+    const form = document.getElementById('leaveBalanceForm');
     form.leave_balance_id.value = data.id;
     form.user_id.value = data.user_id;
     form.leave_type_id.value = data.leave_type_id;
@@ -106,7 +108,9 @@ window.editLeaveBalance = async function (id) {
 
 window.viewLeaveBalance = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`);
+    const response = await fetchWithAuth(`${API_BASE}/api/leave-balances/${id}`);
+    const data = await response.json();
+
     const modal = document.getElementById('viewLeaveBalanceModal');
     const body = modal.querySelector('.modal-body');
 
