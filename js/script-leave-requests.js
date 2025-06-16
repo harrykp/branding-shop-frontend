@@ -13,18 +13,21 @@ async function loadLeaveRequests(page = 1) {
     const res = await fetchWithAuth(`${API_BASE}/api/leave-requests?page=${page}&search=${search}`);
     const data = Array.isArray(res) ? res : res.data || [];
     const totalPages = res.totalPages || res.total || 1;
+
+    console.log("Leave Requests Data:", data); // ✅ Log for debugging
+
     const tbody = document.getElementById('leave-request-table-body');
     tbody.innerHTML = '';
 
-    data.forEach(lr => {
+    data.forEach((lr, index) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="d-none">${lr.id}</td>
+        <td class="d-none">${lr.id || '-'}</td>
         <td>${lr.user_name || '-'}</td>
         <td>${lr.leave_type_name || '-'}</td>
-        <td>${lr.start_date}</td>
-        <td>${lr.end_date}</td>
-        <td>${lr.status}</td>
+        <td>${lr.start_date || '-'}</td>
+        <td>${lr.end_date || '-'}</td>
+        <td>${lr.status || '-'}</td>
         <td>${lr.approved_by_name || '-'}</td>
         <td>
           <button class="btn btn-sm btn-info" onclick="viewLeaveRequest(${lr.id})">View</button>
