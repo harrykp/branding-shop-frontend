@@ -6,7 +6,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadLeaveRequests();
 
   document.getElementById('leaveRequestForm').addEventListener('submit', submitLeaveRequestForm);
+
+  // ✅ Add search listener here
+  document.getElementById('searchInput').addEventListener('input', () => {
+    loadLeaveRequests(1);
+  });
 });
+
+// ✅ Date formatting helper
+function formatDate(dateString) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toISOString().split('T')[0];
+}
+
 
 async function loadLeaveRequests(page = 1) {
   const searchBox = document.getElementById('searchInput');
@@ -26,24 +39,25 @@ async function loadLeaveRequests(page = 1) {
     console.log('Parsed Leave Requests Data:', data);
 
     tbody.innerHTML = '';
-
+    
     if (data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-center">No leave requests found</td></tr>';
       return;
     }
-
+    
     data.forEach(lr => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="d-none">${lr.id}</td>
         <td>${lr.user_name || '-'}</td>
         <td>${lr.leave_type_name || '-'}</td>
-        <td>${lr.start_date}</td>
-        <td>${lr.end_date}</td>
-        <td>${lr.status}</td>
+        <td>${formatDate(lr.start_date)}</td>
+        <td>${formatDate(lr.end_date)}</td>
+        <td>${lr.status || '-'}</td>
+        <td>${lr.approved_by_name || '-'}</td>
         <td>
-          <button class="btn btn-sm btn-info" onclick="viewLeaveRequest(${lr.id})">View</button>
-          <button class="btn btn-sm btn-primary" onclick="editLeaveRequest(${lr.id})">Edit</button>
+          <button class="btn btn-sm btn-info me-1" onclick="viewLeaveRequest(${lr.id})">View</button>
+          <button class="btn btn-sm btn-primary me-1" onclick="editLeaveRequest(${lr.id})">Edit</button>
           <button class="btn btn-sm btn-danger" onclick="deleteLeaveRequest(${lr.id})">Delete</button>
         </td>
       `;
@@ -103,9 +117,7 @@ window.editLeaveRequest = async function (id) {
     form.end_date.value = data.end_date;
     form.reason.value = data.reason;
     form.status.value = data.status;
-    if (form.approved_by && data.approved_by) {
-      form.approved_by.value = data.approved_by;
-    }
+    if (form.approved_by) form.approved_by.value = data.approved_by || '';
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('leaveRequestModal')).show();
   } catch (err) {
