@@ -13,16 +13,24 @@ async function loadLeaveRequests(page = 1) {
   const search = searchBox && searchBox.value.trim() !== '' ? searchBox.value.trim() : '';
   const url = `${API_BASE}/api/leave-requests?page=${page}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
 
+  const tbody = document.getElementById('leave-request-table-body');
+  if (!tbody) return;
+
   try {
-    const res = await fetchWithAuth(url);
-    const data = Array.isArray(res) ? res : res.data || [];
-    const totalPages = res.totalPages || res.total || 1;
+    const response = await fetchWithAuth(url);
+    const result = await response.json();
+    const data = Array.isArray(result) ? result : Array.isArray(result.data) ? result.data : [];
+    const total = result.total || 0;
 
-    console.log("Leave Requests Data:", data);
+    console.log('Leave Requests Result:', result);
+    console.log('Parsed Leave Requests Data:', data);
 
-    const tbody = document.getElementById('leave-request-table-body');
-    if (!tbody) return;
     tbody.innerHTML = '';
+
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center">No leave requests found</td></tr>';
+      return;
+    }
 
     data.forEach(lr => {
       const tr = document.createElement('tr');
@@ -33,7 +41,6 @@ async function loadLeaveRequests(page = 1) {
         <td>${lr.start_date}</td>
         <td>${lr.end_date}</td>
         <td>${lr.status}</td>
-        <td>${lr.approved_by_name || '-'}</td>
         <td>
           <button class="btn btn-sm btn-info" onclick="viewLeaveRequest(${lr.id})">View</button>
           <button class="btn btn-sm btn-primary" onclick="editLeaveRequest(${lr.id})">Edit</button>
@@ -43,9 +50,10 @@ async function loadLeaveRequests(page = 1) {
       tbody.appendChild(tr);
     });
 
-    renderPagination('leave-request-pagination', totalPages, page, loadLeaveRequests);
+    renderPagination('leave-request-pagination', total, page, loadLeaveRequests);
   } catch (err) {
     console.error('Failed to load leave requests:', err);
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error loading leave requests: ${err.message}</td></tr>`;
   }
 }
 
@@ -61,7 +69,7 @@ async function submitLeaveRequestForm(e) {
     end_date: form.end_date.value,
     reason: form.reason.value,
     status: form.status.value,
-    approved_by: form.approved_by.value || null
+    approved_by: form.approved_by?.value || null
   };
 
   try {
@@ -84,9 +92,10 @@ async function submitLeaveRequestForm(e) {
 
 window.editLeaveRequest = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
-    const form = document.getElementById('leaveRequestForm');
+    const response = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
+    const data = await response.json();
 
+    const form = document.getElementById('leaveRequestForm');
     form.leave_request_id.value = data.id;
     form.user_id.value = data.user_id;
     form.leave_type_id.value = data.leave_type_id;
@@ -94,7 +103,9 @@ window.editLeaveRequest = async function (id) {
     form.end_date.value = data.end_date;
     form.reason.value = data.reason;
     form.status.value = data.status;
-    if (data.approved_by) form.approved_by.value = data.approved_by;
+    if (form.approved_by && data.approved_by) {
+      form.approved_by.value = data.approved_by;
+    }
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('leaveRequestModal')).show();
   } catch (err) {
@@ -104,7 +115,9 @@ window.editLeaveRequest = async function (id) {
 
 window.viewLeaveRequest = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
+    const response = await fetchWithAuth(`${API_BASE}/api/leave-requests/${id}`);
+    const data = await response.json();
+
     const modal = document.getElementById('viewLeaveRequestModal');
     const body = modal.querySelector('.modal-body');
 
@@ -133,3 +146,4 @@ window.deleteLeaveRequest = async function (id) {
     console.error('Failed to delete leave request:', err);
   }
 };
+
