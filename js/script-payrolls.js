@@ -6,13 +6,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadPayrolls();
 
   document.getElementById('payrollForm').addEventListener('submit', submitPayrollForm);
+
   document.getElementById('searchInput').addEventListener('input', () => {
     loadPayrolls(1);
+  });
+
+  // Clear form and ID on + New
+  document.querySelector('[data-bs-target="#payrollModal"]').addEventListener('click', () => {
+    const form = document.getElementById('payrollForm');
+    form.reset();
+    form.payroll_id.value = '';
   });
 });
 
 function formatDate(dateString) {
-  if (!dateString) return '-';
+  if (!dateString) return '';
   const date = new Date(dateString);
   return date.toISOString().split('T')[0];
 }
@@ -77,32 +85,38 @@ async function submitPayrollForm(e) {
     user_id: form.user_id.value,
     period_start: form.period_start.value,
     period_end: form.period_end.value,
-    gross_salary: form.gross_salary.value,
-    bonuses: form.bonuses.value,
-    ssnit: form.ssnit.value,
-    paye: form.paye.value,
-    deductions: form.deductions.value,
-    net_salary: form.net_salary.value,
+    gross_salary: form.gross_salary.value || 0,
+    bonuses: form.bonuses.value || 0,
+    ssnit: form.ssnit.value || 0,
+    paye: form.paye.value || 0,
+    deductions: form.deductions.value || 0,
+    net_salary: form.net_salary.value || 0,
     paid_on: form.paid_on.value,
-    status: form.status.value,
-    notes: form.notes.value
+    status: form.status.value || 'pending',
+    notes: form.notes.value || ''
   };
 
   try {
     const url = `${API_BASE}/api/payrolls${id ? `/${id}` : ''}`;
     const method = id ? 'PUT' : 'POST';
 
-    await fetchWithAuth(url, {
+    const response = await fetchWithAuth(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('payrollModal')).hide();
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    await response.json();
+
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('payrollModal'));
+    modal.hide();
     form.reset();
-    loadPayrolls();
+    form.payroll_id.value = '';
+    await loadPayrolls(1);
   } catch (err) {
     console.error('Failed to submit payroll:', err);
+    alert('Failed to save payroll. Please try again.');
   }
 }
 
