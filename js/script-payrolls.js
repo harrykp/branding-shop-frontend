@@ -1,4 +1,4 @@
-// js/script-payrolls.js
+// === script-payrolls.js ===
 
 document.addEventListener('DOMContentLoaded', async () => {
   await populateSelect('users/options', 'user_id');
@@ -9,37 +9,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadPayrolls(page = 1) {
   const search = document.getElementById('searchInput')?.value || '';
   const tbody = document.getElementById('payroll-table-body');
-
   try {
     const res = await fetchWithAuth(`${API_BASE}/api/payrolls?page=${page}&search=${search}`);
-    const result = await res.json();
-    const data = result.data || [];
-    const total = result.total || 0;
+    const data = res.data || [];
+    const total = res.total || 0;
 
     tbody.innerHTML = '';
-
     if (data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="11" class="text-center">No payroll records found</td></tr>';
       return;
     }
 
-    data.forEach(p => {
+    data.forEach(row => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${p.employee_name}</td>
-        <td>${formatDate(p.period_start)} - ${formatDate(p.period_end)}</td>
-        <td>${p.gross_salary}</td>
-        <td>${p.bonuses}</td>
-        <td>${p.ssnit}</td>
-        <td>${p.paye}</td>
-        <td>${p.deductions}</td>
-        <td>${p.net_salary}</td>
-        <td>${p.paid_on ? formatDate(p.paid_on) : '-'}</td>
-        <td>${p.status}</td>
+        <td>${row.employee_name || '-'}</td>
+        <td>${formatDate(row.period_start)} - ${formatDate(row.period_end)}</td>
+        <td>${row.gross_pay}</td>
+        <td>${row.bonuses}</td>
+        <td>${row.ssnit}</td>
+        <td>${row.paye}</td>
+        <td>${row.deductions}</td>
+        <td>${row.net_pay}</td>
+        <td>${formatDate(row.payment_date)}</td>
+        <td>${row.status}</td>
         <td>
-          <button class="btn btn-sm btn-info" onclick="viewPayroll(${p.id})">View</button>
-          <button class="btn btn-sm btn-primary" onclick="editPayroll(${p.id})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deletePayroll(${p.id})">Delete</button>
+          <button class="btn btn-sm btn-info" onclick="viewPayroll(${row.id})">View</button>
+          <button class="btn btn-sm btn-primary" onclick="editPayroll(${row.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePayroll(${row.id})">Delete</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -48,7 +45,7 @@ async function loadPayrolls(page = 1) {
     renderPagination('payroll-pagination', total, page, loadPayrolls);
   } catch (err) {
     console.error('Failed to load payrolls:', err);
-    tbody.innerHTML = `<tr><td colspan="11" class="text-danger text-center">Error loading data</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error loading data</td></tr>`;
   }
 }
 
@@ -60,20 +57,20 @@ async function submitPayrollForm(e) {
     user_id: form.user_id.value,
     period_start: form.period_start.value,
     period_end: form.period_end.value,
-    gross_salary: form.gross_salary.value,
+    gross_pay: form.gross_pay.value,
     bonuses: form.bonuses.value,
     ssnit: form.ssnit.value,
     paye: form.paye.value,
     deductions: form.deductions.value,
-    net_salary: form.net_salary.value,
-    paid_on: form.paid_on.value,
+    net_pay: form.net_pay.value,
+    payment_date: form.payment_date.value,
     status: form.status.value,
     notes: form.notes.value
   };
 
   try {
-    const url = `${API_BASE}/api/payrolls${id ? `/${id}` : ''}`;
     const method = id ? 'PUT' : 'POST';
+    const url = `${API_BASE}/api/payrolls${id ? `/${id}` : ''}`;
     await fetchWithAuth(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -84,28 +81,27 @@ async function submitPayrollForm(e) {
     form.reset();
     loadPayrolls();
   } catch (err) {
-    console.error('Failed to submit payroll:', err);
+    console.error('Failed to save payroll:', err);
   }
 }
 
 window.editPayroll = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`).then(r => r.json());
+    const data = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`);
     const form = document.getElementById('payrollForm');
     form.payroll_id.value = data.id;
     form.user_id.value = data.user_id;
     form.period_start.value = data.period_start;
     form.period_end.value = data.period_end;
-    form.gross_salary.value = data.gross_salary;
+    form.gross_pay.value = data.gross_pay;
     form.bonuses.value = data.bonuses;
     form.ssnit.value = data.ssnit;
     form.paye.value = data.paye;
     form.deductions.value = data.deductions;
-    form.net_salary.value = data.net_salary;
-    form.paid_on.value = data.paid_on;
+    form.net_pay.value = data.net_pay;
+    form.payment_date.value = data.payment_date;
     form.status.value = data.status;
     form.notes.value = data.notes;
-
     bootstrap.Modal.getOrCreateInstance(document.getElementById('payrollModal')).show();
   } catch (err) {
     console.error('Failed to load payroll for editing:', err);
@@ -114,18 +110,18 @@ window.editPayroll = async function (id) {
 
 window.viewPayroll = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`).then(r => r.json());
-    const container = document.getElementById('view-payroll-body');
-    container.innerHTML = `
+    const data = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`);
+    const body = document.getElementById('view-payroll-body');
+    body.innerHTML = `
       <p><strong>Employee:</strong> ${data.employee_name}</p>
-      <p><strong>Period:</strong> ${formatDate(data.period_start)} to ${formatDate(data.period_end)}</p>
-      <p><strong>Gross:</strong> ${data.gross_salary}</p>
+      <p><strong>Period:</strong> ${formatDate(data.period_start)} - ${formatDate(data.period_end)}</p>
+      <p><strong>Gross Pay:</strong> ${data.gross_pay}</p>
       <p><strong>Bonuses:</strong> ${data.bonuses}</p>
       <p><strong>SSNIT:</strong> ${data.ssnit}</p>
       <p><strong>PAYE:</strong> ${data.paye}</p>
       <p><strong>Deductions:</strong> ${data.deductions}</p>
-      <p><strong>Net:</strong> ${data.net_salary}</p>
-      <p><strong>Paid On:</strong> ${data.paid_on ? formatDate(data.paid_on) : '-'}</p>
+      <p><strong>Net Pay:</strong> ${data.net_pay}</p>
+      <p><strong>Paid On:</strong> ${formatDate(data.payment_date)}</p>
       <p><strong>Status:</strong> ${data.status}</p>
       <p><strong>Notes:</strong> ${data.notes}</p>
     `;
