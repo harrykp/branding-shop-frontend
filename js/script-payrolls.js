@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadPayrolls();
 
   document.getElementById('payrollForm').addEventListener('submit', submitPayrollForm);
-
   document.getElementById('searchInput').addEventListener('input', () => {
     loadPayrolls(1);
   });
@@ -24,15 +23,15 @@ function formatNumber(value) {
 }
 
 async function loadPayrolls(page = 1) {
-  const search = document.getElementById('searchInput')?.value || '';
+  const search = document.getElementById('searchInput')?.value.trim() || '';
   const tbody = document.getElementById('payroll-table-body');
 
   try {
-  const response = await fetchWithAuth(`${API_BASE}/api/payrolls?page=${page}&search=${search}`);
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-  const res = await response.json();
-  const data = res.data || [];
-  const total = res.total || 0;
+    const response = await fetchWithAuth(`${API_BASE}/api/payrolls?page=${page}&search=${search}`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const res = await response.json();
+    const data = res.data || [];
+    const total = res.total || 0;
 
     tbody.innerHTML = '';
     if (data.length === 0) {
@@ -65,7 +64,7 @@ async function loadPayrolls(page = 1) {
     renderPagination('payroll-pagination', total, page, loadPayrolls);
   } catch (err) {
     console.error('Failed to load payrolls:', err);
-    tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error loading payrolls</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error loading payrolls: ${err.message}</td></tr>`;
   }
 }
 
@@ -109,11 +108,13 @@ async function submitPayrollForm(e) {
 
 window.viewPayroll = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`);
-    const modal = document.getElementById('viewPayrollModal');
+    const response = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
 
+    const modal = document.getElementById('viewPayrollModal');
     modal.querySelector('.modal-body').innerHTML = `
-      <p><strong>Employee:</strong> ${data.employee_name}</p>
+      <p><strong>Employee:</strong> ${data.employee_name || '-'}</p>
       <p><strong>Period:</strong> ${formatDate(data.period_start)} to ${formatDate(data.period_end)}</p>
       <p><strong>Gross Pay:</strong> ${formatNumber(data.gross_salary)}</p>
       <p><strong>Bonuses:</strong> ${formatNumber(data.bonuses)}</p>
@@ -122,38 +123,42 @@ window.viewPayroll = async function (id) {
       <p><strong>Deductions:</strong> ${formatNumber(data.deductions)}</p>
       <p><strong>Net Pay:</strong> ${formatNumber(data.net_salary)}</p>
       <p><strong>Paid On:</strong> ${formatDate(data.paid_on)}</p>
-      <p><strong>Status:</strong> ${data.status}</p>
-      <p><strong>Notes:</strong> ${data.notes}</p>
+      <p><strong>Status:</strong> ${data.status || 'pending'}</p>
+      <p><strong>Notes:</strong> ${data.notes || '-'}</p>
     `;
 
     bootstrap.Modal.getOrCreateInstance(modal).show();
   } catch (err) {
     console.error('Failed to view payroll:', err);
+    alert('Failed to load payroll details. Please try again.');
   }
 };
 
 window.editPayroll = async function (id) {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`);
-    const form = document.getElementById('payrollForm');
+    const response = await fetchWithAuth(`${API_BASE}/api/payrolls/${id}`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
 
-    form.payroll_id.value = data.id;
-    form.user_id.value = data.user_id;
-    form.period_start.value = data.period_start;
-    form.period_end.value = data.period_end;
-    form.gross_salary.value = data.gross_salary;
-    form.bonuses.value = data.bonuses;
-    form.ssnit.value = data.ssnit;
-    form.paye.value = data.paye;
-    form.deductions.value = data.deductions;
-    form.net_salary.value = data.net_salary;
-    form.paid_on.value = data.paid_on;
-    form.status.value = data.status;
-    form.notes.value = data.notes;
+    const form = document.getElementById('payrollForm');
+    form.payroll_id.value = data.id || '';
+    form.user_id.value = data.user_id || '';
+    form.period_start.value = formatDate(data.period_start) || '';
+    form.period_end.value = formatDate(data.period_end) || '';
+    form.gross_salary.value = data.gross_salary || '';
+    form.bonuses.value = data.bonuses || '';
+    form.ssnit.value = data.ssnit || '';
+    form.paye.value = data.paye || '';
+    form.deductions.value = data.deductions || '';
+    form.net_salary.value = data.net_salary || '';
+    form.paid_on.value = formatDate(data.paid_on) || '';
+    form.status.value = data.status || 'pending';
+    form.notes.value = data.notes || '';
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('payrollModal')).show();
   } catch (err) {
     console.error('Failed to load payroll for editing:', err);
+    alert('Failed to load payroll details for editing. Please try again.');
   }
 };
 
