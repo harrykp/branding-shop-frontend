@@ -28,9 +28,11 @@ async function loadPayrolls(page = 1) {
   const tbody = document.getElementById('payroll-table-body');
 
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/payrolls?page=${page}&search=${search}`);
-    const data = Array.isArray(res) ? res : res.data || [];
-    const total = res.total || 1;
+  const response = await fetchWithAuth(`${API_BASE}/api/payrolls?page=${page}&search=${search}`);
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  const res = await response.json();
+  const data = res.data || [];
+  const total = res.total || 0;
 
     tbody.innerHTML = '';
     if (data.length === 0) {
